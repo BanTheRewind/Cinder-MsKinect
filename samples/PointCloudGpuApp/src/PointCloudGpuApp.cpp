@@ -35,18 +35,18 @@
 */
 
 // Includes
-#include <cinder/app/AppBasic.h>
-#include <cinder/Camera.h>
-#include <cinder/gl/gl.h>
-#include <cinder/gl/GlslProg.h>
-#include <cinder/gl/Texture.h>
-#include <cinder/gl/Vbo.h>
-#include <cinder/ImageIo.h>
-#include <cinder/params/Params.h>
-#include <cinder/Vector.h>
-#include <cinder/Utilities.h>
-#include <Kinect.h>
-#include <Resources.h>
+#include "cinder/app/AppBasic.h"
+#include "cinder/Camera.h"
+#include "cinder/gl/gl.h"
+#include "cinder/gl/GlslProg.h"
+#include "cinder/gl/Texture.h"
+#include "cinder/gl/Vbo.h"
+#include "cinder/ImageIo.h"
+#include "cinder/params/Params.h"
+#include "cinder/Vector.h"
+#include "cinder/Utilities.h"
+#include "Kinect.h"
+#include "Resources.h"
 
 /*
 * This application demonstrates how to combine a vertex 
@@ -61,9 +61,9 @@ public:
 
 	// Cinder callbacks
 	void draw();
-	void keyDown(ci::app::KeyEvent event);
-	void prepareSettings(ci::app::AppBasic::Settings * settings);
-	void resize(ci::app::ResizeEvent event);
+	void keyDown( ci::app::KeyEvent event );
+	void prepareSettings( ci::app::AppBasic::Settings * settings );
+	void resize( ci::app::ResizeEvent event );
 	void shutdown();
 	void setup();
 	void update();
@@ -71,36 +71,36 @@ public:
 private:
 
 	// Kinect
-	KinectSdk::KinectRef mKinect;
-	std::vector<KinectSdk::Skeleton> mSkeletons;
-	ci::gl::Texture mTextureDepth;
+	KinectSdk::KinectRef				mKinect;
+	std::vector<KinectSdk::Skeleton>	mSkeletons;
+	ci::gl::Texture						mTextureDepth;
 
 	// VBO
-	ci::gl::VboMesh mVboMesh;
-	ci::gl::GlslProg mShader;
+	ci::gl::VboMesh		mVboMesh;
+	ci::gl::GlslProg	mShader;
 
 	// Camera
-	ci::CameraPersp mCamera;
-	ci::Vec3f mEyePoint;
-	ci::Vec3f mLookAt;
-	ci::Vec3f mRotation;
+	ci::CameraPersp		mCamera;
+	ci::Vec3f			mEyePoint;
+	ci::Vec3f			mLookAt;
+	ci::Vec3f			mRotation;
 
 	// Save screen shot
-	void screenShot();
+	void				screenShot();
 
 	// Background image
-	ci::gl::Texture mBackground;
+	ci::gl::Texture		mBackground;
 
 	// Parameters
-	float mDepth;
-	float mFrameRate;
-	bool mFullScreen;
-	bool mFullScreenPrev;
+	float					mDepth;
+	float					mFrameRate;
+	bool					mFullScreen;
+	bool					mFullScreenPrev;
 	ci::params::InterfaceGl	mParams;
-	float mPointSize;
-	bool mRemoveBackground;
-	bool mRemoveBackgroundPrev;
-	ci::Vec3f mScale;
+	float					mPointSize;
+	bool					mRemoveBackground;
+	bool					mRemoveBackgroundPrev;
+	ci::Vec3f				mScale;
 
 };
 
@@ -115,39 +115,37 @@ void PointCloudGpuApp::draw()
 {
 
 	// Set up window
-	gl::clear(ColorAf::black(), true);
-	gl::setMatrices(mCamera);
-	gl::color(ColorAf::white());
+	gl::clear( ColorAf::black(), true );
+	gl::setMatrices( mCamera );
+	gl::color( ColorAf::white() );
 
 	// Draw world
-	if (mBackground)
-	{
-		mBackground.bind(0);
-		gl::drawSphere(Vec3f::zero(), 3000.0f, 32);
+	if ( mBackground ) {
+		mBackground.bind( 0 );
+		gl::drawSphere( Vec3f::zero(), 3000.0f, 32 );
 		mBackground.unbind();
 	}
 
 	// Check texture and VBO
-	if (mTextureDepth && mVboMesh)
-	{
+	if ( mTextureDepth && mVboMesh ) {
 
 		// Position world
 		gl::pushMatrices();
-		gl::scale(-1.0f, -1.0f, -1.0f);
-		gl::rotate(mRotation);
+		gl::scale( -1.0f, -1.0f, -1.0f );
+		gl::rotate( mRotation );
 
 		// Bind texture
-		mTextureDepth.bind(0);
+		mTextureDepth.bind( 0 );
 		
 		// Bind and configure shader
 		mShader.bind();
-		mShader.uniform("depth", mDepth);
-		mShader.uniform("scale", mScale);
-		mShader.uniform("tex0", 0);
+		mShader.uniform( "depth", mDepth );
+		mShader.uniform( "scale", mScale );
+		mShader.uniform( "tex0", 0 );
 
 		// Draw VBO
-		glPointSize(mPointSize);
-		gl::draw(mVboMesh);
+		glPointSize( mPointSize );
+		gl::draw( mVboMesh );
 
 		// Stop drawing
 		mShader.unbind();
@@ -162,17 +160,16 @@ void PointCloudGpuApp::draw()
 }
 
 // Handles key press
-void PointCloudGpuApp::keyDown(KeyEvent event)
+void PointCloudGpuApp::keyDown( KeyEvent event )
 {
 
 	// Key on key...
-	switch (event.getCode())
-	{
+	switch ( event.getCode() ) {
 	case KeyEvent::KEY_ESCAPE:
 		quit();
 		break;
 	case KeyEvent::KEY_f:
-		setFullScreen(!isFullScreen());
+		setFullScreen( !isFullScreen() );
 		break;
 	case KeyEvent::KEY_SPACE:
 		screenShot();
@@ -182,12 +179,12 @@ void PointCloudGpuApp::keyDown(KeyEvent event)
 }
 
 // Prepare window
-void PointCloudGpuApp::prepareSettings(Settings * settings)
+void PointCloudGpuApp::prepareSettings( Settings * settings )
 {
 
 	// DO IT!
-	settings->setWindowSize(800, 600);
-	settings->setFrameRate(60.0f);
+	settings->setWindowSize( 800, 600 );
+	settings->setFrameRate( 60.0f );
 
 }
 
@@ -196,24 +193,24 @@ void PointCloudGpuApp::resize(ResizeEvent event)
 {
 
 	// Set up OpenGL
-	gl::enable(GL_DEPTH_TEST);
-	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-	glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-	gl::enable(GL_LINE_SMOOTH);
-	gl::enable(GL_POLYGON_SMOOTH);
-	gl::enable(GL_POINT_SMOOTH);
-	gl::enable(GL_TEXTURE_2D);
+	gl::enable( GL_DEPTH_TEST );
+	gl::enable( GL_LINE_SMOOTH );
+	glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
+	gl::enable( GL_POINT_SMOOTH );
+	glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
+	gl::enable( GL_POLYGON_SMOOTH );
+	glHint( GL_POLYGON_SMOOTH_HINT, GL_NICEST );
+	gl::enable( GL_TEXTURE_2D );
 	gl::enableDepthRead();
 	gl::enableDepthWrite();
 	gl::enableAlphaBlending();
 	
 	// Reset camera
-	mEyePoint = Vec3f(0.0f, 0.0f, 100.0f);
+	mEyePoint = Vec3f( 0.0f, 0.0f, 100.0f );
 	mLookAt = Vec3f::zero();
 	mRotation = Vec3f::zero();
-	mCamera.lookAt(mEyePoint, mLookAt);
-	mCamera.setPerspective(60.0f, getWindowAspectRatio(), 1.0f, 6000.0f);
+	mCamera.lookAt( mEyePoint, mLookAt );
+	mCamera.setPerspective( 60.0f, getWindowAspectRatio(), 1.0f, 6000.0f );
 
 }
 
@@ -222,7 +219,7 @@ void PointCloudGpuApp::screenShot()
 {
 
 	// DO IT!
-	writeImage(getAppPath() + "frame" + toString(getElapsedFrames()) + ".png", copyWindowSurface());
+	writeImage( getAppPath() + "frame" + toString( getElapsedFrames() ) + ".png", copyWindowSurface() );
 
 }
 
@@ -233,8 +230,8 @@ void PointCloudGpuApp::setup()
 	// Start Kinect
 	mKinect = Kinect::create();
 	mKinect->removeBackground();
-	mKinect->enableUserColor(false);
-	mKinect->enableVideo(false);
+	mKinect->enableUserColor( false );
+	mKinect->enableVideo( false );
 	mKinect->start();
 
 	// VBO data
@@ -253,32 +250,32 @@ void PointCloudGpuApp::setup()
 	int32_t width = 320;
 
 	// Define VBO data
-	for (int32_t x = 0; x < width; x++)
-		for (int32_t y = 0; y < height; y++)
-		{
-			vboIndices.push_back((uint32_t)(x * height + y));
-			vboTexCoords.push_back(Vec2f((float)x / (float)(width - 1), (float)y / (float)(height - 1)));
-			vboPositions.push_back(Vec3f(
-				(vboTexCoords.rbegin()->x * 2.0f - 1.0f) * (float)width, 
-				(vboTexCoords.rbegin()->y * 2.0f - 1.0f) * (float)height, 
-				0.0f));
+	for ( int32_t x = 0; x < width; x++) {
+		for ( int32_t y = 0; y < height; y++ ) {
+			vboIndices.push_back( (uint32_t)( x * height + y ) );
+			vboTexCoords.push_back( Vec2f( (float)x / (float)( width - 1 ), (float)y / (float)( height - 1 ) ) );
+			vboPositions.push_back( Vec3f(
+				( vboTexCoords.rbegin()->x * 2.0f - 1.0f ) * (float)width, 
+				( vboTexCoords.rbegin()->y * 2.0f - 1.0f ) * (float)height, 
+				0.0f ) );
 		}
+	}
 
 	// Build VBO
-	mVboMesh = gl::VboMesh(vboPositions.size(), vboIndices.size(), vboLayout, GL_POINTS);
-	mVboMesh.bufferIndices(vboIndices);
-	mVboMesh.bufferPositions(vboPositions);
-	mVboMesh.bufferTexCoords2d(0, vboTexCoords);
+	mVboMesh = gl::VboMesh( vboPositions.size(), vboIndices.size(), vboLayout, GL_POINTS );
+	mVboMesh.bufferIndices( vboIndices );
+	mVboMesh.bufferPositions( vboPositions );
+	mVboMesh.bufferTexCoords2d( 0, vboTexCoords );
 	mVboMesh.unbindBuffers();
 
 	// Load background
-	mBackground = gl::Texture(loadImage(loadResource(RES_IMAGE_BACKGROUND)));
-	mBackground.setWrap(GL_REPEAT, GL_REPEAT);
-	mBackground.setMinFilter(GL_LINEAR);
-	mBackground.setMagFilter(GL_LINEAR);
+	mBackground = gl::Texture( loadImage( loadResource( RES_IMAGE_BACKGROUND ) ) );
+	mBackground.setWrap( GL_REPEAT, GL_REPEAT );
+	mBackground.setMinFilter( GL_LINEAR );
+	mBackground.setMagFilter( GL_LINEAR );
 
 	// Load shader
-	mShader = gl::GlslProg(loadResource(RES_SHADER_USER_VERT), loadResource(RES_SHADER_USER_FRAG));
+	mShader = gl::GlslProg( loadResource( RES_SHADER_USER_VERT ), loadResource( RES_SHADER_USER_FRAG ) );
 
 	// Clean up
 	vboIndices.clear();
@@ -286,7 +283,7 @@ void PointCloudGpuApp::setup()
 	vboTexCoords.clear();
 
 	// Run first window resize
-	resize(ResizeEvent(getWindowSize()));
+	resize( ResizeEvent( getWindowSize() ) );
 
 	// Set default properties
 	mDepth = 500.0f;
@@ -296,27 +293,27 @@ void PointCloudGpuApp::setup()
 	mPointSize = 2.0f;
 	mRemoveBackground = true;
 	mRemoveBackgroundPrev = mRemoveBackground;
-	mScale = Vec3f(1.5f, 1.5f, 5.0f);
+	mScale = Vec3f( 1.5f, 1.5f, 5.0f );
 
 	// Setup the parameters
-	mParams = params::InterfaceGl("Parameters", Vec2i(200, 500));
+	mParams = params::InterfaceGl( "Parameters", Vec2i( 200, 500 ) );
 	mParams.addSeparator();
-	mParams.addText("APPLICATION");
-	mParams.addParam("Frame rate", & mFrameRate, "", true);
-	mParams.addParam("Full screen", & mFullScreen, "key=f");
-	mParams.addButton("Screen shot", std::bind(& PointCloudGpuApp::screenShot, this), "key=s");
-	mParams.addButton("Quit", std::bind(& PointCloudGpuApp::quit, this), "key=esc");
+	mParams.addText( "APPLICATION" );
+	mParams.addParam( "Frame rate", & mFrameRate, "", true );
+	mParams.addParam( "Full screen", & mFullScreen, "key=f" );
+	mParams.addButton( "Screen shot", std::bind( & PointCloudGpuApp::screenShot, this ), "key=s" );
+	mParams.addButton( "Quit", std::bind( & PointCloudGpuApp::quit, this ), "key=esc" );
 	mParams.addSeparator();
-	mParams.addText("CAMERA");
-	mParams.addParam("Eye point", & mEyePoint);
-	mParams.addParam("Look at", & mLookAt);
-	mParams.addParam("Rotation", & mRotation);
+	mParams.addText( "CAMERA" );
+	mParams.addParam( "Eye point", & mEyePoint );
+	mParams.addParam( "Look at", & mLookAt );
+	mParams.addParam( "Rotation", & mRotation );
 	mParams.addSeparator();
-	mParams.addText("USER");
-	mParams.addParam("Depth", & mDepth, "min=0.0 max=2000.0 step=1.0 keyIncr=Z keyDecr=z");
-	mParams.addParam("Point size", & mPointSize, "min=0.025 max=100.000 step=0.001 keyIncr=P keyDecr=p");
-	mParams.addParam("Remove background", & mRemoveBackground, "key=b");
-	mParams.addParam("Scale", & mScale);
+	mParams.addText( "USER" );
+	mParams.addParam( "Depth", & mDepth, "min=0.0 max=2000.0 step=1.0 keyIncr=Z keyDecr=z" );
+	mParams.addParam( "Point size", & mPointSize, "min=0.025 max=100.000 step=0.001 keyIncr=P keyDecr=p" );
+	mParams.addParam( "Remove background", & mRemoveBackground, "key=b" );
+	mParams.addParam( "Scale", & mScale );
 
 }
 
@@ -326,14 +323,6 @@ void PointCloudGpuApp::shutdown()
 
 	// Stop input
 	mKinect->stop();
-
-	// Clean up
-	if (mBackground)
-		mBackground.reset();
-	if (mTextureDepth)
-		mTextureDepth.reset();
-	if (mVboMesh)
-		mVboMesh.reset();
 
 }
 
@@ -345,9 +334,8 @@ void PointCloudGpuApp::update()
 	mFrameRate = getAverageFps();
 
 	// Toggle fullscreen
-	if (mFullScreen != mFullScreenPrev)
-	{
-		setFullScreen(mFullScreen);
+	if ( mFullScreen != mFullScreenPrev ) {
+		setFullScreen( mFullScreen );
 		mFullScreenPrev = mFullScreen;
 	}
 
@@ -359,31 +347,29 @@ void PointCloudGpuApp::update()
 	}
 
 	// Kinect is running
-	if (mKinect->isCapturing())
-	{
+	if ( mKinect->isCapturing() ) {
 
 		// Check depth texture
-		if (mKinect->checkNewDepthFrame())
-		{
+		if ( mKinect->checkNewDepthFrame() ) {
 
 			// Get depth texture
-			mTextureDepth = gl::Texture(mKinect->getDepth());
+			mTextureDepth = gl::Texture( mKinect->getDepth() );
 
 			// Check for skeletons
 			mSkeletons.clear();
-			if (mKinect->checkNewSkeletons())
-			{
+			if ( mKinect->checkNewSkeletons() ) {
 
 				// Get skeletons
 				mSkeletons = mKinect->getSkeletons();
 
 				// Find first active skeleton
-				for (vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt)
-					if (skeletonIt->size() == (uint32_t)JointName::NUI_SKELETON_POSITION_COUNT)
-					{
+				for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt ) {
+					
+					// Valid skeletons have all joints
+					if ( skeletonIt->size() == (uint32_t)JointName::NUI_SKELETON_POSITION_COUNT ) {
 
 						// Look at spine
-						Vec3f spine = skeletonIt->at(JointName::NUI_SKELETON_POSITION_SPINE) * mEyePoint.z;
+						Vec3f spine = skeletonIt->at( JointName::NUI_SKELETON_POSITION_SPINE ) * mEyePoint.z;
 						mLookAt.x = spine.x;
 						mLookAt.y = spine.y;
 						mEyePoint.x = -mLookAt.x * 0.5f;
@@ -391,24 +377,25 @@ void PointCloudGpuApp::update()
 
 					}
 
+				}
+
 			}
 
 		}
 
-	}
-	else
-	{
+	} else {
 
 		// If Kinect initialization failed, try again every 90 frames
-		if (getElapsedFrames() % 90 == 0)
+		if ( getElapsedFrames() % 90 == 0 ) {
 			mKinect->start();
+		}
 
 	}
 
 	// Update camera
-	mCamera.lookAt(mEyePoint, mLookAt);
+	mCamera.lookAt( mEyePoint, mLookAt );
 
 }
 
 // Run application
-CINDER_APP_BASIC(PointCloudGpuApp, RendererGl)
+CINDER_APP_BASIC( PointCloudGpuApp, RendererGl )

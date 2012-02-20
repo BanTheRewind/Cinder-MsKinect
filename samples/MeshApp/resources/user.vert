@@ -10,17 +10,17 @@ varying vec4 position;
 varying vec4 uv;
 
 // Kernel
-void main(void)
+void main( void )
 {
 
 	// Get texture coordinate
 	uv = gl_MultiTexCoord0;
 
 	// Get brightness from first channel (assumes image is greyscale)
-	brightness = texture2D(positions, uv.st).r;
+	brightness = texture2D( positions, uv.st ).r;
 
 	// Get normal
-	normal = normalize(gl_NormalMatrix * gl_Normal);
+	normal = normalize( gl_NormalMatrix * gl_Normal );
 
 	// Get position in VBO
 	position = gl_Vertex;
@@ -28,7 +28,7 @@ void main(void)
 	// Scale position
 	position.x = -position.x * scale.x;
 	position.y = position.y * scale.y;
-	position.z = depth * ((1.0 - brightness) * scale.z);
+	position.z = depth * ( ( 1.0 - brightness ) * scale.z );
 
 	// Transform position
 	gl_Position = gl_ModelViewProjectionMatrix * position;

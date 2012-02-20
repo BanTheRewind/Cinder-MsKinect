@@ -8,14 +8,14 @@
     <Filter Include="blocks">
       <UniqueIdentifier>{bc923a7f-9032-44d0-91e8-3747da8487ea}</UniqueIdentifier>
     </Filter>
-    <Filter Include="blocks\KinectSdk">
-      <UniqueIdentifier>{1889549a-f9cc-477d-a1b8-75dc6b47e9dd}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="blocks\audioInputWin">
-      <UniqueIdentifier>{92da7827-9f0d-4a8f-8ce8-fdba3f2d1ea9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{aba83541-eadc-4a4a-a5e3-de71d0e60139}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="blocks\Cinder-AudioInputWin">
+      <UniqueIdentifier>{92da7827-9f0d-4a8f-8ce8-fdba3f2d1ea9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="blocks\Cinder-KinectSdk">
+      <UniqueIdentifier>{1889549a-f9cc-477d-a1b8-75dc6b47e9dd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -24,16 +24,16 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\audioInputWin\src\AudioInput.h">
-      <Filter>blocks\audioInputWin</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\Kinect.h">
-      <Filter>blocks\KinectSdk</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="Resources.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\Cinder-AudioInputWin\src\AudioInput.h">
+      <Filter>blocks\Cinder-AudioInputWin</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Kinect.h">
+      <Filter>blocks\Cinder-KinectSdk</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -35,14 +35,13 @@
 */
 
 // Includes
-#include <cinder/app/AppBasic.h>
-#include <cinder/Camera.h>
-#include <cinder/gl/gl.h>
-#include <cinder/gl/Texture.h>
-#include <cinder/ImageIo.h>
-#include <cinder/Vector.h>
-#include <cinder/Utilities.h>
-#include <Kinect.h>
+#include "cinder/app/AppBasic.h"
+#include "cinder/Camera.h"
+#include "cinder/gl/gl.h"
+#include "cinder/gl/Texture.h"
+#include "cinder/ImageIo.h"
+#include "cinder/Utilities.h"
+#include "Kinect.h"
 
 /* 
 * This application demonstrates how to represent the 
@@ -55,8 +54,8 @@ public:
 
 	// Cinder callbacks
 	void draw();
-	void keyDown(ci::app::KeyEvent event);
-	void prepareSettings(ci::app::AppBasic::Settings * settings);
+	void keyDown( ci::app::KeyEvent event );
+	void prepareSettings( ci::app::AppBasic::Settings * settings );
 	void shutdown();
 	void setup();
 	void update();
@@ -64,20 +63,20 @@ public:
 private:
 
 	// Kinect
-	ci::Surface8u mSurface;
-	KinectSdk::KinectRef mKinect;
+	ci::Surface8u			mSurface;
+	KinectSdk::KinectRef	mKinect;
 
 	// Depth points
-	std::vector<ci::Vec3f> mPoints;
-	ci::Vec3f mOffset;
-	float mScale;
-	ci::Vec3f mSpacing;
+	std::vector<ci::Vec3f>	mPoints;
+	ci::Vec3f				mOffset;
+	float					mScale;
+	ci::Vec3f				mSpacing;
 
 	// Camera
-	ci::CameraPersp mCamera;
+	ci::CameraPersp			mCamera;
 
 	// Save screen shot
-	void screenShot();
+	void					screenShot();
 
 };
 
@@ -92,36 +91,34 @@ void PointCloudApp::draw()
 {
 
 	// Clear window
-	gl::setViewport(getWindowBounds());
-	gl::clear(Colorf::black());
-	gl::setMatrices(mCamera);
+	gl::setViewport( getWindowBounds() );
+	gl::clear( Colorf::black() );
+	gl::setMatrices( mCamera );
 
 	// Draw points
 	gl::pushMatrices();
-	gl::scale(Vec3f(mScale, mScale, 1.0f));
-	gl::translate(mOffset);
-	glBegin(GL_POINTS);
-	for_each(mPoints.cbegin(), mPoints.cend(), [](const Vec3f & point)
-	{
-		gl::vertex(point);
-	});
+	gl::scale( Vec3f( mScale, mScale, 1.0f ) );
+	gl::translate( mOffset );
+	glBegin( GL_POINTS );
+	for_each(mPoints.cbegin(), mPoints.cend(), [](const Vec3f & point) {
+		gl::vertex( point );
+	} );
 	glEnd();
 	gl::popMatrices();
 
 }
 
 // Handles key press
-void PointCloudApp::keyDown(KeyEvent event)
+void PointCloudApp::keyDown( KeyEvent event )
 {
 
 	// Key on key...
-	switch (event.getCode())
-	{
+	switch ( event.getCode() ) {
 	case KeyEvent::KEY_ESCAPE:
 		quit();
 		break;
 	case KeyEvent::KEY_f:
-		setFullScreen(!isFullScreen());
+		setFullScreen( !isFullScreen() );
 		break;
 	case KeyEvent::KEY_s:
 		screenShot();
@@ -131,12 +128,12 @@ void PointCloudApp::keyDown(KeyEvent event)
 }
 
 // Prepare window
-void PointCloudApp::prepareSettings(Settings * settings)
+void PointCloudApp::prepareSettings( Settings * settings )
 {
 
 	// DO IT!
-	settings->setWindowSize(1024, 768);
-	settings->setFrameRate(60.0f);
+	settings->setWindowSize( 1024, 768 );
+	settings->setFrameRate( 60.0f );
 
 }
 
@@ -149,8 +146,6 @@ void PointCloudApp::shutdown()
 
 	// Clean up
 	mPoints.clear();
-	if (mSurface)
-		mSurface.reset();
 
 }
 
@@ -159,7 +154,7 @@ void PointCloudApp::screenShot()
 {
 
 	// DO IT!
-	writeImage(getAppPath() + "frame" + toString(getElapsedFrames()) + ".png", copyWindowSurface());
+	writeImage( getAppPath() + "frame" + toString( getElapsedFrames() ) + ".png", copyWindowSurface() );
 
 }
 
@@ -168,29 +163,29 @@ void PointCloudApp::setup()
 {
 
 	// Set up OpenGL
-	glEnable(GL_BLEND);
-	glEnable(GL_DEPTH_TEST);
-	glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-	glEnable(GL_POINT_SMOOTH);
-	glPointSize(0.5f);
+	gl::enable( GL_BLEND );
+	gl::enable( GL_DEPTH_TEST );
+	glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
+	glEnable( GL_POINT_SMOOTH );
+	glPointSize( 0.5f );
 	gl::enableAlphaBlending();
-	gl::color(ColorAf::white());
+	gl::color( ColorAf::white() );
 
 	// Start Kinect with isolated depth tracking only
 	mKinect = Kinect::create();
 	mKinect->removeBackground();
-	mKinect->enableSkeletons(false);
-	mKinect->enableVideo(false);
-	mKinect->start(0, KinectSdk::ImageResolution::NUI_IMAGE_RESOLUTION_640x480);
+	mKinect->enableSkeletons( false );
+	mKinect->enableVideo( false );
+	mKinect->start( 0 );
 
 	// Set up camera
-	mCamera.lookAt(Vec3f(0.0f, 0.0f, 0.001f), Vec3f::zero());
-	mCamera.setPerspective(60.0f, getWindowAspectRatio(), 1.0f, 1000.0f);
+	mCamera.lookAt( Vec3f( 0.0f, 0.0f, 0.001f ), Vec3f::zero() );
+	mCamera.setPerspective( 60.0f, getWindowAspectRatio(), 1.0f, 1000.0f );
 
 	// Point scaling
 	mScale = 4.0f;
-	mSpacing.set(1.0f / 640.0f, -1.0f / 480.0f, 1.0f / 255.0f);
-	mOffset.set(-0.25f, 0.25f, 0.0f);
+	mSpacing.set( 1.0f / 640.0f, -1.0f / 480.0f, 1.0f / 255.0f );
+	mOffset.set( -0.25f, 0.25f, 0.0f );
 
 }
 
@@ -199,12 +194,10 @@ void PointCloudApp::update()
 {
 
 	// Device is capturing
-	if (mKinect->isCapturing())
-	{
+	if ( mKinect->isCapturing() ) {
 
 		// Check for latest depth map
-		if (mKinect->checkNewDepthFrame())
-		{
+		if ( mKinect->checkNewDepthFrame() ) {
 
 			// Get surface
 			mSurface = mKinect->getDepth();
@@ -215,12 +208,10 @@ void PointCloudApp::update()
 
 			// Iterate image rows
 			Surface::Iter iter = mSurface.getIter();
-			while (iter.line())
-			{
+			while ( iter.line() ) {
 
 				// Iterate rows in pixel
-				while (iter.pixel())
-				{
+				while (iter.pixel()) {
 
 					// Get channels
 					uint8_t b = iter.b();
@@ -228,22 +219,23 @@ void PointCloudApp::update()
 					uint8_t r = iter.r();
 
 					// This is not black
-					if (b + g + r > 0)
-					{
+					if ( b + g + r > 0 ) {
 
 						// Choose which channel to use for depth
 						uint8_t depth = b;
-						if (g > depth)
+						if ( g > depth ) {
 							depth = g;
-						if (r > depth)
+						}
+						if ( r > depth ) {
 							depth = r;
+						}
 
 						// Invert depth
 						depth = 256 - depth;
 
 						// Add position to point list
-						position.z = -mSpacing.z * ((float)depth * 5.0f);
-						mPoints.push_back(position);
+						position.z = -mSpacing.z * ( (float)depth * 5.0f );
+						mPoints.push_back( position );
 
 					}
 
@@ -260,17 +252,16 @@ void PointCloudApp::update()
 
 		}
 
-	}
-	else
-	{
+	} else {
 
 		// If Kinect initialization failed, try again every 90 frames
-		if (getElapsedFrames() % 90 == 0)
+		if ( getElapsedFrames() % 90 == 0 ) {
 			mKinect->start();
+		}
 
 	}
 
 }
 
 // Run application
-CINDER_APP_BASIC(PointCloudApp, RendererGl)
+CINDER_APP_BASIC( PointCloudApp, RendererGl )

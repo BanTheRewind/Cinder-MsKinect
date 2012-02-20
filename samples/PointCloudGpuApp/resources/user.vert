@@ -9,19 +9,19 @@ varying vec3 color;
 varying vec4 vertex;
 
 // Kernel
-void main(void)
+void main( void )
 {
 
 	// Get brightness from first channel (assumes image is greyscale)
-	brightness = texture2D(tex, gl_MultiTexCoord0.st).r;
+	brightness = texture2D( tex, gl_MultiTexCoord0.st ).r;
 
 	// Get position
-	vertex = vec4(gl_Vertex);
+	vertex = vec4( gl_Vertex );
 
 	// Scale position
 	vertex.x = -vertex.x * scale.x;
 	vertex.y = vertex.y * scale.y;
-	vertex.z = depth * ((1.0 - brightness) * scale.z);
+	vertex.z = depth * ( ( 1.0 - brightness ) * scale.z );
 
 	// Transform position
 	gl_Position = gl_ModelViewProjectionMatrix * vertex;

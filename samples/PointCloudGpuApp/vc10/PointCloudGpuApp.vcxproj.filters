@@ -11,11 +11,11 @@
     <Filter Include="Header Files">
       <UniqueIdentifier>{e1f6b9f4-7ce9-455e-95ea-a5e34f637e60}</UniqueIdentifier>
     </Filter>
-    <Filter Include="blocks\KinectSdk">
-      <UniqueIdentifier>{1889549a-f9cc-477d-a1b8-75dc6b47e9dd}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{ad41e824-6b72-4403-9929-10ebd7c1098c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="blocks\Cinder-KinectSdk">
+      <UniqueIdentifier>{1889549a-f9cc-477d-a1b8-75dc6b47e9dd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -24,11 +24,11 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\src\Kinect.h">
-      <Filter>blocks\KinectSdk</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\Resources.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Kinect.h">
+      <Filter>blocks\Cinder-KinectSdk</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
