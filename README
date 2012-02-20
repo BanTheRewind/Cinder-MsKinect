@@ -1,6 +1,9 @@
 This block wraps Microsoft official SDK for the Kinect 
 device.
 
+The "KinectApp" sample requires "Cinder-AudioInputWin":
+https://github.com/BanTheRewind/Cinder-AudioInputWin
+
 Installation instructions and more information here:
 http://www.bantherewind.com/kinectsdk-for-cinder
 
