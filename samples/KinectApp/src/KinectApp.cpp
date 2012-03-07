@@ -78,6 +78,8 @@ private:
 	bool	mBinaryModePrev;
 	bool	mEnabledAudio;
 	bool	mEnabledAudioPrev;
+	bool	mEnabledNearMode;
+	bool	mEnabledNearModePrev;
 	bool	mEnabledDepth;
 	bool	mEnabledDepthPrev;
 	bool	mEnabledSkeletons;
@@ -367,6 +369,8 @@ void KinectApp::setup()
 	mEnabledAudioPrev = true;
 	mEnabledDepth = true;
 	mEnabledDepthPrev = mEnabledDepth;
+	mEnabledNearMode = false;
+	mEnabledNearModePrev = mEnabledNearMode;
 	mEnabledSkeletons = true;
 	mEnabledSkeletonsPrev = mEnabledSkeletons;
 	mEnabledStats = true;
@@ -382,7 +386,7 @@ void KinectApp::setup()
 	mRemoveBackground = true;
 	mRemoveBackgroundPrev = mRemoveBackground;
 	mUserCount = 0;
-	
+
 	// Start image capture
 	startKinect();
 
@@ -416,6 +420,7 @@ void KinectApp::setup()
 	mParams.addParam( "Remove background", & mRemoveBackground, "key=b" );
 	mParams.addParam( "Binary depth mode", & mBinaryMode, "key=w" );
 	mParams.addParam( "Invert binary image", & mInverted, "key=i" );
+	mParams.addParam( "Near mode", & mEnabledNearMode, "key=n" );
 	mParams.addSeparator();
 	mParams.addText( "APPLICATION" );
 	mParams.addParam( "Full screen", & mFullScreen, "key=f" );
@@ -586,6 +591,12 @@ void KinectApp::update()
 		mDevices[ mDeviceIndex ]->enableBinaryMode( mBinaryMode, mInverted );
 		mBinaryModePrev = mBinaryMode;
 		mInvertedPrev = mInverted;
+	}
+
+	// Toggle near mode
+	if ( mEnabledNearMode != mEnabledNearModePrev ) {
+		mDevices[ mDeviceIndex ]->enableNearMode( mEnabledNearMode );
+		mEnabledNearModePrev = mEnabledNearMode;
 	}
 
 	// Check if device is capturing

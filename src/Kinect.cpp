@@ -155,6 +155,22 @@ namespace KinectSdk
 
 	}
 
+	// Enable or disable near mode
+	void Kinect::enableNearMode( bool enable ) 
+	{
+		
+		// Set flag
+		bool toggle = mEnabledNearMode != enable;
+		mEnabledNearMode = enable;
+
+		// Toggle
+		if ( toggle && mEnabledDepth ) {
+			mEnabledDepth = false;
+			enableDepth( true );
+		}
+
+	}
+
 	// Enable or disable depth tracking
 	void Kinect::enableDepth( bool enable )
 	{
@@ -364,6 +380,7 @@ namespace KinectSdk
 		mInverted = false;
 		mSensor = 0;
 		mIsSkeletonDevice = false;
+		mEnabledNearMode = false;
 		mNewDepthFrame = false;
 		mNewSkeletons = false;
 		mNewVideoFrame = false;
@@ -398,6 +415,9 @@ namespace KinectSdk
 				stop();
 				return false;
 			}
+			if ( mEnabledNearMode ) {
+				mSensor->NuiImageStreamSetImageFrameFlags( mDepthStreamHandle, NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE | NUI_IMAGE_STREAM_FLAG_DISTINCT_OVERFLOW_DEPTH_VALUES );
+			}
 		}
 		return true;
 	}
@@ -423,7 +443,7 @@ namespace KinectSdk
 		while ( mEnabledDepth ) {
 
 			// Lock scope
-			boost::mutex::scoped_lock lock( mMutexDepth );
+			boost::lock_guard<boost::mutex> lock( mMutexDepth );
 
 			// Need to acquire last image first
 			if ( mCapture && mSensor != 0 && mDepthStreamHandle != 0 && !mNewDepthFrame ) {
@@ -444,7 +464,7 @@ namespace KinectSdk
 
 					// Read texture to surface
 					INuiFrameTexture * texture = imageFrame.pFrameTexture;
-					NUI_LOCKED_RECT lockedRect;
+					_NUI_LOCKED_RECT lockedRect;
 					texture->LockRect( 0, & lockedRect, 0, 0 );
 					if ( lockedRect.Pitch != 0 ) {
 						pixelToSurface( mDepthSurface, (uint8_t *)lockedRect.pBits, true );
@@ -475,8 +495,8 @@ namespace KinectSdk
 
 			}
 
-			// Unlock scope
-			lock.unlock();
+			// Sleep
+			threadSleep();
 
 		}
 
@@ -492,7 +512,7 @@ namespace KinectSdk
 		while (mEnabledSkeletons) {
 
 			// Lock scope
-			boost::mutex::scoped_lock lock( mMutexSkeletons );
+			boost::lock_guard<boost::mutex> lock( mMutexSkeletons );
 
 			// Check capturing flag and device index
 			if ( mCapture && mSensor != 0 && mIsSkeletonDevice && !mNewSkeletons ) {
@@ -543,9 +563,9 @@ namespace KinectSdk
 
 			}
 
-			// Unlock scope
-			lock.unlock();
-
+			// Sleep
+			threadSleep();
+			
 		}
 
 		// Return to join thread
@@ -561,7 +581,7 @@ namespace KinectSdk
 		while ( mEnabledVideo ) {
 
 			// Lock scope
-			boost::mutex::scoped_lock lock( mMutexVideo );
+			boost::lock_guard<boost::mutex> lock( mMutexVideo );
 
 			// Need to acquire last frame first
 			if ( mCapture && mSensor != 0 && mVideoStreamHandle != 0 && !mNewVideoFrame ) {
@@ -579,7 +599,7 @@ namespace KinectSdk
 
 					// Read texture
 					INuiFrameTexture * texture = imageFrame.pFrameTexture;
-					NUI_LOCKED_RECT lockedRect;
+					_NUI_LOCKED_RECT lockedRect;
 					texture->LockRect( 0, & lockedRect, 0, 0 );
 					if ( lockedRect.Pitch != 0 ) {
 						pixelToSurface( mVideoSurface, (uint8_t *)lockedRect.pBits );
@@ -602,8 +622,8 @@ namespace KinectSdk
 
 			}
 
-			// Unlock scope
-			lock.unlock();
+			// Sleep
+			threadSleep();
 
 		}
 
@@ -745,8 +765,6 @@ namespace KinectSdk
 
 	}
 
-
-
 	// Set resolution for video
 	void Kinect::setVideoResolution( const ImageResolution & videoResolution )
 	{
@@ -883,7 +901,7 @@ namespace KinectSdk
 	}
 
 	// Start capturing
-	void Kinect::start( int32_t deviceIndex, const ImageResolution & videoResolution, const ImageResolution & depthResolution )
+	void Kinect::start( int32_t deviceIndex, const ImageResolution & videoResolution, const ImageResolution & depthResolution, bool nearMode )
 	{
 
 		// Don't start if already capturing
@@ -891,6 +909,9 @@ namespace KinectSdk
 
 			// Set device index
 			setDeviceIndex( deviceIndex );
+
+			// Set near mode
+			mEnabledNearMode = nearMode;
 
 			// Set resolution
 			setDepthResolution( depthResolution );
@@ -1003,6 +1024,20 @@ namespace KinectSdk
 
 		}
 
+	}
+
+	// Sleep to improve performance
+	void Kinect::threadSleep( double seconds ) 
+	{
+		static void * Timer = CreateWaitableTimer( 0, 0, 0 );
+		_LARGE_INTEGER WaitTime; WaitTime.QuadPart = (long long)( seconds * -10000000.0 ); 
+		if ( WaitTime.QuadPart >= 0 ) {
+			return; // Give up the rest of the frame.  
+		}
+		if ( !SetWaitableTimer( Timer, & WaitTime, 0, 0, 0, 0) ) { 
+			return; 
+			DWORD Result = MsgWaitForMultipleObjects( 1, &Timer, 0, 0xFFFFFFFF, QS_ALLINPUT ); 
+		}
 	}
 
 	// Debug trace

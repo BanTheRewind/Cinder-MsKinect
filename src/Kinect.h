@@ -77,12 +77,13 @@ namespace KinectSdk
 
 		// Start/stop capturing
 		void start( int32_t deviceIndex = 0, const ImageResolution & videoResolution = ImageResolution::NUI_IMAGE_RESOLUTION_640x480, 
-			const ImageResolution & depthResolution = ImageResolution::NUI_IMAGE_RESOLUTION_320x240 );
+			const ImageResolution & depthResolution = ImageResolution::NUI_IMAGE_RESOLUTION_320x240, bool nearMode = false );
 		void stop();
 
 		// Flags to enable each feature
 		void enableBinaryMode( bool enable = true, bool invertImage = false );
 		void enableDepth( bool enable = true );
+		void enableNearMode( bool enable = true );
 		void enableSkeletons( bool enable = true );
 		void enableUserColor( bool enable = true );
 		void enableVideo( bool enable = true );
@@ -162,7 +163,7 @@ namespace KinectSdk
 		static std::vector<ci::Colorf>	getUserColors();
 
 		// Maximum wait time in milliseconds for new Kinect data
-		static const int32_t			WAIT_TIME = 250;
+		static const int32_t			WAIT_TIME = 175;
 		static const double				TILT_REQUEST_INTERVAL;
 
 		// Initialize properties
@@ -206,6 +207,7 @@ namespace KinectSdk
 
 		// Sensor
 		int32_t							mDeviceIndex;
+		bool							mEnabledNearMode;
 		INuiSensor *					mSensor;
 		double							mTiltRequestTime;
 
@@ -237,6 +239,7 @@ namespace KinectSdk
 		void							processDepth();
 		void							processSkeletons();
 		void							processVideo();
+		void							threadSleep( double seconds = 0.0166667 );
 
 		// Image data
 		Pixel *							mRgbDepth;
