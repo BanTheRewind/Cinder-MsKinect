@@ -37,6 +37,11 @@
 // Include header
 #include "Kinect.h"
 
+#include "boost/date_time.hpp"
+#include "boost/date_time/posix_time/posix_time.hpp"
+#include "cinder/app/App.h"
+#include "cinder/Utilities.h"
+
 // Kinect SDK namespace
 namespace KinectSdk
 {
@@ -92,25 +97,31 @@ namespace KinectSdk
 	{
 
 		// Initialize all values
+		mRunning = false;
 		init();
 
 		// Initialize skeletons
 		for ( int32_t i = 0; i < NUI_SKELETON_COUNT; i++ ) {
 			mSkeletons.push_back( Skeleton() );
 		}
-	
+
 	}
 
 	// Destructor
 	Kinect::~Kinect()
 	{
 
-		// Stop if running
+		// Stop
 		if ( mCapture ) {
 			stop();
 		}
+		if ( mRunning ) {
+			boost::lock_guard<boost::mutex> lock( mMutex );
+			mRunning = false;
+			mThread->join();
+		}
 
-		// Stop threads
+		// Turn off features
 		enableDepth( false );
 		enableSkeletons( false );
 		enableVideo( false );
@@ -138,6 +149,11 @@ namespace KinectSdk
 	void Kinect::deactivateUsers()
 	{
 
+		// Thread sync
+		if ( mRunning ) {
+			boost::lock_guard<boost::mutex> lock( mMutex );
+		}
+
 		// DO IT!
 		for ( uint32_t i = 0; i < NUI_SKELETON_COUNT; i++ ) {
 			mActiveUsers[ i ] = false;
@@ -149,6 +165,11 @@ namespace KinectSdk
 	void Kinect::enableBinaryMode( bool enable, bool invertImage )
 	{
 
+		// Thread sync
+		if ( mRunning ) {
+			boost::lock_guard<boost::mutex> lock( mMutex );
+		}
+
 		// Update flags
 		mBinary = enable;
 		mInverted = invertImage;
@@ -158,7 +179,12 @@ namespace KinectSdk
 	// Enable or disable near mode
 	void Kinect::enableNearMode( bool enable ) 
 	{
-		
+
+		// Thread sync
+		if ( mRunning ) {
+			boost::lock_guard<boost::mutex> lock( mMutex );
+		}
+
 		// Set flag
 		bool toggle = mEnabledNearMode != enable;
 		mEnabledNearMode = enable;
@@ -174,6 +200,11 @@ namespace KinectSdk
 	// Enable or disable depth tracking
 	void Kinect::enableDepth( bool enable )
 	{
+
+		// Thread sync
+		if ( mRunning ) {
+			boost::lock_guard<boost::mutex> lock( mMutex );
+		}
 
 		// Set user count to 0 if disabled
 		if ( !enable ) {
@@ -196,13 +227,6 @@ namespace KinectSdk
 			// Initialize surface
 			mDepthSurface = Surface8u( mDepthWidth, mDepthHeight, false, SurfaceChannelOrder::RGBA );
 
-			// Start or stop thread
-			if ( enable ) {
-				mThreadDepth = boost::thread( & Kinect::processDepth, this );
-			} else {
-				mThreadDepth.join();
-			}
-
 		}
 
 	}
@@ -210,6 +234,11 @@ namespace KinectSdk
 	// Enable or disable skeleton tracking
 	void Kinect::enableSkeletons( bool enable )
 	{
+
+		// Thread sync
+		if ( mRunning ) {
+			boost::lock_guard<boost::mutex> lock( mMutex );
+		}
 
 		// Only supports skeletons on first device
 		if ( !mIsSkeletonDevice ) {
@@ -235,13 +264,6 @@ namespace KinectSdk
 				mSkeletons.push_back( Skeleton() );
 			}
 
-			// Start or stop thread
-			if ( enable ) {
-				mThreadSkeletons = boost::thread( & Kinect::processSkeletons, this );
-			} else {
-				mThreadSkeletons.join();
-			}
-
 		}
 
 	}
@@ -249,12 +271,24 @@ namespace KinectSdk
 	// Enable or disable user color
 	void Kinect::enableUserColor( bool enable )
 	{
+
+		// Thread sync
+		if ( mRunning ) {
+			boost::lock_guard<boost::mutex> lock( mMutex );
+		}
+
 		mGreyScale = !enable;
+
 	}
 
 	// Enable or disable video tracking
 	void Kinect::enableVideo( bool enable )
 	{
+
+		// Thread sync
+		if ( mRunning ) {
+			boost::lock_guard<boost::mutex> lock( mMutex );
+		}
 
 		// Set flag
 		bool toggle = mEnabledVideo != enable;
@@ -272,13 +306,6 @@ namespace KinectSdk
 			// Initialize surface
 			mVideoSurface = Surface8u( mVideoWidth, mVideoHeight, false, SurfaceChannelOrder::RGBA );
 
-			// Start or stop thread
-			if ( enable ) {
-				mThreadVideo = boost::thread( & Kinect::processVideo, this );
-			} else {
-				mThreadVideo.join();
-			}
-
 		}
 
 	}
@@ -286,6 +313,11 @@ namespace KinectSdk
 	// Get camera angle
 	int32_t Kinect::getCameraAngle()
 	{
+
+		// Thread sync
+		if ( mRunning ) {
+			boost::lock_guard<boost::mutex> lock( mMutex );
+		}
 
 		// DO IT!
 		long degrees = 0L;
@@ -300,9 +332,11 @@ namespace KinectSdk
 	Surface8u Kinect::getDepth() 
 	{ 
 
-		// Lock thread
-		boost::lock_guard<boost::mutex> lock( mMutexDepth );
-	
+		// Thread sync
+		if ( mRunning ) {
+			boost::lock_guard<boost::mutex> lock( mMutex );
+		}
+
 		// Return surface and turn off new flag
 		mNewDepthFrame = false;
 		return mDepthSurface;
@@ -325,8 +359,10 @@ namespace KinectSdk
 	{
 
 		// Thread sync
-		boost::lock_guard<boost::mutex> lock( mMutexSkeletons );
-	
+		if ( mRunning ) {
+			boost::lock_guard<boost::mutex> lock( mMutex );
+		}
+
 		// Return skeletons and turn off new flag
 		mNewSkeletons = false;
 		return mSkeletons;
@@ -337,9 +373,11 @@ namespace KinectSdk
 	int32_t Kinect::getUserCount() 
 	{
 
-		// Lock thread
-		boost::lock_guard<boost::mutex> lock( mMutexDepth );
-	
+		// Thread sync
+		if ( mRunning ) {
+			boost::lock_guard<boost::mutex> lock( mMutex );
+		}
+
 		// Return user count
 		return mEnabledDepth ? mUserCount : 0;
 
@@ -349,9 +387,11 @@ namespace KinectSdk
 	Surface8u Kinect::getVideo() 
 	{
 
-		// Lock thread
-		boost::lock_guard<boost::mutex> lock( mMutexVideo );
-	
+		// Thread sync
+		if ( mRunning ) {
+			boost::lock_guard<boost::mutex> lock( mMutex );
+		}
+
 		// Return surface and turn off new flag
 		mNewVideoFrame = false;
 		return mVideoSurface;
@@ -393,7 +433,6 @@ namespace KinectSdk
 		mSkeletonBmp = 0;
 		mSkeletonDc = 0;
 		mSkeletonObject = 0;
-		mThreadsRunning = false;
 		mTiltRequestTime = 0.0;
 		mUserCount = 0;
 		mVideoHeight = 480;
@@ -426,210 +465,13 @@ namespace KinectSdk
 	bool Kinect::openVideoStream()
 	{
 		if ( mSensor != 0 ) {
-			if ( FAILED( mSensor->NuiImageStreamOpen( NUI_IMAGE_TYPE_COLOR, mVideoResolution, 0, 2, 0, & mVideoStreamHandle ) ) ) {
+			if ( FAILED( mSensor->NuiImageStreamOpen( NUI_IMAGE_TYPE_COLOR, mVideoResolution, 0, 2, 0, &mVideoStreamHandle ) ) ) {
 				trace( "Unable to open color image stream" );
 				stop();
 				return false;
 			}
 		}
 		return true;
-	}
-
-	// Depth thread
-	void Kinect::processDepth()
-	{
-
-		// Loop
-		while ( mEnabledDepth ) {
-
-			// Lock scope
-			boost::lock_guard<boost::mutex> lock( mMutexDepth );
-
-			// Need to acquire last image first
-			if ( mCapture && mSensor != 0 && mDepthStreamHandle != 0 && !mNewDepthFrame ) {
-
-				// Acquire depth image
-				_NUI_IMAGE_FRAME imageFrame;
-				if ( FAILED( mSensor->NuiImageStreamGetNextFrame( mDepthStreamHandle, WAIT_TIME, & imageFrame ) ) ) {
-
-					// Try opening stream if process failed -- exit if error
-					if ( !openDepthStream() ) {
-						mEnabledDepth = false;
-					}
-
-				} else {
-
-					// Deactivate users
-					deactivateUsers();
-
-					// Read texture to surface
-					INuiFrameTexture * texture = imageFrame.pFrameTexture;
-					_NUI_LOCKED_RECT lockedRect;
-					texture->LockRect( 0, & lockedRect, 0, 0 );
-					if ( lockedRect.Pitch != 0 ) {
-						pixelToSurface( mDepthSurface, (uint8_t *)lockedRect.pBits, true );
-					} else {
-						trace( "Invalid buffer length received" );
-					}
-
-					// Clean up
-					mSensor->NuiImageStreamReleaseFrame( mDepthStreamHandle, & imageFrame );
-
-					// Update frame rate
-					double time = getElapsedSeconds();
-					mFrameRateDepth = (float)( 1.0 / ( time - mReadTimeDepth ) );
-					mReadTimeDepth = time;
-
-					// Set flag
-					mNewDepthFrame = true;
-
-					// Update user count
-					mUserCount = 0;
-					for ( uint32_t i = 0; i < NUI_SKELETON_COUNT; i++ ) {
-						if (mActiveUsers[ i ]) {
-							mUserCount++;
-						}
-					}
-
-				}
-
-			}
-
-			// Sleep
-			threadSleep();
-
-		}
-
-		// Return to join thread
-		return;
-
-	}
-
-	// Skeleton thread
-	void Kinect::processSkeletons() {
-
-		// Loop
-		while (mEnabledSkeletons) {
-
-			// Lock scope
-			boost::lock_guard<boost::mutex> lock( mMutexSkeletons );
-
-			// Check capturing flag and device index
-			if ( mCapture && mSensor != 0 && mIsSkeletonDevice && !mNewSkeletons ) {
-
-				// Acquire skeleton
-				_NUI_SKELETON_FRAME skeletonFrame;
-				if ( !FAILED( mSensor->NuiSkeletonGetNextFrame( WAIT_TIME, & skeletonFrame ) ) ) {
-    
-					// Iterate through skeletons
-					bool foundSkeleton = false;
-					for ( int32_t i = 0; i < NUI_SKELETON_COUNT; i++ ) {
-
-						// Clear skeleton data
-						mSkeletons[ i ].clear();
-
-						// Mark skeleton found
-						if ( skeletonFrame.SkeletonData[i].eTrackingState == NUI_SKELETON_TRACKED ) {
-
-							// Smooth out the skeleton data when found
-							if ( !foundSkeleton ) {
-								mSensor->NuiTransformSmooth( & skeletonFrame, 0 );
-								PatBlt( mSkeletonDc, 0, 0, 8, 4, BLACKNESS );
-								foundSkeleton = true;
-							}
-
-							// Get skeleton data
-							_NUI_SKELETON_DATA skeletonData = skeletonFrame.SkeletonData[ i ];
-
-							// Set joint data
-							for ( int32_t j = 0; j < (int32_t)NUI_SKELETON_POSITION_COUNT; j++ ) {
-								Vector4 point = skeletonData.SkeletonPositions[ j ];
-								mSkeletons[ i ].insert( std::make_pair<JointName, Vec3f>( (JointName)j, Vec3f( point.x, point.y, point.z ) ) );
-							}
-
-						}
-
-					}
-
-					// Update frame rate
-					double time = getElapsedSeconds();
-					mFrameRateSkeletons = (float)( 1.0 / ( time - mReadTimeSkeletons ) );
-					mReadTimeSkeletons = time;
-
-					// Set flag
-					mNewSkeletons = true;
-
-				}
-
-			}
-
-			// Sleep
-			threadSleep();
-			
-		}
-
-		// Return to join thread
-		return;
-
-	}
-
-	// Video data event handler
-	void Kinect::processVideo()
-	{
-
-		// Loop
-		while ( mEnabledVideo ) {
-
-			// Lock scope
-			boost::lock_guard<boost::mutex> lock( mMutexVideo );
-
-			// Need to acquire last frame first
-			if ( mCapture && mSensor != 0 && mVideoStreamHandle != 0 && !mNewVideoFrame ) {
-
-				// Acquire video image
-				_NUI_IMAGE_FRAME imageFrame;
-				if ( FAILED( mSensor->NuiImageStreamGetNextFrame( mVideoStreamHandle, WAIT_TIME, & imageFrame ) ) ) {
-
-					// Try opening stream if process failed -- exit if error
-					if ( openVideoStream() ) {
-						mEnabledVideo = false;
-					}
-
-				} else {
-
-					// Read texture
-					INuiFrameTexture * texture = imageFrame.pFrameTexture;
-					_NUI_LOCKED_RECT lockedRect;
-					texture->LockRect( 0, & lockedRect, 0, 0 );
-					if ( lockedRect.Pitch != 0 ) {
-						pixelToSurface( mVideoSurface, (uint8_t *)lockedRect.pBits );
-					} else {
-						trace("Invalid buffer length received");
-					}
-
-					// Clean up
-					mSensor->NuiImageStreamReleaseFrame( mVideoStreamHandle, & imageFrame );
-
-					// Update frame rate
-					double time = getElapsedSeconds();
-					mFrameRateVideo = (float)( 1.0 / ( time - mReadTimeVideo ) );
-					mReadTimeVideo = time;
-
-					// Set flag
-					mNewVideoFrame = true;
-
-				}
-
-			}
-
-			// Sleep
-			threadSleep();
-
-		}
-
-		// Return to join thread
-		return;
-
 	}
 
 	// Convert and copy pixel data to a surface
@@ -692,9 +534,178 @@ namespace KinectSdk
 	void Kinect::restart()
 	{
 		stop();
-		start();
+		start( mDeviceIndex, mVideoResolution, mDepthResolution, mEnabledNearMode );
 	}
-	
+
+	// Thread loop
+	void Kinect::run()
+	{
+
+		// Turn on running flag
+		mRunning = true;
+
+		// Capturing
+		while ( mRunning ) {
+
+			// Lock scope
+			std::unique_lock<std::mutex> lock( mMutex );
+
+			// Capturing
+			if ( mCapture && mSensor != 0 ) {
+
+				//////////////////////////////////////////////////////////////////////////////////////////////
+
+				if ( mEnabledDepth && mDepthStreamHandle != 0 && !mNewDepthFrame ) {
+
+					// Acquire depth image
+					_NUI_IMAGE_FRAME imageFrame;
+					if ( FAILED( mSensor->NuiImageStreamGetNextFrame( mDepthStreamHandle, WAIT_TIME, &imageFrame ) ) ) {
+
+						// Try opening stream if process failed -- exit if error
+						if ( !openDepthStream() ) {
+							mEnabledDepth = false;
+						}
+
+					} else {
+
+						// Read texture to surface
+						INuiFrameTexture * texture = imageFrame.pFrameTexture;
+						_NUI_LOCKED_RECT lockedRect;
+						texture->LockRect( 0, &lockedRect, 0, 0 );
+						if ( lockedRect.Pitch != 0 ) {
+							pixelToSurface( mDepthSurface, (uint8_t *)lockedRect.pBits, true );
+						} else {
+							trace( "Invalid buffer length received" );
+						}
+
+						// Clean up
+						mSensor->NuiImageStreamReleaseFrame( mDepthStreamHandle, &imageFrame );
+
+						// Update frame rate
+						double time = getElapsedSeconds();
+						mFrameRateDepth = (float)( 1.0 / ( time - mReadTimeDepth ) );
+						mReadTimeDepth = time;
+
+						// Set flag
+						mNewDepthFrame = true;
+
+						// Update user count
+						mUserCount = 0;
+						for ( uint32_t i = 0; i < NUI_SKELETON_COUNT; i++ ) {
+							if ( mActiveUsers[ i ] ) {
+								mUserCount++;
+							}
+						}
+
+					}
+
+				}
+
+				//////////////////////////////////////////////////////////////////////////////////////////////
+
+				if (mEnabledSkeletons && mIsSkeletonDevice && !mNewSkeletons ) {
+
+					// Acquire skeleton
+					_NUI_SKELETON_FRAME skeletonFrame;
+					if ( !FAILED( mSensor->NuiSkeletonGetNextFrame( WAIT_TIME, & skeletonFrame ) ) ) {
+
+						// Iterate through skeletons
+						bool foundSkeleton = false;
+						for ( int32_t i = 0; i < NUI_SKELETON_COUNT; i++ ) {
+
+							// Clear skeleton data
+							mSkeletons[ i ].clear();
+
+							// Mark skeleton found
+							if ( skeletonFrame.SkeletonData[i].eTrackingState == NUI_SKELETON_TRACKED ) {
+
+								// Smooth out the skeleton data when found
+								if ( !foundSkeleton ) {
+									mSensor->NuiTransformSmooth( & skeletonFrame, 0 );
+									PatBlt( mSkeletonDc, 0, 0, 8, 4, BLACKNESS );
+									foundSkeleton = true;
+								}
+
+								// Get skeleton data
+								_NUI_SKELETON_DATA skeletonData = skeletonFrame.SkeletonData[ i ];
+
+								// Set joint data
+								for ( int32_t j = 0; j < (int32_t)NUI_SKELETON_POSITION_COUNT; j++ ) {
+									Vector4 point = skeletonData.SkeletonPositions[ j ];
+									mSkeletons[ i ].insert( std::make_pair<JointName, Vec3f>( (JointName)j, Vec3f( point.x, point.y, point.z ) ) );
+								}
+
+							}
+
+						}
+
+						// Update frame rate
+						double time = getElapsedSeconds();
+						mFrameRateSkeletons = (float)( 1.0 / ( time - mReadTimeSkeletons ) );
+						mReadTimeSkeletons = time;
+
+						// Set flag
+						mNewSkeletons = true;
+
+					}
+
+				}
+
+				//////////////////////////////////////////////////////////////////////////////////////////////
+
+				if ( mEnabledVideo && mVideoStreamHandle != 0 && !mNewVideoFrame ) {
+
+					// Acquire video image
+					_NUI_IMAGE_FRAME imageFrame;
+					if ( FAILED( mSensor->NuiImageStreamGetNextFrame( mVideoStreamHandle, WAIT_TIME, & imageFrame ) ) ) {
+
+						// Try opening stream if process failed -- exit if error
+						if ( openVideoStream() ) {
+							mEnabledVideo = false;
+						}
+
+					} else {
+
+						// Read texture
+						INuiFrameTexture * texture = imageFrame.pFrameTexture;
+						_NUI_LOCKED_RECT lockedRect;
+						texture->LockRect( 0, & lockedRect, 0, 0 );
+						if ( lockedRect.Pitch != 0 ) {
+							pixelToSurface( mVideoSurface, (uint8_t *)lockedRect.pBits );
+						} else {
+							trace("Invalid buffer length received");
+						}
+
+						// Clean up
+						mSensor->NuiImageStreamReleaseFrame( mVideoStreamHandle, &imageFrame );
+
+						// Update frame rate
+						double time = getElapsedSeconds();
+						mFrameRateVideo = (float)( 1.0 / ( time - mReadTimeVideo ) );
+						mReadTimeVideo = time;
+
+						// Set flag
+						mNewVideoFrame = true;
+
+					}
+
+				}
+
+			}
+
+			// Pause thread
+			boost::system_time const timeout = boost::get_system_time() + boost::posix_time::milliseconds( 17 );
+			mCond.timed_wait( lock, timeout, []() {
+				return true;
+			} );
+
+		}
+
+		// Return to join thread
+		return;
+
+	}
+
 	// Set camera angle
 	void Kinect::setCameraAngle( int32_t degrees )
 	{
@@ -737,7 +748,7 @@ namespace KinectSdk
 
 		// Allocate bitmap data
 		mRgbDepth = new Pixel[ mDepthWidth * mDepthHeight * 4 ];
-	
+
 		// Restart if capturing
 		if ( mCapture ) {
 			restart();
@@ -748,6 +759,11 @@ namespace KinectSdk
 	// Change device index
 	void Kinect::setDeviceIndex( int32_t deviceIndex )
 	{
+
+		// Thread sync
+		if ( mRunning ) {
+			boost::lock_guard<boost::mutex> lock( mMutex );
+		}
 
 		// Bail if no change
 		if ( mDeviceIndex == deviceIndex ) {
@@ -827,7 +843,7 @@ namespace KinectSdk
 
 		// Binary mode
 		if ( mBinary ) {
-		
+
 			// Set black and white values
 			uint8_t backgroundColor = mInverted ? 255 : 0;
 			uint8_t userColor = mInverted ? 0 : 255;
@@ -958,7 +974,7 @@ namespace KinectSdk
 				return;
 			}
 
-			// Start threads
+			// Enable or disable features
 			bool enabledDepth = mEnabledDepth;
 			bool enabledSkeletons = mEnabledSkeletons;
 			bool enabledVideo = mEnabledVideo;
@@ -968,9 +984,12 @@ namespace KinectSdk
 			enableDepth( enabledDepth );
 			enableSkeletons( enabledSkeletons );
 			enableVideo( enabledVideo );
-		
+
 			// Initialized
 			mCapture = true;
+
+			// Start thread
+			mThread = std::shared_ptr<boost::thread>( new boost::thread( boost::bind( &Kinect::run, this ) ) );
 
 		}
 
@@ -979,6 +998,12 @@ namespace KinectSdk
 	// Stop capturing
 	void Kinect::stop()
 	{
+
+		// Stop thread
+		if ( mRunning ) {
+			mRunning = false;
+			mThread->join();
+		}
 
 		// Only stop if capturing
 		if ( mCapture ) {
@@ -1008,7 +1033,7 @@ namespace KinectSdk
 
 			}
 
-			// Stop threads
+			// Turn off features
 			bool enabledDepth = mEnabledDepth;
 			bool enabledSkeletons = mEnabledSkeletons;
 			bool enabledVideo = mEnabledVideo;
@@ -1026,27 +1051,13 @@ namespace KinectSdk
 
 	}
 
-	// Sleep to improve performance
-	void Kinect::threadSleep( double seconds ) 
-	{
-		static void * Timer = CreateWaitableTimer( 0, 0, 0 );
-		_LARGE_INTEGER WaitTime; WaitTime.QuadPart = (long long)( seconds * -10000000.0 ); 
-		if ( WaitTime.QuadPart >= 0 ) {
-			return; // Give up the rest of the frame.  
-		}
-		if ( !SetWaitableTimer( Timer, & WaitTime, 0, 0, 0, 0) ) { 
-			return; 
-			DWORD Result = MsgWaitForMultipleObjects( 1, &Timer, 0, 0xFFFFFFFF, QS_ALLINPUT ); 
-		}
-	}
-
 	// Debug trace
-	void Kinect::trace( const string & message ) {
+	void Kinect::trace( const string & message ) 
+	{
 
 		// Write to console and debug window
 		console() << message << "\n";
-		OutputDebugStringA( message.c_str() );
-		OutputDebugStringA( "\n" );
+		OutputDebugStringA( ( message + "\n" ).c_str() );
 
 	}
 

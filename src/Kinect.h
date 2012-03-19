@@ -37,11 +37,9 @@
 #pragma once
 
 // Includes
-#include "cinder/app/App.h"
 #include "cinder/Cinder.h"
 #include "cinder/Surface.h"
 #include "cinder/Thread.h"
-#include "cinder/Utilities.h"
 #include <map>
 #include "ole2.h"
 #include "NuiApi.h"
@@ -163,7 +161,7 @@ namespace KinectSdk
 		static std::vector<ci::Colorf>	getUserColors();
 
 		// Maximum wait time in milliseconds for new Kinect data
-		static const int32_t			WAIT_TIME = 175;
+		static const int32_t			WAIT_TIME = 200;
 		static const double				TILT_REQUEST_INTERVAL;
 
 		// Initialize properties
@@ -228,18 +226,11 @@ namespace KinectSdk
 		bool							mRemoveBackground;
 
 		// Threading
-		boost::mutex					mMutexDepth;
-		boost::mutex					mMutexSkeletons;
-		boost::mutex					mMutexVideo;
-		boost::thread					mThreadDepth;
-		boost::thread_group				mThreadGroup;
-		boost::thread					mThreadSkeletons;
-		bool							mThreadsRunning;
-		boost::thread					mThreadVideo;
-		void							processDepth();
-		void							processSkeletons();
-		void							processVideo();
-		void							threadSleep( double seconds = 0.0166667 );
+		std::condition_variable				mCond;
+		boost::mutex						mMutex;
+		volatile bool						mRunning;
+		std::shared_ptr<boost::thread>		mThread;
+		void								run();
 
 		// Image data
 		Pixel *							mRgbDepth;

@@ -122,7 +122,7 @@ private:
 	std::vector<std::vector<KinectSdk::JointName> >	mSegments;
 
 	// Camera
-	ci::CameraPersp mCamera;
+	ci::CameraPersp	mCamera;
 
 	// Params
 	float					mFrameRateApp;
