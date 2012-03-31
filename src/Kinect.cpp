@@ -97,7 +97,6 @@ namespace KinectSdk
 	{
 
 		// Initialize all values
-		mRunning = false;
 		init();
 
 		// Initialize skeletons
@@ -112,24 +111,9 @@ namespace KinectSdk
 	{
 
 		// Stop
-		if ( mCapture ) {
-			stop();
-		}
-		if ( mRunning ) {
-			boost::lock_guard<boost::mutex> lock( mMutex );
-			mRunning = false;
-			mThread->join();
-		}
-
-		// Turn off features
-		enableDepth( false );
-		enableSkeletons( false );
-		enableVideo( false );
+		stop();
 
 		// Clean up
-		if ( mDepthSurface ) {
-			mDepthSurface.reset();
-		}
 		if ( mRgbDepth != 0 ) {
 			delete [] mRgbDepth;
 			mRgbDepth = 0;
@@ -138,74 +122,41 @@ namespace KinectSdk
 			delete [] mRgbVideo;
 			mRgbVideo = 0;
 		}
-		mSkeletons.clear();
-		if ( mVideoSurface ) {
-			mVideoSurface.reset();
-		}
 
+	}
+
+	bool Kinect::checkNewDepthFrame() const
+	{ 
+		return mNewDepthFrame; 
+	}
+	bool Kinect::checkNewSkeletons() const
+	{ 
+		return mNewSkeletons; 
+	}
+	bool Kinect::checkNewVideoFrame() const
+	{ 
+		return mNewVideoFrame; 
 	}
 
 	// Deactivate users
 	void Kinect::deactivateUsers()
 	{
-
-		// Thread sync
-		if ( mRunning ) {
-			boost::lock_guard<boost::mutex> lock( mMutex );
-		}
-
-		// DO IT!
 		for ( uint32_t i = 0; i < NUI_SKELETON_COUNT; i++ ) {
 			mActiveUsers[ i ] = false;
 		}
-
 	}
 
 	// Set binary tracking mode
 	void Kinect::enableBinaryMode( bool enable, bool invertImage )
 	{
-
-		// Thread sync
-		if ( mRunning ) {
-			boost::lock_guard<boost::mutex> lock( mMutex );
-		}
-
-		// Update flags
 		mBinary = enable;
 		mInverted = invertImage;
-
-	}
-
-	// Enable or disable near mode
-	void Kinect::enableNearMode( bool enable ) 
-	{
-
-		// Thread sync
-		if ( mRunning ) {
-			boost::lock_guard<boost::mutex> lock( mMutex );
-		}
-
-		// Set flag
-		bool toggle = mEnabledNearMode != enable;
-		mEnabledNearMode = enable;
-
-		// Toggle
-		if ( toggle && mEnabledDepth ) {
-			mEnabledDepth = false;
-			enableDepth( true );
-		}
-
 	}
 
 	// Enable or disable depth tracking
 	void Kinect::enableDepth( bool enable )
 	{
-
-		// Thread sync
-		if ( mRunning ) {
-			boost::lock_guard<boost::mutex> lock( mMutex );
-		}
-
+		
 		// Set user count to 0 if disabled
 		if ( !enable ) {
 			deactivateUsers();
@@ -231,14 +182,20 @@ namespace KinectSdk
 
 	}
 
+	// Enable or disable near mode
+	void Kinect::enableNearMode( bool enable ) 
+	{
+		bool toggle = mEnabledNearMode != enable;
+		mEnabledNearMode = enable;
+		if ( toggle && mEnabledDepth ) {
+			mEnabledDepth = false;
+			enableDepth( true );
+		}
+	}
+
 	// Enable or disable skeleton tracking
 	void Kinect::enableSkeletons( bool enable )
 	{
-
-		// Thread sync
-		if ( mRunning ) {
-			boost::lock_guard<boost::mutex> lock( mMutex );
-		}
 
 		// Only supports skeletons on first device
 		if ( !mIsSkeletonDevice ) {
@@ -271,24 +228,12 @@ namespace KinectSdk
 	// Enable or disable user color
 	void Kinect::enableUserColor( bool enable )
 	{
-
-		// Thread sync
-		if ( mRunning ) {
-			boost::lock_guard<boost::mutex> lock( mMutex );
-		}
-
 		mGreyScale = !enable;
-
 	}
 
 	// Enable or disable video tracking
 	void Kinect::enableVideo( bool enable )
 	{
-
-		// Thread sync
-		if ( mRunning ) {
-			boost::lock_guard<boost::mutex> lock( mMutex );
-		}
 
 		// Set flag
 		bool toggle = mEnabledVideo != enable;
@@ -313,89 +258,61 @@ namespace KinectSdk
 	// Get camera angle
 	int32_t Kinect::getCameraAngle()
 	{
-
-		// Thread sync
-		if ( mRunning ) {
-			boost::lock_guard<boost::mutex> lock( mMutex );
-		}
-
-		// DO IT!
 		long degrees = 0L;
 		if ( mCapture && mSensor != 0 ) {
 			mSensor->NuiCameraElevationGetAngle( & degrees );
 		}
 		return (int32_t)degrees;
-
 	}
 
 	// Get depth surface
-	Surface8u Kinect::getDepth() 
+	const Surface8u& Kinect::getDepth()
 	{ 
-
-		// Thread sync
-		if ( mRunning ) {
-			boost::lock_guard<boost::mutex> lock( mMutex );
-		}
-
-		// Return surface and turn off new flag
 		mNewDepthFrame = false;
 		return mDepthSurface;
+	}
 
+	float Kinect::getDepthFrameRate() const 
+	{
+		return mFrameRateDepth;
 	}
 
 	// Get device count
 	int32_t Kinect::getDeviceCount()
 	{
-
-		// DO IT!
 		int32_t deviceCount = 0;
-		NuiGetSensorCount( & deviceCount );
+		NuiGetSensorCount( &deviceCount );
 		return deviceCount;
-
 	}
 
 	// Get skeletons
-	vector<Skeleton> Kinect::getSkeletons() 
+	const vector<Skeleton>& Kinect::getSkeletons()
 	{
-
-		// Thread sync
-		if ( mRunning ) {
-			boost::lock_guard<boost::mutex> lock( mMutex );
-		}
-
-		// Return skeletons and turn off new flag
 		mNewSkeletons = false;
 		return mSkeletons;
+	}
 
+	float Kinect::getSkeletonsFrameRate() const 
+	{ 
+		return mFrameRateSkeletons; 
 	}
 
 	// Get user count
-	int32_t Kinect::getUserCount() 
+	int32_t Kinect::getUserCount()
 	{
-
-		// Thread sync
-		if ( mRunning ) {
-			boost::lock_guard<boost::mutex> lock( mMutex );
-		}
-
-		// Return user count
 		return mEnabledDepth ? mUserCount : 0;
-
 	}
 
 	// Get video
-	Surface8u Kinect::getVideo() 
+	const Surface8u& Kinect::getVideo()
 	{
-
-		// Thread sync
-		if ( mRunning ) {
-			boost::lock_guard<boost::mutex> lock( mMutex );
-		}
-
-		// Return surface and turn off new flag
 		mNewVideoFrame = false;
 		return mVideoSurface;
+	}
 
+	float Kinect::getVideoFrameRate() const
+	{ 
+		return mFrameRateVideo; 
 	}
 
 	// Initialize properties
@@ -430,9 +347,6 @@ namespace KinectSdk
 		mRemoveBackground = false;
 		mRgbDepth = 0;
 		mRgbVideo = 0;
-		mSkeletonBmp = 0;
-		mSkeletonDc = 0;
-		mSkeletonObject = 0;
 		mTiltRequestTime = 0.0;
 		mUserCount = 0;
 		mVideoHeight = 480;
@@ -443,6 +357,11 @@ namespace KinectSdk
 		// Initialize active users
 		deactivateUsers();
 
+	}
+
+	bool Kinect::isCapturing() const 
+	{ 
+		return mCapture; 
 	}
 
 	// Open depth image stream
@@ -533,25 +452,26 @@ namespace KinectSdk
 	// Restart the device
 	void Kinect::restart()
 	{
-		stop();
-		start( mDeviceIndex, mVideoResolution, mDepthResolution, mEnabledNearMode );
+		if ( mCapture ) {
+			stop();
+		}
+		if ( !mCapture ) {
+			start( mDeviceIndex, mVideoResolution, mDepthResolution, mEnabledNearMode );
+		}
 	}
 
 	// Thread loop
 	void Kinect::run()
 	{
 
-		// Turn on running flag
-		mRunning = true;
-
 		// Capturing
-		while ( mRunning ) {
+		while ( mCapture ) {
 
-			// Lock scope
-			std::unique_lock<std::mutex> lock( mMutex );
+			// Check sensor
+			if ( mSensor != 0 ) {
 
-			// Capturing
-			if ( mCapture && mSensor != 0 ) {
+				// Get elapsed time to calculate frame rate
+				double time = getElapsedSeconds();
 
 				//////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -572,17 +492,16 @@ namespace KinectSdk
 						INuiFrameTexture * texture = imageFrame.pFrameTexture;
 						_NUI_LOCKED_RECT lockedRect;
 						texture->LockRect( 0, &lockedRect, 0, 0 );
-						if ( lockedRect.Pitch != 0 ) {
-							pixelToSurface( mDepthSurface, (uint8_t *)lockedRect.pBits, true );
-						} else {
+						if ( lockedRect.Pitch == 0 ) {
 							trace( "Invalid buffer length received" );
+						} else {
+							pixelToSurface( mDepthSurface, (uint8_t *)lockedRect.pBits, true );
 						}
 
 						// Clean up
 						mSensor->NuiImageStreamReleaseFrame( mDepthStreamHandle, &imageFrame );
 
 						// Update frame rate
-						double time = getElapsedSeconds();
 						mFrameRateDepth = (float)( 1.0 / ( time - mReadTimeDepth ) );
 						mReadTimeDepth = time;
 
@@ -603,11 +522,11 @@ namespace KinectSdk
 
 				//////////////////////////////////////////////////////////////////////////////////////////////
 
-				if (mEnabledSkeletons && mIsSkeletonDevice && !mNewSkeletons ) {
+				if ( mEnabledSkeletons && mIsSkeletonDevice && !mNewSkeletons ) {
 
 					// Acquire skeleton
 					_NUI_SKELETON_FRAME skeletonFrame;
-					if ( !FAILED( mSensor->NuiSkeletonGetNextFrame( WAIT_TIME, & skeletonFrame ) ) ) {
+					if ( !FAILED( mSensor->NuiSkeletonGetNextFrame( WAIT_TIME, &skeletonFrame ) ) ) {
 
 						// Iterate through skeletons
 						bool foundSkeleton = false;
@@ -617,22 +536,21 @@ namespace KinectSdk
 							mSkeletons[ i ].clear();
 
 							// Mark skeleton found
-							if ( skeletonFrame.SkeletonData[i].eTrackingState == NUI_SKELETON_TRACKED ) {
+							if ( ( skeletonFrame.SkeletonData + i )->eTrackingState == NUI_SKELETON_TRACKED ) {
 
 								// Smooth out the skeleton data when found
 								if ( !foundSkeleton ) {
-									mSensor->NuiTransformSmooth( & skeletonFrame, 0 );
-									PatBlt( mSkeletonDc, 0, 0, 8, 4, BLACKNESS );
+									mSensor->NuiTransformSmooth( &skeletonFrame, 0 );
 									foundSkeleton = true;
 								}
 
 								// Get skeleton data
-								_NUI_SKELETON_DATA skeletonData = skeletonFrame.SkeletonData[ i ];
+								_NUI_SKELETON_DATA skeletonData = *( skeletonFrame.SkeletonData + i );
 
 								// Set joint data
 								for ( int32_t j = 0; j < (int32_t)NUI_SKELETON_POSITION_COUNT; j++ ) {
-									Vector4 point = skeletonData.SkeletonPositions[ j ];
-									mSkeletons[ i ].insert( std::make_pair<JointName, Vec3f>( (JointName)j, Vec3f( point.x, point.y, point.z ) ) );
+									Vector4 point = *( skeletonData.SkeletonPositions + j );
+									( mSkeletons.begin() + i )->insert( std::make_pair<JointName, Vec3f>( (JointName)j, Vec3f( point.x, point.y, point.z ) ) );
 								}
 
 							}
@@ -640,7 +558,6 @@ namespace KinectSdk
 						}
 
 						// Update frame rate
-						double time = getElapsedSeconds();
 						mFrameRateSkeletons = (float)( 1.0 / ( time - mReadTimeSkeletons ) );
 						mReadTimeSkeletons = time;
 
@@ -680,7 +597,6 @@ namespace KinectSdk
 						mSensor->NuiImageStreamReleaseFrame( mVideoStreamHandle, &imageFrame );
 
 						// Update frame rate
-						double time = getElapsedSeconds();
 						mFrameRateVideo = (float)( 1.0 / ( time - mReadTimeVideo ) );
 						mReadTimeVideo = time;
 
@@ -694,10 +610,7 @@ namespace KinectSdk
 			}
 
 			// Pause thread
-			boost::system_time const timeout = boost::get_system_time() + boost::posix_time::milliseconds( 17 );
-			mCond.timed_wait( lock, timeout, []() {
-				return true;
-			} );
+			Sleep( 17 );
 
 		}
 
@@ -759,11 +672,6 @@ namespace KinectSdk
 	// Change device index
 	void Kinect::setDeviceIndex( int32_t deviceIndex )
 	{
-
-		// Thread sync
-		if ( mRunning ) {
-			boost::lock_guard<boost::mutex> lock( mMutex );
-		}
 
 		// Bail if no change
 		if ( mDeviceIndex == deviceIndex ) {
@@ -934,9 +842,11 @@ namespace KinectSdk
 			setVideoResolution( videoResolution );
 
 			// Initialize device instance
-			if ( FAILED( NuiCreateSensorByIndex( mDeviceIndex, & mSensor ) ) ) {
-				trace( "Unable to create device instance " + toString( mDeviceIndex ) );
-				return;
+			if ( mSensor == 0 ) {
+				if ( FAILED( NuiCreateSensorByIndex( mDeviceIndex, &mSensor ) ) ) {
+					trace( "Unable to create device instance " + toString( mDeviceIndex ) );
+					return;
+				}
 			}
 
 			// Initialize device
@@ -951,9 +861,6 @@ namespace KinectSdk
 
 			// Skeletons are only supported on the first device
 			if ( HasSkeletalEngine( mSensor ) ) {
-
-				// Initialize skeleton object
-				mSkeletonObject = SelectObject( mSkeletonDc, mSkeletonBmp );
 
 				// Enable skeleton tracking
 				if ( FAILED( mSensor->NuiSkeletonTrackingEnable( 0, 0 ) ) ) {
@@ -985,12 +892,10 @@ namespace KinectSdk
 			enableSkeletons( enabledSkeletons );
 			enableVideo( enabledVideo );
 
-			// Initialized
-			mCapture = true;
-
 			// Start thread
+			mCapture = true;
 			mThread = std::shared_ptr<boost::thread>( new boost::thread( boost::bind( &Kinect::run, this ) ) );
-
+		
 		}
 
 	}
@@ -999,39 +904,8 @@ namespace KinectSdk
 	void Kinect::stop()
 	{
 
-		// Stop thread
-		if ( mRunning ) {
-			mRunning = false;
-			mThread->join();
-		}
-
 		// Only stop if capturing
 		if ( mCapture ) {
-
-			// Check instance
-			if ( mSensor != 0 ) {
-
-				// This is the skeleton tracking device
-				if ( mIsSkeletonDevice ) {
-
-					// Delete skeleton
-					SelectObject( mSkeletonDc, mSkeletonObject );
-					DeleteDC( mSkeletonDc );
-					DeleteObject( mSkeletonBmp );
-
-				}
-
-				// Shutdown sensor
-				try {
-					mSensor->NuiShutdown();
-					if ( mSensor ) {
-						mSensor->Release();
-						mSensor = 0;
-					}
-				} catch ( ... ) {
-				}
-
-			}
 
 			// Turn off features
 			bool enabledDepth = mEnabledDepth;
@@ -1044,10 +918,30 @@ namespace KinectSdk
 			mEnabledSkeletons = enabledSkeletons;
 			mEnabledVideo = enabledVideo;
 
-			// Reset data
-			init();
+		}
+
+		// Stop thread
+		mCapture = false;
+
+		// Check instance
+		if ( mSensor != 0 ) {
+
+			// Shutdown sensor
+			mSensor->NuiShutdown();
+			if ( mSensor ) {
+				mSensor->Release();
+				mSensor = 0;
+			}
 
 		}
+
+		// End thread
+		if ( mThread ) {
+			mThread->join();
+		}
+
+		// Reset data
+		init();
 
 	}
 

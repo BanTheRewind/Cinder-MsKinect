@@ -73,6 +73,9 @@ namespace KinectSdk
 		static const int32_t MAXIMUM_DEVICE_COUNT = 8;
 		static const int32_t MAXIMUM_TILT_ANGLE = 28;
 
+		static int32_t getDeviceCount();
+		static ci::Colorf getUserColor( uint32_t id );
+
 		// Start/stop capturing
 		void start( int32_t deviceIndex = 0, const ImageResolution & videoResolution = ImageResolution::NUI_IMAGE_RESOLUTION_640x480, 
 			const ImageResolution & depthResolution = ImageResolution::NUI_IMAGE_RESOLUTION_320x240, bool nearMode = false );
@@ -90,41 +93,18 @@ namespace KinectSdk
 		void removeBackground( bool remove = true );
 
 		// Getters
-		bool checkNewDepthFrame() 
-		{ 
-			return mNewDepthFrame; 
-		}
-		bool checkNewSkeletons() 
-		{ 
-			return mNewSkeletons; 
-		}
-		bool checkNewVideoFrame() 
-		{ 
-			return mNewVideoFrame; 
-		}
-		float getVideoFrameRate() 
-		{ 
-			return mFrameRateVideo; 
-		}
+		bool checkNewDepthFrame() const;
+		bool checkNewSkeletons() const;
+		bool checkNewVideoFrame() const;
+		float getVideoFrameRate() const;
 		int32_t getCameraAngle();
-		ci::Surface8u getDepth();
-		float getDepthFrameRate() 
-		{ 
-			return mFrameRateDepth; 
-		}
-		static int32_t getDeviceCount();
-		std::vector<Skeleton> getSkeletons();
-		float getSkeletonsFrameRate() 
-		{ 
-			return mFrameRateSkeletons; 
-		}
+		const ci::Surface8u& getDepth();
+		float getDepthFrameRate() const;
+		const std::vector<Skeleton>& getSkeletons();
+		float getSkeletonsFrameRate() const;
 		int32_t getUserCount();
-		static ci::Colorf getUserColor( uint32_t id );
-		ci::Surface8u getVideo();
-		bool isCapturing() 
-		{ 
-			return mCapture; 
-		}
+		const ci::Surface8u& getVideo();
+		bool isCapturing() const;
 
 		// Setters
 		void setCameraAngle( int32_t degrees = 0 );
@@ -135,9 +115,6 @@ namespace KinectSdk
 	private:
 
 		// Constructor
-		// For advanced developers, make this public to create 
-		// the instance on the stack. The destructor does a good
-		// job of clean up.
 		Kinect();
 
 		// A pixel
@@ -161,7 +138,7 @@ namespace KinectSdk
 		static std::vector<ci::Colorf>	getUserColors();
 
 		// Maximum wait time in milliseconds for new Kinect data
-		static const int32_t			WAIT_TIME = 200;
+		static const int32_t			WAIT_TIME = 250;
 		static const double				TILT_REQUEST_INTERVAL;
 
 		// Initialize properties
@@ -212,9 +189,6 @@ namespace KinectSdk
 		// Skeleton
 		bool							mIsSkeletonDevice;
 		Point							mPoints[ NUI_SKELETON_POSITION_COUNT ];
-		HBITMAP__ *						mSkeletonBmp;
-		HDC__ *							mSkeletonDc;
-		void *							mSkeletonObject;
 
 		// Image streams
 		void *							mDepthStreamHandle;
@@ -227,7 +201,6 @@ namespace KinectSdk
 
 		// Threading
 		std::condition_variable				mCond;
-		boost::mutex						mMutex;
 		volatile bool						mRunning;
 		std::shared_ptr<boost::thread>		mThread;
 		void								run();
