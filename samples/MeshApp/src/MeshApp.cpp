@@ -328,7 +328,7 @@ void MeshApp::screenShot()
 {
 
 	// DO IT!
-	writeImage( getAppPath() + "frame" + toString( getElapsedFrames() ) + ".png", copyWindowSurface() );
+	writeImage( getAppPath() / fs::path( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 
 }
 

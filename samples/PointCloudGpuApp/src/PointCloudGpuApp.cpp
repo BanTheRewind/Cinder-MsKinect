@@ -217,10 +217,7 @@ void PointCloudGpuApp::resize(ResizeEvent event)
 // Take screen shot
 void PointCloudGpuApp::screenShot()
 {
-
-	// DO IT!
-	writeImage( getAppPath() + "frame" + toString( getElapsedFrames() ) + ".png", copyWindowSurface() );
-
+	writeImage( getAppPath() / fs::path( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 }
 
 // Set up

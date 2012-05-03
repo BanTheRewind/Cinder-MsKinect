@@ -134,12 +134,11 @@ namespace KinectSdk
 		};
 
 		// User colors
-		static std::vector<ci::Colorf>	USER_COLORS;
+		static std::vector<ci::Colorf>	sUserColors;
 		static std::vector<ci::Colorf>	getUserColors();
 
 		// Maximum wait time in milliseconds for new Kinect data
 		static const int32_t			WAIT_TIME = 250;
-		static const double				TILT_REQUEST_INTERVAL;
 
 		// Initialize properties
 		void							init();

@@ -37,8 +37,6 @@
 // Include header
 #include "Kinect.h"
 
-#include "boost/date_time.hpp"
-#include "boost/date_time/posix_time/posix_time.hpp"
 #include "cinder/app/App.h"
 #include "cinder/Utilities.h"
 
@@ -53,14 +51,16 @@ namespace KinectSdk
 
 	/****************************/
 
-	// Static property implementations
-	const double Kinect::TILT_REQUEST_INTERVAL = 1.5;
-	vector<Colorf> Kinect::USER_COLORS = getUserColors();
+	// Minimum delay between tilt requests
+	const double kTiltRequestInterval = 1.5;
+
+	// User colors
+	vector<Colorf> Kinect::sUserColors = getUserColors();
 
 	// Get color for user ID
 	ci::Colorf Kinect::getUserColor( uint32_t id ) 
 	{ 
-		return USER_COLORS[ ci::math<uint32_t>::clamp( id, 0, 5 ) ]; 
+		return sUserColors[ ci::math<uint32_t>::clamp( id, 0, 5 ) ]; 
 	}
 
 	// Defines static user color list
@@ -68,8 +68,8 @@ namespace KinectSdk
 	{
 
 		// Already defined
-		if ( USER_COLORS.size() == NUI_SKELETON_COUNT ) {
-			return USER_COLORS;
+		if ( sUserColors.size() == NUI_SKELETON_COUNT ) {
+			return sUserColors;
 		}
 
 		// Define and return user colors
@@ -625,7 +625,7 @@ namespace KinectSdk
 
 		// Tilt requests should be space apart to prevent wear on the motor
 		double elapsedSeconds = getElapsedSeconds();
-		if ( mCapture && mSensor != 0 && elapsedSeconds - mTiltRequestTime > TILT_REQUEST_INTERVAL ) {
+		if ( mCapture && mSensor != 0 && elapsedSeconds - mTiltRequestTime > kTiltRequestInterval ) {
 			mSensor->NuiCameraElevationSetAngle( (long)math<int32_t>::clamp( degrees, -MAXIMUM_TILT_ANGLE, MAXIMUM_TILT_ANGLE ) );
 			mTiltRequestTime = elapsedSeconds;
 		}

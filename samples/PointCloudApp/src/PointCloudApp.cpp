@@ -152,10 +152,7 @@ void PointCloudApp::shutdown()
 // Take screen shot
 void PointCloudApp::screenShot()
 {
-
-	// DO IT!
-	writeImage( getAppPath() + "frame" + toString( getElapsedFrames() ) + ".png", copyWindowSurface() );
-
+	writeImage( getAppPath() / fs::path( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 }
 
 // Set up

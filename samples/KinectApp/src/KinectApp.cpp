@@ -336,10 +336,7 @@ void KinectApp::resetStats()
 // Take screen shot
 void KinectApp::screenShot()
 {
-
-	// DO IT!
-	writeImage( getAppPath() + "frame" + toString( getElapsedFrames() ) + ".png", copyWindowSurface() );
-
+	writeImage( getAppPath() / fs::path( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 }
 
 // Set up
