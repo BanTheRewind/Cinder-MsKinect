@@ -181,11 +181,8 @@ void PointCloudGpuApp::keyDown( KeyEvent event )
 // Prepare window
 void PointCloudGpuApp::prepareSettings( Settings * settings )
 {
-
-	// DO IT!
 	settings->setWindowSize( 800, 600 );
 	settings->setFrameRate( 60.0f );
-
 }
 
 // Handles window resizw
@@ -290,7 +287,7 @@ void PointCloudGpuApp::setup()
 	mPointSize = 2.0f;
 	mRemoveBackground = true;
 	mRemoveBackgroundPrev = mRemoveBackground;
-	mScale = Vec3f( 1.5f, 1.5f, 5.0f );
+	mScale = Vec3f( 1.0f, 1.0f, 5.0f );
 
 	// Setup the parameters
 	mParams = params::InterfaceGl( "Parameters", Vec2i( 200, 500 ) );
@@ -369,8 +366,8 @@ void PointCloudGpuApp::update()
 						Vec3f spine = skeletonIt->at( JointName::NUI_SKELETON_POSITION_SPINE ) * mEyePoint.z;
 						mLookAt.x = spine.x;
 						mLookAt.y = spine.y;
-						mEyePoint.x = -mLookAt.x * 0.5f;
-						mEyePoint.y = -mLookAt.y * 0.25f;
+						mEyePoint.x = -mLookAt.x * 0.25f;
+						mEyePoint.y = -mLookAt.y * 0.125f;
 
 					}
 

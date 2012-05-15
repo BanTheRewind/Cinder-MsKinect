@@ -21,7 +21,7 @@ void main( void )
 	// Scale position
 	vertex.x = -vertex.x * scale.x;
 	vertex.y = vertex.y * scale.y;
-	vertex.z = depth * ( ( 1.0 - brightness ) * scale.z );
+	vertex.z = depth * brightness * scale.z;
 
 	// Transform position
 	gl_Position = gl_ModelViewProjectionMatrix * vertex;

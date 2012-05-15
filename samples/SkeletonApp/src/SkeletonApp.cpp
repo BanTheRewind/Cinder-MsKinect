@@ -163,7 +163,7 @@ void SkeletonApp::draw()
 			if ( skeletonIt->size() == JointName::NUI_SKELETON_POSITION_COUNT ) {
 
 				// Set color
-				gl::color( mKinect->getUserColor(i) );
+				gl::color( mKinect->getUserColor( i ) );
 
 				// Draw joints
 				for ( Skeleton::const_iterator jointIt = skeletonIt->cbegin(); jointIt != skeletonIt->cend(); ++jointIt ) {

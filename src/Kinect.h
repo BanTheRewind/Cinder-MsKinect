@@ -50,12 +50,12 @@ namespace KinectSdk
 {
 
 	// Alias for Kinect shared pointer
-	typedef std::shared_ptr<class Kinect> KinectRef;
+	typedef std::shared_ptr<class Kinect>	KinectRef;
 
 	// NUI aliases
-	typedef NUI_IMAGE_RESOLUTION ImageResolution;
-	typedef NUI_SKELETON_POSITION_INDEX JointName;
-	typedef std::map<JointName, ci::Vec3f> Skeleton;
+	typedef NUI_IMAGE_RESOLUTION			ImageResolution;
+	typedef NUI_SKELETON_POSITION_INDEX		JointName;
+	typedef std::map<JointName, ci::Vec3f>	Skeleton;
 
 	// Kinect sensor interface
 	class Kinect
@@ -63,68 +63,79 @@ namespace KinectSdk
 
 	public:
 
+		// Limits
+		static const int32_t			MAXIMUM_DEVICE_COUNT	= 8;
+		static const int32_t			MAXIMUM_TILT_ANGLE		= 28;
+
 		// Creates pointer to instance of Kinect
-		static KinectRef create();
+		static KinectRef				create();
 
 		// Destructor
 		~Kinect();
 
-		// Limits
-		static const int32_t MAXIMUM_DEVICE_COUNT = 8;
-		static const int32_t MAXIMUM_TILT_ANGLE = 28;
-
-		static int32_t getDeviceCount();
-		static ci::Colorf getUserColor( uint32_t id );
+		static int32_t					getDeviceCount();
+		static ci::Colorf				getUserColor( uint32_t id );
 
 		// Start/stop capturing
-		void start( int32_t deviceIndex = 0, const ImageResolution & videoResolution = ImageResolution::NUI_IMAGE_RESOLUTION_640x480, 
-			const ImageResolution & depthResolution = ImageResolution::NUI_IMAGE_RESOLUTION_320x240, bool nearMode = false );
-		void stop();
+		void							start( int32_t deviceIndex = 0, 
+			const ImageResolution &videoResolution = ImageResolution::NUI_IMAGE_RESOLUTION_640x480, 
+			const ImageResolution &depthResolution = ImageResolution::NUI_IMAGE_RESOLUTION_320x240, 
+			bool nearMode = false );
+		void							stop();
 
 		// Flags to enable each feature
-		void enableBinaryMode( bool enable = true, bool invertImage = false );
-		void enableDepth( bool enable = true );
-		void enableNearMode( bool enable = true );
-		void enableSkeletons( bool enable = true );
-		void enableUserColor( bool enable = true );
-		void enableVideo( bool enable = true );
+		void							enableBinaryMode( bool enable = true, bool invertImage = false );
+		void							enableDepth( bool enable = true );
+		void							enableNearMode( bool enable = true );
+		void							enableSkeletons( bool enable = true );
+		void							enableUserColor( bool enable = true );
+		void							enableVideo( bool enable = true );
 
 		// Remove background for better user tracking
-		void removeBackground( bool remove = true );
+		void							removeBackground( bool remove = true );
 
 		// Getters
-		bool checkNewDepthFrame() const;
-		bool checkNewSkeletons() const;
-		bool checkNewVideoFrame() const;
-		float getVideoFrameRate() const;
-		int32_t getCameraAngle();
-		const ci::Surface8u& getDepth();
-		float getDepthFrameRate() const;
-		const std::vector<Skeleton>& getSkeletons();
-		float getSkeletonsFrameRate() const;
-		int32_t getUserCount();
-		const ci::Surface8u& getVideo();
-		bool isCapturing() const;
+		bool							checkNewDepthFrame() const;
+		bool							checkNewSkeletons() const;
+		bool							checkNewVideoFrame() const;
+		int32_t							getCameraAngle();
+		const ci::Surface16u&			getDepth();
+		float							getDepthAt( const ci::Vec2i &pos ) const;
+		float							getDepthFrameRate() const;
+		const std::vector<Skeleton>&	getSkeletons();
+		float							getSkeletonsFrameRate() const;
+		int32_t							getUserCount();
+		const ci::Surface8u&			getVideo();
+		float							getVideoFrameRate() const;
+		bool							isCapturing() const;
+
+		ci::Vec2i						getSkeletonDepthPos( const ci::Vec3f &position );
+		ci::Vec2i						getSkeletonVideoPos( const ci::Vec3f &position );
 
 		// Setters
-		void setCameraAngle( int32_t degrees = 0 );
-		void setDepthResolution( const ImageResolution & depthResolution = ImageResolution::NUI_IMAGE_RESOLUTION_320x240 );
-		void setVideoResolution( const ImageResolution & videoResolution = ImageResolution::NUI_IMAGE_RESOLUTION_640x480 );
-		void setDeviceIndex( int32_t deviceIndex = 0 );
-		
+		void							setCameraAngle( int32_t degrees = 0 );
+		void							setDepthResolution( const ImageResolution &depthResolution = ImageResolution::NUI_IMAGE_RESOLUTION_320x240 );
+		void							setVideoResolution( const ImageResolution &videoResolution = ImageResolution::NUI_IMAGE_RESOLUTION_640x480 );
+		void							setDeviceIndex( int32_t deviceIndex = 0 );
+
 	private:
+
+		// Maximum wait time in milliseconds for new Kinect data
+		static const int32_t			WAIT_TIME = 250;
 
 		// Constructor
 		Kinect();
 
 		// A pixel
-		struct Pixel
+		template <typename T> 
+		struct PixelT
 		{
-			uint8_t r;
-			uint8_t g;
-			uint8_t b;
-			uint8_t a;
+			T r;
+			T g;
+			T b;
 		};
+		typedef PixelT<uint8_t>			Pixel;
+		typedef PixelT<uint16_t>		Pixel16u;
 
 		// A point
 		struct Point
@@ -137,16 +148,13 @@ namespace KinectSdk
 		static std::vector<ci::Colorf>	sUserColors;
 		static std::vector<ci::Colorf>	getUserColors();
 
-		// Maximum wait time in milliseconds for new Kinect data
-		static const int32_t			WAIT_TIME = 250;
-
 		// Initialize properties
 		void							init();
 		void							restart();
 
 		// Capturing flag
 		bool							mCapture;
-			
+
 		bool							mEnabledDepth;
 		bool							mEnabledSkeletons;
 		bool							mEnabledVideo;
@@ -167,7 +175,7 @@ namespace KinectSdk
 		bool							mInverted;
 
 		// Kinect output data
-		ci::Surface8u					mDepthSurface;
+		ci::Surface16u					mDepthSurface;
 		std::vector<Skeleton>			mSkeletons;
 		ci::Surface8u					mVideoSurface;
 
@@ -182,7 +190,7 @@ namespace KinectSdk
 		// Sensor
 		int32_t							mDeviceIndex;
 		bool							mEnabledNearMode;
-		INuiSensor *					mSensor;
+		INuiSensor						*mSensor;
 		double							mTiltRequestTime;
 
 		// Skeleton
@@ -190,8 +198,8 @@ namespace KinectSdk
 		Point							mPoints[ NUI_SKELETON_POSITION_COUNT ];
 
 		// Image streams
-		void *							mDepthStreamHandle;
-		void *							mVideoStreamHandle;
+		void							*mDepthStreamHandle;
+		void							*mVideoStreamHandle;
 		bool							openDepthStream();
 		bool							openVideoStream();
 
@@ -199,17 +207,17 @@ namespace KinectSdk
 		bool							mRemoveBackground;
 
 		// Threading
-		std::condition_variable				mCond;
-		volatile bool						mRunning;
-		std::shared_ptr<boost::thread>		mThread;
-		void								run();
+		volatile bool					mRunning;
+		std::shared_ptr<boost::thread>	mThread;
+		void							run();
 
 		// Image data
-		Pixel *							mRgbDepth;
-		Pixel *							mRgbVideo;
-		void							pixelToSurface( ci::Surface8u & surface, uint8_t * buffer, bool depth = false );
-		Pixel							shortToPixel( uint16_t value );
- 
+		Pixel16u						*mRgbDepth;
+		Pixel							*mRgbVideo;
+		void							pixelToDepthSurface( ci::Surface16u &surface, uint16_t *buffer );
+		void							pixelToVideoSurface( ci::Surface8u &surface, uint8_t *buffer );
+		Pixel16u						shortToPixel( uint16_t value );
+
 		// Frame rate
 		double							mReadTimeDepth;
 		double							mReadTimeSkeletons;
@@ -221,7 +229,10 @@ namespace KinectSdk
 		bool							mActiveUsers[ NUI_SKELETON_COUNT ];
 
 		// Debug
-		void							trace( const std::string & message );
+		static void						trace( const std::string &message );
+
+		// Allow callback to access private members
+		friend void CALLBACK			deviceStatus( HRESULT hrStatus, const OLECHAR* instanceName, const OLECHAR* uniqueDeviceName, void * pUserData );
 
 	};
 

@@ -100,7 +100,7 @@ private:
 																 const std::vector<KinectSdk::JointName> & joints );
 	int32_t											mCameraAngle;
 	int32_t											mCameraAnglePrev;
-	ci::Surface8u									mDepthSurface;
+	ci::Surface16u									mDepthSurface;
 	int32_t											mDeviceCount;
 	int32_t											mDeviceIndex;
 	int32_t											mDeviceIndexPrev;
@@ -260,7 +260,7 @@ void KinectApp::draw()
 	}
 
 	// Check audio data
-	if (mData != 0) {
+	if ( mData != 0 ) {
 
 		// Get dimensions
 		int32_t dataSize = mInput->getDataSize();
@@ -279,7 +279,9 @@ void KinectApp::draw()
 		for ( int32_t i = 0; i < dataSize; i++ ) {
 			mLine.push_back( position + Vec2f( i * scale, math<float>::clamp( mData[ i ], -1.0f, 1.0f ) * height * 0.5f + height * 0.5f ) );
 		}
-		gl::draw( mLine );
+		if ( mLine.size() > 0 ) {
+			gl::draw( mLine );
+		}
 
 	}
 
@@ -380,7 +382,7 @@ void KinectApp::setup()
 	mFullScreen = isFullScreen();
 	mInverted = false;
 	mInvertedPrev = mInverted;
-	mRemoveBackground = true;
+	mRemoveBackground = false;
 	mRemoveBackgroundPrev = mRemoveBackground;
 	mUserCount = 0;
 
@@ -432,11 +434,6 @@ void KinectApp::shutdown()
 
 	// Stop audio input
 	stopAudio();
-
-	// Stop Kinect input
-	for_each ( mDevices.begin(), mDevices.end(), []( KinectRef & device ) {
-		device->stop();
-	} );
 
 	// Clean up
 	mBody.clear();

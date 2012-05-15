@@ -76,7 +76,6 @@ private:
 
 	// Kinect
 	float								mBrightTolerance;
-	float								mDepth;
 	KinectSdk::KinectRef				mKinect;
 	float								mMeshUvMix;
 	bool								mRemoveBackground;
@@ -152,7 +151,6 @@ void MeshApp::draw()
 		// Bind and configure shader
 		mShader.bind();
 		mShader.uniform( "brightTolerance", mBrightTolerance );
-		mShader.uniform( "depth", mDepth );
 		mShader.uniform( "eyePoint", mEyePoint );
 		mShader.uniform( "lightAmbient", mLightAmbient );
 		mShader.uniform( "lightDiffuse", mLightDiffuse );
@@ -326,10 +324,7 @@ void MeshApp::resize( ResizeEvent event )
 // Take screen shot
 void MeshApp::screenShot()
 {
-
-	// DO IT!
 	writeImage( getAppPath() / fs::path( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
-
 }
 
 // Set up
@@ -346,46 +341,44 @@ void MeshApp::setup()
 	// lighting. Instead, it passes a light position and color 
 	// values to the shader. Per fragment lighting is calculated in GLSL.
 	mLightAmbient = ColorAf( 0.0f, 0.0f, 0.0f, 1.0f );
-	mLightDiffuse = ColorAf( 0.25f, 0.25f, 0.25f, 1.0f );
-	mLightPosition = Vec3f( -28.0f, 205.0f, 245.0f );
-	mLightShininess = 20.0f;
-	mLightSpecular = ColorAf( 0.75f, 0.75f, 0.75f, 1.0f );
+	mLightDiffuse = ColorAf( 0.5f, 0.5f, 0.5f, 1.0f );
+	mLightPosition = Vec3f( 0.0f, -600.0f, 180.0f );
+	mLightShininess = 2.0f;
+	mLightSpecular = ColorAf( 1.0f, 1.0f, 1.0f, 1.0f );
 
 	// Set default properties
-	mBrightTolerance = 0.4f;
-	mDepth = 25.0f;
+	mBrightTolerance = 0.2f;
 	mFrameRate = 0.0f;
 	mFullScreen = isFullScreen();
 	mFullScreenPrev = mFullScreen;
 	mMeshUvMix = 0.2f;
 	mRemoveBackground = true;
 	mRemoveBackgroundPrev = mRemoveBackground;
-	mScale = Vec3f( 1.0f, 1.0f, 25.0f );
-	mShowVideo = true;
+	mScale = Vec3f( 1.0f, 1.0f, 500.0f );
+	mShowVideo = false;
 	mVideoOffsetX = 0.0f;
-	mVideoOffsetY = 0.994f;
+	mVideoOffsetY = 0.0f;
 
 	// Create the parameters bar
 	mParams = params::InterfaceGl( "Parameters", Vec2i( 250, 500 ) );
 	mParams.addSeparator( "" );
 	mParams.addParam( "Bright tolerance", & mBrightTolerance, "min=0.000 max=1.000 step=0.001 keyDecr=b keyIncr=B" );
-	mParams.addParam( "Depth", & mDepth, "min=0.0 max=2000.0 step=1.0 keyIncr=c keyDecr=C" );
-	mParams.addParam( "Remove background", & mRemoveBackground, "key=d" );
+	mParams.addParam( "Remove background", & mRemoveBackground, "key=c" );
 	mParams.addParam( "Scale", & mScale );
 	mParams.addSeparator( "" );
 	mParams.addParam( "Eye point", & mEyePoint );
 	mParams.addParam( "Look at", & mLookAt );
 	mParams.addParam( "Rotation", & mRotation );
 	mParams.addSeparator( "" );
-	mParams.addParam( "Show video", & mShowVideo, "key=e" );
-	mParams.addParam( "Video offset X", & mVideoOffsetX, "min=0.000 max=1.000 step=0.001 keyDecr=f keyIncr=F" );
-	mParams.addParam( "Video offset Y", & mVideoOffsetY, "min=0.000 max=1.000 step=0.001 keyDecr=g keyIncr=G" );
+	mParams.addParam( "Show video", & mShowVideo, "key=d" );
+	mParams.addParam( "Video offset X", & mVideoOffsetX, "min=0.000 max=1.000 step=0.001 keyDecr=e keyIncr=E" );
+	mParams.addParam( "Video offset Y", & mVideoOffsetY, "min=0.000 max=1.000 step=0.001 keyDecr=f keyIncr=F" );
 	mParams.addSeparator( "" );
 	mParams.addParam( "Light position", & mLightPosition );
-	mParams.addParam( "Light shininess", & mLightShininess, "min=0.000 max=10000.000 step=0.001 keyDecr=h keyIncr=H" );
+	mParams.addParam( "Light shininess", & mLightShininess, "min=0.000 max=10000.000 step=0.001 keyDecr=g keyIncr=G" );
 	mParams.addSeparator( "" );
 	mParams.addParam( "Frame rate", & mFrameRate, "", true );
-	mParams.addParam( "Full screen", & mFullScreen, "key=i" );
+	mParams.addParam( "Full screen", & mFullScreen, "key=h" );
 	mParams.addButton( "Save screen shot", std::bind( & MeshApp::screenShot, this ), "key=space" );
 	mParams.addButton( "Quit", std::bind( & MeshApp::quit, this ), "key=esc" );
 
@@ -470,10 +463,10 @@ void MeshApp::update()
 					// Valid skeletons have all joints available
 					if ( skeletonIt->size() == (uint32_t)JointName::NUI_SKELETON_POSITION_COUNT ) {
 
-						// Look at spine
+						// Subtle camera follow
 						Vec3f spine = skeletonIt->at( JointName::NUI_SKELETON_POSITION_SPINE ) * mEyePoint.z;
-						mLookAt.x = spine.x * 0.5f;
-						mLookAt.y = spine.y * 0.5f;
+						mLookAt.x = spine.x * 0.05f;
+						mLookAt.y = spine.y * 0.05f;
 						mEyePoint.x = -mLookAt.x * 0.5f;
 						mEyePoint.y = -mLookAt.y * 0.25f;
 

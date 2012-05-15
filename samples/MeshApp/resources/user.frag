@@ -25,7 +25,7 @@ void main( void )
 	vec4 color = vec4( 0.0, 0.0, 0.0, 0.0 );
 
 	// Check brightness
-	if (brightness > brightTolerance) {
+	if ( brightness < 1.0 - brightTolerance ) {
 
 		// Sample color image
 		if ( showVideo ) {

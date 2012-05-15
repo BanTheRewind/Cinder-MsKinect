@@ -1,5 +1,4 @@
 // Inputs
-uniform float depth;
 uniform vec3 scale;
 uniform sampler2D positions;
 
@@ -28,7 +27,7 @@ void main( void )
 	// Scale position
 	position.x = -position.x * scale.x;
 	position.y = position.y * scale.y;
-	position.z = depth * ( ( 1.0 - brightness ) * scale.z );
+	position.z = brightness * scale.z;
 
 	// Transform position
 	gl_Position = gl_ModelViewProjectionMatrix * position;
