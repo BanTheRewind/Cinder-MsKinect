@@ -62,20 +62,22 @@ public:
 private:
 
 	// Kinect
-	void								drawSegment( const KinectSdk::Skeleton &skeleton, 
-													 const std::vector<KinectSdk::JointName> &joints );
 	KinectSdk::KinectRef				mKinect;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
 	ci::gl::Texture						mTexture;
 
 	// Skeleton segments
 	void												defineBody();
+	void												drawSegment( const KinectSdk::Skeleton &skeleton, 
+		const std::vector<KinectSdk::JointName> &joints );
 	std::vector<KinectSdk::JointName>					mBody;
 	std::vector<KinectSdk::JointName>					mLeftArm;
 	std::vector<KinectSdk::JointName>					mLeftLeg;
 	std::vector<KinectSdk::JointName>					mRightArm;
 	std::vector<KinectSdk::JointName>					mRightLeg;
 	std::vector<std::vector<KinectSdk::JointName> >		mSegments;
+
+	void screenShot();
 
 };
 
@@ -190,8 +192,6 @@ void SkeletonBitmapApp::draw()
 // Draw segment
 void SkeletonBitmapApp::drawSegment( const Skeleton &skeleton, const vector<JointName> &joints )
 {
-
-	// DO IT!
 	glBegin(GL_LINES);
 	for ( uint32_t i = 0; i < joints.size() - 1; i++ )
 	{
@@ -199,7 +199,6 @@ void SkeletonBitmapApp::drawSegment( const Skeleton &skeleton, const vector<Join
 		gl::vertex( skeleton.at( joints[ i + 1 ] ).xy() );
 	}
 	glEnd();
-
 }
 
 // Handles key press
@@ -214,6 +213,10 @@ void SkeletonBitmapApp::keyDown( KeyEvent event )
 	case KeyEvent::KEY_f:
 		setFullScreen( !isFullScreen() );
 		break;
+	case KeyEvent::KEY_SPACE:
+		screenShot();
+		break;
+
 	}
 
 }
@@ -223,6 +226,12 @@ void SkeletonBitmapApp::prepareSettings( Settings * settings )
 {
 	settings->setWindowSize( 800, 600 );
 	settings->setFrameRate( 60.0f );
+}
+
+// Take screen shot
+void SkeletonBitmapApp::screenShot()
+{
+	writeImage( getAppPath() / fs::path( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 }
 
 // Set up

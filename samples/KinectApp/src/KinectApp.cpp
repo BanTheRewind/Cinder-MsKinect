@@ -102,9 +102,7 @@ private:
 	int32_t											mCameraAnglePrev;
 	ci::Surface16u									mDepthSurface;
 	int32_t											mDeviceCount;
-	int32_t											mDeviceIndex;
-	int32_t											mDeviceIndexPrev;
-	std::vector<KinectSdk::KinectRef>				mDevices;
+	KinectSdk::KinectRef							mKinect;
 	std::vector<KinectSdk::Skeleton>				mSkeletons;
 	int32_t											mUserCount;
 	ci::Surface8u									mVideoSurface;
@@ -207,7 +205,7 @@ void KinectApp::draw()
 	gl::clear( Colorf( 0.1f, 0.1f, 0.1f ) );
 
 	// We're capturing
-	if ( mDevices[ mDeviceIndex ]->isCapturing() ) {
+	if ( mKinect->isCapturing() ) {
 
 		// Set up camera for 3D
 		gl::setMatrices( mCamera );
@@ -224,7 +222,7 @@ void KinectApp::draw()
 			if ( skeletonIt->size() == JointName::NUI_SKELETON_POSITION_COUNT ) {
 
 				// Set color
-				gl::color( mDevices [mDeviceIndex ]->getUserColor( i ) );
+				gl::color( mKinect->getUserColor( i ) );
 
 				// Draw joints
 				for ( Skeleton::const_iterator jointIt = skeletonIt->cbegin(); jointIt != skeletonIt->cend(); ++jointIt ) {
@@ -362,8 +360,6 @@ void KinectApp::setup()
 	mCapture = true;
 	mCapturePrev = mCapture;
 	mDeviceCount = 0;
-	mDeviceIndex = 0;
-	mDeviceIndexPrev = mDeviceIndex;
 	mEnabledAudio = true;
 	mEnabledAudioPrev = true;
 	mEnabledDepth = true;
@@ -396,7 +392,6 @@ void KinectApp::setup()
 	mParams = params::InterfaceGl( "Parameters", Vec2i( 245, 500 ) );
 	mParams.addText( "DEVICE" );
 	mParams.addParam( "Device count", & mDeviceCount, "", true );
-	mParams.addParam( "Device index", & mDeviceIndex, "min=0 max=" + toString( math<int32_t>::max( mDeviceCount - 1, 0 ) ) + " step=1" );
 	mParams.addParam( "Device angle", & mCameraAngle, "min=-" + toString( Kinect::MAXIMUM_TILT_ANGLE ) + 
 		" max=" + toString( Kinect::MAXIMUM_TILT_ANGLE ) + " step=1" );
 	mParams.addSeparator();
@@ -432,8 +427,9 @@ void KinectApp::setup()
 void KinectApp::shutdown()
 {
 
-	// Stop audio input
+	// Stop input
 	stopAudio();
+	mKinect->stop();
 
 	// Clean up
 	mBody.clear();
@@ -468,11 +464,9 @@ void KinectApp::startAudio()
 			audioDeviceIndex++;
 		}
 	}
-	if ( deviceId >= 0 && deviceId + audioDeviceIndex == mDeviceIndex ) {
-		mInput->setDevice( deviceId + mDeviceIndex );
-	}
 
 	// Start receiving audio
+	mInput->setDevice( deviceId );
 	mCallbackId = mInput->addCallback<KinectApp>( & KinectApp::onData, this );
 	mInput->start();
 
@@ -485,23 +479,20 @@ void KinectApp::startKinect()
 	// Update device count
 	mDeviceCount = Kinect::getDeviceCount();
 
-	// Initialize devices
-	if ( mDevices.size() <= 0 ) {
-		for ( int32_t i = 0; i < mDeviceCount; i++ ) {
-			mDevices.push_back( Kinect::create() );
-			( * mDevices.rbegin() )->start( i );
-		}
-	}
+	// Initialize device
+	mKinect = Kinect::create();
 
 	// Configure Kinect
-	mDevices[ mDeviceIndex ]->enableBinaryMode( mBinaryMode );
-	mDevices[ mDeviceIndex ]->enableDepth( mEnabledDepth );
-	mDevices[ mDeviceIndex ]->enableSkeletons( mEnabledSkeletons );
-	mDevices[ mDeviceIndex ]->enableVideo( mEnabledVideo );
-	mDevices[ mDeviceIndex ]->removeBackground( mRemoveBackground );
+	mKinect->enableBinaryMode( mBinaryMode );
+	mKinect->enableDepth( mEnabledDepth );
+	mKinect->enableVideo( mEnabledVideo );
+	mKinect->removeBackground( mRemoveBackground );
+	mKinect->start();
+
+	console() << "Device ID: " << mKinect->getDeviceId() << endl;
 
 	// Kinect camera angle
-	mCameraAngle = mDevices[ mDeviceIndex ]->getCameraAngle();
+	mCameraAngle = mKinect->getCameraAngle();
 	mCameraAnglePrev = mCameraAngle;
 
 	// Clear stats
@@ -530,23 +521,9 @@ void KinectApp::update()
 		setFullScreen( mFullScreen );
 	}
 
-	// Toggle device
-	if (mDeviceIndex != mDeviceIndexPrev) {
-
-		// Clamp device index
-		mDeviceIndex = math<int32_t>::clamp( mDeviceIndex, 0, mDeviceCount - 1 );
-		mDeviceIndexPrev = mDeviceIndex;
-		
-		// Switch image devices
-		if ( mCapture ) {
-			startKinect();
-		}
-
-	}
-
 	// Toggle background remove
 	if ( mRemoveBackground != mRemoveBackgroundPrev ) {
-		mDevices[ mDeviceIndex ]->removeBackground( mRemoveBackground );
+		mKinect->removeBackground( mRemoveBackground );
 		mRemoveBackgroundPrev = mRemoveBackground;
 	}
 
@@ -555,10 +532,10 @@ void KinectApp::update()
 		mCapturePrev = mCapture;
 		if ( mCapture ) {
 			mInput->start();
-			mDevices[ mDeviceIndex ]->start( mDeviceIndex );
+			mKinect->start( 0 );
 		} else {
 			mInput->stop();
-			mDevices[ mDeviceIndex ]->stop();
+			mKinect->stop();
 		}
 	}
 
@@ -568,61 +545,61 @@ void KinectApp::update()
 		mEnabledAudioPrev = mEnabledAudio;
 	}
 	if ( mEnabledDepth != mEnabledDepthPrev ) {
-		mDevices[ mDeviceIndex ]->enableDepth( mEnabledDepth );
+		mKinect->enableDepth( mEnabledDepth );
 		mEnabledDepthPrev = mEnabledDepth;
 	}
 	if ( mEnabledSkeletons != mEnabledSkeletonsPrev ) {
-		mDevices[ mDeviceIndex ]->enableSkeletons( mEnabledSkeletons );
+		mKinect->enableSkeletons( mEnabledSkeletons );
 		mEnabledSkeletonsPrev = mEnabledSkeletons;
 	}
 	if ( mEnabledVideo != mEnabledVideoPrev ) {
-		mDevices[ mDeviceIndex ]->enableVideo( mEnabledVideo );
+		mKinect->enableVideo( mEnabledVideo );
 		mEnabledVideoPrev = mEnabledVideo;
 	}
 
 	// Toggle binary mode
 	if ( mBinaryMode != mBinaryModePrev || mInverted != mInvertedPrev ) {
-		mDevices[ mDeviceIndex ]->enableBinaryMode( mBinaryMode, mInverted );
+		mKinect->enableBinaryMode( mBinaryMode, mInverted );
 		mBinaryModePrev = mBinaryMode;
 		mInvertedPrev = mInverted;
 	}
 
 	// Toggle near mode
 	if ( mEnabledNearMode != mEnabledNearModePrev ) {
-		mDevices[ mDeviceIndex ]->enableNearMode( mEnabledNearMode );
+		mKinect->enableNearMode( mEnabledNearMode );
 		mEnabledNearModePrev = mEnabledNearMode;
 	}
 
 	// Check if device is capturing
-	if ( mDevices[ mDeviceIndex ]->isCapturing() ) {
+	if ( mKinect->isCapturing() ) {
 
 		// Adjust Kinect camera angle, as needed
 		if ( mCameraAngle != mCameraAnglePrev ) {
-			mDevices[ mDeviceIndex ]->setCameraAngle( mCameraAngle );
+			mKinect->setCameraAngle( mCameraAngle );
 			mCameraAnglePrev = mCameraAngle;
 		}
 
 		// Get latest Kinect data
-		if ( mDevices[ mDeviceIndex ]->checkNewDepthFrame() ) {
-			mDepthSurface = mDevices[ mDeviceIndex ]->getDepth();
+		if ( mKinect->checkNewDepthFrame() ) {
+			mDepthSurface = mKinect->getDepth();
 		}
-		if ( mDevices[ mDeviceIndex ]->checkNewSkeletons() ) {
-			mSkeletons = mDevices[ mDeviceIndex ]->getSkeletons();
+		if ( mKinect->checkNewSkeletons() ) {
+			mSkeletons = mKinect->getSkeletons();
 		}
-		if ( mDevices[ mDeviceIndex ]->checkNewVideoFrame() ) {
-			mVideoSurface = mDevices[ mDeviceIndex ]->getVideo();
+		if ( mKinect->checkNewVideoFrame() ) {
+			mVideoSurface = mKinect->getVideo();
 		}
 
 		// Statistics enabled (turn off to improve performance)
 		if ( mEnabledStats ) {
 
 			// Update user count
-			mUserCount = mDevices[ mDeviceIndex ]->getUserCount();
+			mUserCount = mKinect->getUserCount();
 		
 			// Update frame rates
-			mFrameRateDepth = mDevices[ mDeviceIndex ]->getDepthFrameRate();
-			mFrameRateSkeletons = mDevices[ mDeviceIndex ]->getSkeletonsFrameRate();
-			mFrameRateVideo = mDevices[ mDeviceIndex ]->getVideoFrameRate();
+			mFrameRateDepth = mKinect->getDepthFrameRate();
+			mFrameRateSkeletons = mKinect->getSkeletonsFrameRate();
+			mFrameRateVideo = mKinect->getVideoFrameRate();
 
 		} else {
 

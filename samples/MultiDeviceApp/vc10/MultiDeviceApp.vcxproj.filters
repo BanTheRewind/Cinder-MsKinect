@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="blocks">
+      <UniqueIdentifier>{bc923a7f-9032-44d0-91e8-3747da8487ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{d47378bc-2997-4c1e-8c1e-cdf2e71a25c4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="blocks\Cinder-KinectSdk">
+      <UniqueIdentifier>{1889549a-f9cc-477d-a1b8-75dc6b47e9dd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\MultiDeviceApp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resources.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\src\Kinect.h">
+      <Filter>blocks\Cinder-KinectSdk</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

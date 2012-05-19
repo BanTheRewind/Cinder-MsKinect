@@ -70,7 +70,6 @@ private:
 
 	// Depth points
 	std::vector<ci::Vec3f>	mPoints;
-	ci::Surface16u			mSurface;
 
 	// Camera
 	ci::Arcball				mArcball;
@@ -87,6 +86,9 @@ using namespace ci::app;
 using namespace KinectSdk;
 using namespace std;
 
+// Kinect image size
+const Vec2i	kKinectSize( 640, 480 );
+
 // Render
 void PointCloudApp::draw()
 {
@@ -97,9 +99,11 @@ void PointCloudApp::draw()
 	gl::setMatrices( mCamera );
 	gl::rotate( mArcball.getQuat() );
 
-	// Draw points
+	// Draw point cloud
 	glBegin( GL_POINTS );
 	for ( vector<Vec3f>::const_iterator pointIt = mPoints.cbegin(); pointIt != mPoints.cend(); ++pointIt ) {
+		float depth = 1.0f - pointIt->z / ( mCamera.getEyePoint().z * -2.0f );
+		gl::color( ColorAf( 1.0f, depth, 1.0f - depth, depth ) );
 		gl::vertex( *pointIt );
 	}
 	glEnd();
@@ -159,7 +163,6 @@ void PointCloudApp::setup()
 	glPointSize( 0.25f );
 	gl::enableAlphaBlending();
 	gl::enableAdditiveBlending();
-	gl::color( ColorAf( Colorf::white(), 0.667f ) );
 
 	// Start Kinect with isolated depth tracking only
 	mKinect = Kinect::create();
@@ -192,22 +195,18 @@ void PointCloudApp::update()
 		// Check for latest depth map
 		if ( mKinect->checkNewDepthFrame() ) {
 
-			// Get surface
-			mSurface = mKinect->getDepth();
-
 			// Clear point list
-			Vec3f offset( Vec2f( mSurface.getSize() ) * Vec2f( -0.5f, 0.5f ) );
+			Vec3f offset( Vec2f( kKinectSize ) * Vec2f( -0.5f, 0.5f ) );
 			offset.z = mCamera.getEyePoint().z * 0.5f;
 			Vec3f position = Vec3f::zero();
 			mPoints.clear();
 
 			// Iterate image rows
-			Surface16u::Iter iter = mSurface.getIter();
-			while ( iter.line() ) {
-				while ( iter.pixel() ) {
+			for ( int32_t y = 0; y < kKinectSize.y; y++ ) {
+				for ( int32_t x = 0; x < kKinectSize.x; x++ ) {
 
-					// Read depth as float
-					float depth = mKinect->getDepthAt( iter.getPos() );
+					// Read depth as 0.0 - 1.0 float
+					float depth = mKinect->getDepthAt( Vec2i( x, y ) );
 
 					// Add position to point list
 					if ( depth > 0.0f ) {
