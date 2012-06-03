@@ -80,6 +80,9 @@ private:
 	// Camera
 	ci::CameraPersp										mCamera;
 
+	// Save screenshot
+	void												screenShot();
+
 };
 
 // Imports
@@ -146,14 +149,13 @@ void SkeletonApp::draw()
 
 	// Clear window
 	gl::setViewport( getWindowBounds() );
-	gl::clear( Colorf( 0.1f, 0.1f, 0.1f ) );
+	gl::clear( Colorf::gray( 0.1f ) );
 
 	// We're capturing
 	if ( mKinect->isCapturing() ) {
 
 		// Set up camera for 3D
-		gl::setMatrices(mCamera);
-		gl::scale( 2.0f, 2.0f, 2.0f );
+		gl::setMatrices( mCamera );
 
 		// Iterate through skeletons
 		uint32_t i = 0;
@@ -163,16 +165,33 @@ void SkeletonApp::draw()
 			if ( skeletonIt->size() == JointName::NUI_SKELETON_POSITION_COUNT ) {
 
 				// Set color
-				gl::color( mKinect->getUserColor( i ) );
-
-				// Draw joints
-				for ( Skeleton::const_iterator jointIt = skeletonIt->cbegin(); jointIt != skeletonIt->cend(); ++jointIt ) {
-					gl::drawSphere( jointIt->second * Vec3f( -1.0f, 1.0f, 1.0f ), 0.025f, 16 );
-				}
+				Colorf color = mKinect->getUserColor( i );
 
 				// Draw body
+				glLineWidth( 2.0f );
+				gl::color( color );
 				for ( vector<vector<JointName> >::const_iterator segmentIt = mSegments.cbegin(); segmentIt != mSegments.cend(); ++segmentIt ) {
 					drawSegment( * skeletonIt, * segmentIt );
+				}
+
+				// Iterate through joints
+				glLineWidth( 0.5f );
+				for ( Skeleton::const_iterator jointIt = skeletonIt->cbegin(); jointIt != skeletonIt->cend(); ++jointIt ) {
+					
+					// Get position and rotation
+					Vec3f position = jointIt->second.getPosition();
+					Matrix44f transform = jointIt->second.getAbsoluteRotationMatrix();
+					Vec3f direction = transform.transformPoint( position ).normalized();
+					direction *= 0.05f;
+
+					// Draw joint
+					gl::color( color );
+					gl::drawSphere( position, 0.025f, 16 );
+					
+					// Draw joint orientation
+					gl::color( ColorAf::white() );
+					gl::drawVector( position, position + direction, 0.05f, 0.01f );
+
 				}
 
 			}
@@ -184,18 +203,14 @@ void SkeletonApp::draw()
 }
 
 // Draw segment
-void SkeletonApp::drawSegment( const Skeleton & skeleton, const vector<JointName> & joints )
+void SkeletonApp::drawSegment( const Skeleton &skeleton, const vector<JointName> &joints )
 {
-
-	// DO IT!
-	glBegin(GL_LINES);
-	for ( uint32_t i = 0; i < joints.size() - 1; i++ )
-	{
-		gl::vertex( skeleton.at( joints[ i ] ) * Vec3f( -1.0f, 1.0f, 1.0f ) );
-		gl::vertex( skeleton.at( joints[ i + 1 ] ) * Vec3f( -1.0f, 1.0f, 1.0f ) );
+	glBegin( GL_LINES );
+	for ( uint32_t i = 0; i < joints.size() - 1; i++ ) {
+		gl::vertex( skeleton.at( joints.at( i ) ).getPosition() );
+		gl::vertex( skeleton.at( joints.at( i + 1 ) ).getPosition() );
 	}
 	glEnd();
-
 }
 
 // Handles key press
@@ -210,6 +225,9 @@ void SkeletonApp::keyDown( KeyEvent event )
 	case KeyEvent::KEY_f:
 		setFullScreen( !isFullScreen() );
 		break;
+	case KeyEvent::KEY_SPACE:
+		screenShot();
+		break;
 	}
 
 }
@@ -217,31 +235,32 @@ void SkeletonApp::keyDown( KeyEvent event )
 // Prepare window
 void SkeletonApp::prepareSettings( Settings * settings )
 {
-
-	// DO IT!
 	settings->setWindowSize( 800, 600 );
 	settings->setFrameRate( 60.0f );
+}
 
+// Take screen shot
+void SkeletonApp::screenShot()
+{
+	writeImage( getAppPath() / fs::path( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 }
 
 // Set up
 void SkeletonApp::setup()
 {
 
-	// Set up OpenGL
-	glLineWidth( 2.0f );
-	gl::color( ColorAf::white() );
-
 	// Start Kinect
 	mKinect = Kinect::create();
+	mKinect->start( DeviceOptions().enableDepth( false ).enableVideo( false ) );
 	mKinect->removeBackground();
-	mKinect->enableDepth( false );
-	mKinect->enableVideo( false );
-	mKinect->start();
+
+	// Set the skeleton smoothing to remove jitters. Better smoothing means
+	// less jitters, but a slower response time.
+	mKinect->setTransform( Kinect::TRANSFORM_SMOOTH );
 
 	// Set up camera
-	mCamera.lookAt( Vec3f( 0.0f, 0.0f, -3.0f ), Vec3f::zero() );
-	mCamera.setPerspective (45.0f, getWindowAspectRatio(), 1.0f, 1000.0f );
+	mCamera.lookAt( Vec3f( 0.0f, 0.0f, 2.0f ), Vec3f::zero() );
+	mCamera.setPerspective( 45.0f, getWindowAspectRatio(), 0.01f, 1000.0f );
 
 	// Define drawing body
 	defineBody();

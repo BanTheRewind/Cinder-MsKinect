@@ -48,20 +48,222 @@ namespace KinectSdk
 	using namespace ci::app;
 	using namespace std;
 
-	/****************************/
+	//////////////////////////////////////////////////////////////////////////////////////////////
 
-	void CALLBACK deviceStatus( HRESULT hrStatus, const OLECHAR* instanceName, const OLECHAR* uniqueDeviceId, void * pUserData )
+	const double kTiltRequestInterval = 1.5;
+
+	Matrix44f toMatrix44f( const Matrix4 &matrix ) {
+		return Matrix44f( Vec4f( matrix.M11, matrix.M12, matrix.M13, matrix.M14 ), 
+			Vec4f( matrix.M21, matrix.M22, matrix.M23, matrix.M24 ), 
+			Vec4f( matrix.M31, matrix.M32, matrix.M33, matrix.M34 ), 
+			Vec4f( matrix.M41, matrix.M42, matrix.M43, matrix.M44 ) );
+	}
+	Quatf toQuatf( const Vector4 &vec ) {
+		return Quatf( vec.w, vec.x, vec.y, vec.z );
+	}
+	Vec3f toVec3f( const Vector4 &vec ) {
+		return Vec3f( vec.x, vec.y, vec.z );
+	}
+
+	void CALLBACK deviceStatus( long hr, const WCHAR *instanceName, const WCHAR *deviceId, void *data )
 	{
-		Kinect* kinect = reinterpret_cast<Kinect*>( pUserData );
-		if ( SUCCEEDED( hrStatus ) ) {
-			kinect->start( kinect->mDeviceId, kinect->mVideoResolution, kinect->mDepthResolution, kinect->mEnabledNearMode );
+		Kinect* kinect = reinterpret_cast<Kinect*>( data );
+		if ( SUCCEEDED( hr ) ) {
+			kinect->start( kinect->getDeviceOptions() );
 		} else {
-			kinect->error( hrStatus );
-			reinterpret_cast<Kinect*>( pUserData )->stop();
+			kinect->error( hr );
+			reinterpret_cast<Kinect*>( data )->stop();
 		}
 	}
 
-	const double kTiltRequestInterval = 1.5;
+	const NUI_TRANSFORM_SMOOTH_PARAMETERS	kTransformNone			= { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+	const NUI_TRANSFORM_SMOOTH_PARAMETERS	kTransformDefault		= { 0.5f, 0.5f, 0.5f, 0.05f, 0.04f };
+	const NUI_TRANSFORM_SMOOTH_PARAMETERS	kTransformSmooth		= { 0.5f, 0.1f, 0.5f, 0.1f, 0.1f };
+	const NUI_TRANSFORM_SMOOTH_PARAMETERS	kTransformVerySmooth	= { 0.7f, 0.3f, 1.0f, 1.0f, 1.0f };
+	const NUI_TRANSFORM_SMOOTH_PARAMETERS	kTransformMax			= { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+	const NUI_TRANSFORM_SMOOTH_PARAMETERS	kTransformParams[ 5 ]	= 
+	{ kTransformNone, kTransformDefault, kTransformSmooth, kTransformVerySmooth, kTransformMax };
+
+	//////////////////////////////////////////////////////////////////////////////////////////////
+
+	Bone::Bone( const Vector4 &position, const _NUI_SKELETON_BONE_ORIENTATION &bone )
+	{
+		mAbsRotQuat	= toQuatf( bone.absoluteRotation.rotationQuaternion );
+		mAbsRotMat	= toMatrix44f( bone.absoluteRotation.rotationMatrix );
+		mJointEnd	= bone.endJoint;
+		mJointStart	= bone.startJoint;
+		mPosition	= toVec3f( position );
+		mRotQuat	= toQuatf( bone.hierarchicalRotation.rotationQuaternion );
+		mRotMat		= toMatrix44f( bone.hierarchicalRotation.rotationMatrix );
+		mPosition.z	*= -1.0f;
+	}
+
+	const Quatf& Bone::getAbsoluteRotation() const 
+	{ 
+		return mAbsRotQuat; 
+	}
+	const Matrix44f& Bone::getAbsoluteRotationMatrix() const 
+	{ 
+		return mAbsRotMat; 
+	}
+	const Vec3f& Bone::getPosition() const 
+	{ 
+		return mPosition; 
+	}
+	const Quatf& Bone::getRotation() const 
+	{ 
+		return mRotQuat; 
+	}
+	const Matrix44f& Bone::getRotationMatrix() const 
+	{ 
+		return mRotMat; 
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////////////
+
+	DeviceOptions::DeviceOptions()
+	{
+		mDeviceId					= "";
+		mDeviceIndex				= 0;
+		mEnabledDepth				= true;
+		mEnabledNearMode			= false;
+		mEnabledSkeletonTracking	= true;
+		mEnabledVideo				= true;
+		setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_320x240 );
+		setVideoResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 );
+	}
+
+	ImageResolution DeviceOptions::getDepthResolution() const
+	{
+		return mDepthResolution;
+	}
+	
+	const Vec2i& DeviceOptions::getDepthSize() const
+	{
+		return mDepthSize;
+	}
+
+	const string& DeviceOptions::getDeviceId() const
+	{
+		return mDeviceId;
+	}
+	
+	int32_t DeviceOptions::getDeviceIndex() const
+	{
+		return mDeviceIndex;
+	}
+	
+	ImageResolution DeviceOptions::getVideoResolution() const
+	{
+		return mVideoResolution;
+	}
+
+	const Vec2i& DeviceOptions::getVideoSize() const 
+	{
+		return mVideoSize;
+	}
+
+	bool DeviceOptions::isDepthEnabled() const
+	{
+		return mEnabledDepth;
+	}
+	
+	bool DeviceOptions::isNearModeEnabled() const
+	{
+		return mEnabledNearMode;
+	}
+	
+	bool DeviceOptions::isSkeletonTrackingEnabled() const
+	{
+		return mEnabledSkeletonTracking;
+	}
+	
+	bool DeviceOptions::isVideoEnabled() const
+	{
+		return mEnabledVideo;
+	}
+
+	DeviceOptions& DeviceOptions::enableDepth( bool enable )
+	{
+		mEnabledDepth = enable;
+		return *this;
+	}
+
+	DeviceOptions& DeviceOptions::enableNearMode( bool enable )
+	{
+		mEnabledNearMode = enable;
+		return *this;
+	}
+	
+	DeviceOptions& DeviceOptions::enableSkeletonTracking( bool enable )
+	{
+		mEnabledSkeletonTracking = enable;
+		return *this;
+	}
+	
+	DeviceOptions& DeviceOptions::enableVideo( bool enable )
+	{
+		mEnabledVideo = enable;
+		return *this;
+	}
+	
+	DeviceOptions& DeviceOptions::setDepthResolution( const ImageResolution &resolution )
+	{
+		mDepthResolution = resolution;
+		switch ( mDepthResolution ) {
+		case ImageResolution::NUI_IMAGE_RESOLUTION_640x480:
+			mDepthSize = Vec2i( 640, 480 );
+			break;
+		case ImageResolution::NUI_IMAGE_RESOLUTION_320x240:
+			mDepthSize = Vec2i( 320, 240 );
+			break;
+		case ImageResolution::NUI_IMAGE_RESOLUTION_80x60:
+			mDepthSize = Vec2i( 80, 60 );
+			break;
+		default:
+			mDepthResolution = NUI_IMAGE_RESOLUTION_INVALID;
+			mDepthSize = Vec2i::zero();
+			mEnabledDepth = false;
+			break;
+		}
+		return *this;
+	}
+
+	DeviceOptions& DeviceOptions::setDeviceId( const std::string &id )
+	{
+		mDeviceId = id;
+		return *this;
+	}
+	
+	DeviceOptions& DeviceOptions::setDeviceIndex( int32_t index )
+	{
+		mDeviceIndex = index;
+		return *this;
+	}
+	
+	DeviceOptions& DeviceOptions::setVideoResolution( const ImageResolution &resolution )
+	{
+		mVideoResolution = resolution;
+		switch ( mVideoResolution ) {
+		case ImageResolution::NUI_IMAGE_RESOLUTION_1280x960:
+			mVideoSize = Vec2i( 1280, 960 );
+			break;
+		case ImageResolution::NUI_IMAGE_RESOLUTION_640x480:
+			mVideoSize = Vec2i( 640, 480 );
+			break;
+		case ImageResolution::NUI_IMAGE_RESOLUTION_320x240:
+			mVideoSize = Vec2i( 320, 240 );
+			break;
+		default:
+			mVideoResolution = NUI_IMAGE_RESOLUTION_640x480;
+			mVideoSize = Vec2i::zero();
+			mEnabledVideo = false;
+			break;
+		}
+		return *this;
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////////////
 
 	vector<Colorf> Kinect::sUserColors = getUserColors();
 
@@ -91,7 +293,7 @@ namespace KinectSdk
 		return KinectRef( new Kinect( ) );
 	}
 
-	/****************************/
+	//////////////////////////////////////////////////////////////////////////////////////////////
 
 	Kinect::Kinect()
 	{
@@ -105,13 +307,14 @@ namespace KinectSdk
 	Kinect::~Kinect()
 	{
 		stop();
-		if ( mRgbDepth != 0 ) {
-			delete [] mRgbDepth;
-			mRgbDepth = 0;
-		}
-		if ( mRgbVideo != 0 ) {
-			delete [] mRgbVideo;
-			mRgbVideo = 0;
+		if ( mSensor != 0 ) {
+			mSensor->NuiShutdown();
+			if ( mSensor ) {
+				mSensor->Release();
+				mSensor = 0;
+				mDepthStreamHandle = 0;
+				mVideoStreamHandle = 0;
+			}
 		}
 	}
 
@@ -147,49 +350,6 @@ namespace KinectSdk
 		mInverted = invertImage;
 	}
 
-	void Kinect::enableDepth( bool enable )
-	{
-		if ( !enable ) {
-			deactivateUsers();
-		}
-
-		bool toggle = mEnabledDepth != enable;
-		mEnabledDepth = enable;
-		if ( toggle ) {
-			if ( !mEnabledDepth ) {
-				mFrameRateDepth = 0.0f;
-			}
-			mDepthSurface = Surface16u( mDepthWidth, mDepthHeight, false, SurfaceChannelOrder::RGB );
-		}
-	}
-
-	void Kinect::enableNearMode( bool enable ) 
-	{
-		bool toggle = mEnabledNearMode != enable;
-		mEnabledNearMode = enable;
-		if ( toggle && mEnabledDepth ) {
-			mEnabledDepth = false;
-			enableDepth( true );
-		}
-	}
-
-	void Kinect::enableSkeletons( bool enable )
-	{
-		bool toggle = mEnabledSkeletons != enable;
-		mEnabledSkeletons = enable;
-
-		if ( toggle ) {
-			if ( !mEnabledSkeletons ) {
-				mFrameRateSkeletons = 0.0f;
-			}
-
-			mSkeletons.clear();
-			for ( int32_t i = 0; i < NUI_SKELETON_COUNT; i++ ) {
-				mSkeletons.push_back( Skeleton() );
-			}
-		}
-	}
-
 	void Kinect::enableUserColor( bool enable )
 	{
 		mGreyScale = !enable;
@@ -200,19 +360,7 @@ namespace KinectSdk
 		mVerbose = enable;
 	}
 
-	void Kinect::enableVideo( bool enable )
-	{
-		bool toggle = mEnabledVideo != enable;
-		mEnabledVideo = enable;
-		if ( toggle ) {
-			if ( !mEnabledVideo ) {
-				mFrameRateVideo = 0.0f;
-			}
-			mVideoSurface = Surface8u( mVideoWidth, mVideoHeight, false, SurfaceChannelOrder::RGBA );
-		}
-	}
-
-	void Kinect::error( HRESULT hr ) {
+	void Kinect::error( long hr ) {
 		if ( !mVerbose ) {
 			return;
 		}
@@ -250,6 +398,8 @@ namespace KinectSdk
 		case ERROR_RETRY:
 			trace( "Device is busy.  Retry in a moment." );
 			break;
+		case S_FALSE:
+			trace( "Data not available." );
 		case S_OK:
 			break;
 		default:
@@ -261,7 +411,7 @@ namespace KinectSdk
 	{
 		long degrees = 0L;
 		if ( mCapture && mSensor != 0 ) {
-			HRESULT hr = mSensor->NuiCameraElevationGetAngle( &degrees );
+			long hr = mSensor->NuiCameraElevationGetAngle( &degrees );
 			if ( FAILED( hr ) ) {
 				trace( "Unable to retrieve device angle:" );
 				error( hr );
@@ -298,30 +448,36 @@ namespace KinectSdk
 		return deviceCount;
 	}
 
-	string Kinect::getDeviceId() const
+	const DeviceOptions& Kinect::getDeviceOptions() const
 	{
-		return mDeviceId;
+		return mDeviceOptions;
 	}
 
-	int32_t Kinect::getDeviceIndex() const
+	std::vector<Skeleton> Kinect::getSkeletons()
 	{
-		return mDeviceIndex;
-	}
-
-	const vector<Skeleton>& Kinect::getSkeletons()
-	{
+		boost::mutex::scoped_lock lock( mMutex );
 		mNewSkeletons = false;
 		return mSkeletons;
 	}
 
-	float Kinect::getSkeletonsFrameRate() const 
+	float Kinect::getSkeletonFrameRate() const 
 	{ 
 		return mFrameRateSkeletons; 
 	}
 
+	int_fast8_t Kinect::getTransform() const
+	{
+		return mTransform;
+	}
+
+	void Kinect::setTransform( int_fast8_t transform )
+	{
+		mTransform = transform;
+	}
+
 	int32_t Kinect::getUserCount()
 	{
-		return mEnabledDepth ? mUserCount : 0;
+		return mDeviceOptions.isDepthEnabled() ? mUserCount : 0;
 	}
 
 	const Surface8u& Kinect::getVideo()
@@ -340,43 +496,32 @@ namespace KinectSdk
 
 		// Only set these when first initializing the device
 		if ( !reset ) {
-			mBinary = false;
-			mDepthHeight = 240;
-			mDepthResolution = ImageResolution::NUI_IMAGE_RESOLUTION_INVALID;
-			mDepthWidth = 320;
-			mDeviceIndex = 0;
-			mDeviceId = "";
-			mEnabledDepth = true;
-			mEnabledNearMode = false;
-			mEnabledSkeletons = true;
-			mEnabledVideo = true;
-			mGreyScale = false;
-			mInverted = false;
-			mRemoveBackground = false;
-			mVerbose = true;
-			mVideoHeight = 480;
-			mVideoResolution = ImageResolution::NUI_IMAGE_RESOLUTION_INVALID;
-			mVideoWidth = 640;
+			mBinary				= false;
+			mGreyScale			= false;
+			mInverted			= false;
+			mRemoveBackground	= false;
+			mTransform			= TRANSFORM_DEFAULT;
+			mVerbose			= true;
 		}
 
-		mCapture = false;
-		mDepthStreamHandle = 0;
-		mFrameRateDepth = 0.0f;
+		mCapture			= false;
+		mDepthStreamHandle	= 0;
+		mFrameRateDepth		= 0.0f;
 		mFrameRateSkeletons = 0.0f;
-		mFrameRateVideo = 0.0f;
-		mSensor = 0;
-		mIsSkeletonDevice = false;
-		mNewDepthFrame = false;
-		mNewSkeletons = false;
-		mNewVideoFrame = false;
-		mReadTimeDepth = 0.0;
-		mReadTimeSkeletons = 0.0;
-		mReadTimeVideo = 0.0;
-		mRgbDepth = 0;
-		mRgbVideo = 0;
-		mTiltRequestTime = 0.0;
-		mUserCount = 0;
-		mVideoStreamHandle = 0;
+		mFrameRateVideo		= 0.0f;
+		mSensor				= 0;
+		mIsSkeletonDevice	= false;
+		mNewDepthFrame		= false;
+		mNewSkeletons		= false;
+		mNewVideoFrame		= false;
+		mReadTimeDepth		= 0.0;
+		mReadTimeSkeletons	= 0.0;
+		mReadTimeVideo		= 0.0;
+		mRgbDepth			= 0;
+		mRgbVideo			= 0;
+		mTiltRequestTime	= 0.0;
+		mUserCount			= 0;
+		mVideoStreamHandle	= 0;
 
 		deactivateUsers();
 
@@ -395,8 +540,8 @@ namespace KinectSdk
 		pos.x = position.x;
 		pos.y = position.y;
 		pos.z = position.z;
-		pos.w = 0.0f;
-		NuiTransformSkeletonToDepthImage( pos, &x, &y, mDepthResolution );
+		pos.w = 1.0f;
+		NuiTransformSkeletonToDepthImage( pos, &x, &y, mDeviceOptions.getDepthResolution() );
 		return Vec2i( (int32_t)x, (int32_t)y );
 	}
 
@@ -408,16 +553,16 @@ namespace KinectSdk
 		pos.x = position.x;
 		pos.y = position.y;
 		pos.z = position.z;
-		pos.w = 0.0f;
-		NuiTransformSkeletonToDepthImage( pos, &x, &y, mVideoResolution );
+		pos.w = 1.0f;
+		NuiTransformSkeletonToDepthImage( pos, &x, &y, mDeviceOptions.getVideoResolution() );
 		return Vec2i( (int32_t)x, (int32_t)y );
 	}
 
 	bool Kinect::openDepthStream()
 	{
 		if ( mSensor != 0) {
-			HRESULT hr = mSensor->NuiImageStreamOpen( mDepthResolution != ImageResolution::NUI_IMAGE_RESOLUTION_640x480 && 
-				HasSkeletalEngine( mSensor ) ? NUI_IMAGE_TYPE_DEPTH_AND_PLAYER_INDEX : NUI_IMAGE_TYPE_DEPTH, mDepthResolution, 0, 2, 0, &mDepthStreamHandle );;
+			long hr = mSensor->NuiImageStreamOpen( mDeviceOptions.getDepthResolution() != ImageResolution::NUI_IMAGE_RESOLUTION_640x480 && 
+				HasSkeletalEngine( mSensor ) ? NUI_IMAGE_TYPE_DEPTH_AND_PLAYER_INDEX : NUI_IMAGE_TYPE_DEPTH, mDeviceOptions.getDepthResolution(), 0, 2, 0, &mDepthStreamHandle );;
 			if ( FAILED( hr ) ) {
 				trace( "Unable to open depth image stream: " );
 				error( hr );
@@ -431,7 +576,7 @@ namespace KinectSdk
 	bool Kinect::openVideoStream()
 	{
 		if ( mSensor != 0 ) {
-			HRESULT hr = mSensor->NuiImageStreamOpen( NUI_IMAGE_TYPE_COLOR, mVideoResolution, 0, 2, 0, &mVideoStreamHandle );
+			long hr = mSensor->NuiImageStreamOpen( NUI_IMAGE_TYPE_COLOR, mDeviceOptions.getVideoResolution(), 0, 2, 0, &mVideoStreamHandle );
 			if ( FAILED( hr ) ) {
 				trace( "Unable to open color image stream: " );
 				error( hr );
@@ -448,12 +593,13 @@ namespace KinectSdk
 			return;
 		}
 
-		int32_t height = surface.getHeight();
-		int32_t width = surface.getWidth();
-		int32_t size = width * height * 3 * 2;
+		int32_t height		= surface.getHeight();
+		int32_t width		= surface.getWidth();
+		int32_t size		= width * height * 3 * 2;
 
-		Pixel16u* rgbRun = mRgbDepth;
-		uint16_t* bufferRun = buffer;
+		Pixel16u* rgbRun	= mRgbDepth;
+		uint16_t* bufferRun	= buffer;
+
 		for ( int32_t i = 0; i < width * height; i++ ) {
 			Pixel16u pixel = shortToPixel( *bufferRun );
 			bufferRun++;
@@ -471,15 +617,15 @@ namespace KinectSdk
 			return;
 		}
 
-		int32_t height = surface.getHeight();
-		int32_t width = surface.getWidth();
-		int32_t size = width * height * 4;
+		int32_t height	= surface.getHeight();
+		int32_t width	= surface.getWidth();
+		int32_t size	= width * height * 4;
 
 		// Swap red/blue channels
 		for ( int32_t i = 0; i < size; i += 4 ) {
-			uint8_t b = buffer[ i ];
-			buffer[ i ] = buffer[ i + 2 ];
-			buffer[ i + 2 ] = b;
+			uint8_t b		= buffer[ i ];
+			buffer[ i ]		= buffer[ i + 2 ];
+			buffer[ i + 2 ]	= b;
 		}
 
 		memcpy( surface.getData(), buffer, size );
@@ -501,11 +647,11 @@ namespace KinectSdk
 
 				//////////////////////////////////////////////////////////////////////////////////////////////
 
-				if ( mEnabledDepth && mDepthStreamHandle != 0 && !mNewDepthFrame ) {
+				if ( mDeviceOptions.isDepthEnabled() && mDepthStreamHandle != 0 && !mNewDepthFrame ) {
 
 					// Acquire depth image
 					_NUI_IMAGE_FRAME imageFrame;
-					HRESULT hr = mSensor->NuiImageStreamGetNextFrame( mDepthStreamHandle, WAIT_TIME, &imageFrame );
+					long hr = mSensor->NuiImageStreamGetNextFrame( mDepthStreamHandle, WAIT_TIME, &imageFrame );
 					if ( FAILED( hr ) ) {
 						error( hr );
 					} else {
@@ -550,11 +696,11 @@ namespace KinectSdk
 
 				//////////////////////////////////////////////////////////////////////////////////////////////
 
-				if ( mEnabledSkeletons && mIsSkeletonDevice && !mNewSkeletons ) {
+				if ( mDeviceOptions.isSkeletonTrackingEnabled() && mIsSkeletonDevice && !mNewSkeletons ) {
 
 					// Acquire skeleton
 					_NUI_SKELETON_FRAME skeletonFrame;
-					HRESULT hr = mSensor->NuiSkeletonGetNextFrame( WAIT_TIME, &skeletonFrame );
+					long hr = mSensor->NuiSkeletonGetNextFrame( WAIT_TIME, &skeletonFrame );
 					if ( FAILED( hr ) ) {
 						error( hr );
 					} else {
@@ -564,27 +710,33 @@ namespace KinectSdk
 						for ( int32_t i = 0; i < NUI_SKELETON_COUNT; i++ ) {
 
 							// Clear skeleton data
-							mSkeletons[ i ].clear();
+							mSkeletons.at( i ).clear();
 
 							// Mark skeleton found
-							if ( ( skeletonFrame.SkeletonData + i )->eTrackingState == NUI_SKELETON_TRACKED ) {
+							NUI_SKELETON_TRACKING_STATE trackingState = skeletonFrame.SkeletonData[ i ].eTrackingState;
+							if ( trackingState == NUI_SKELETON_TRACKED || trackingState == NUI_SKELETON_POSITION_ONLY ) {
 
 								// Smooth out the skeleton data when found
 								if ( !foundSkeleton ) {
-									hr = mSensor->NuiTransformSmooth( &skeletonFrame, 0 );
+									_NUI_TRANSFORM_SMOOTH_PARAMETERS smoothing = kTransformParams[ mTransform ];
+									hr = mSensor->NuiTransformSmooth( &skeletonFrame, &smoothing );
 									if ( FAILED( hr ) ) {
 										error( hr );
 									}
 									foundSkeleton = true;
 								}
 
-								// Get skeleton data
-								_NUI_SKELETON_DATA skeletonData = *( skeletonFrame.SkeletonData + i );
+								// Get bone orientation data
+								_NUI_SKELETON_BONE_ORIENTATION bones[ NUI_SKELETON_POSITION_COUNT ];
+								hr = NuiSkeletonCalculateBoneOrientations( skeletonFrame.SkeletonData + i, bones );
+								if ( FAILED( hr ) ) {
+									error( hr );
+								}
 
 								// Set joint data
 								for ( int32_t j = 0; j < (int32_t)NUI_SKELETON_POSITION_COUNT; j++ ) {
-									Vector4 point = *( skeletonData.SkeletonPositions + j );
-									( mSkeletons.begin() + i )->insert( std::make_pair<JointName, Vec3f>( (JointName)j, Vec3f( point.x, point.y, point.z ) ) );
+									Bone bone( *( ( skeletonFrame.SkeletonData + i )->SkeletonPositions + j ), *( bones + j ) );
+									( mSkeletons.begin() + i )->insert( std::make_pair<JointName, Bone>( (JointName)j, bone ) );
 								}
 
 							}
@@ -604,11 +756,11 @@ namespace KinectSdk
 
 				//////////////////////////////////////////////////////////////////////////////////////////////
 
-				if ( mEnabledVideo && mVideoStreamHandle != 0 && !mNewVideoFrame ) {
+				if ( mDeviceOptions.isVideoEnabled() && mVideoStreamHandle != 0 && !mNewVideoFrame ) {
 
 					// Acquire video image
 					_NUI_IMAGE_FRAME imageFrame;
-					HRESULT hr = mSensor->NuiImageStreamGetNextFrame( mVideoStreamHandle, WAIT_TIME, &imageFrame );
+					long hr = mSensor->NuiImageStreamGetNextFrame( mVideoStreamHandle, WAIT_TIME, &imageFrame );
 					if ( FAILED( hr ) ) {
 						error( hr );
 					} else {
@@ -660,7 +812,7 @@ namespace KinectSdk
 		// Tilt requests should be spaced apart to prevent wear on the motor
 		double elapsedSeconds = getElapsedSeconds();
 		if ( mCapture && mSensor != 0 && elapsedSeconds - mTiltRequestTime > kTiltRequestInterval ) {
-			HRESULT hr = mSensor->NuiCameraElevationSetAngle( (long)math<int32_t>::clamp( degrees, -MAXIMUM_TILT_ANGLE, MAXIMUM_TILT_ANGLE ) );
+			long hr = mSensor->NuiCameraElevationSetAngle( (long)math<int32_t>::clamp( degrees, -MAXIMUM_TILT_ANGLE, MAXIMUM_TILT_ANGLE ) );
 			if ( FAILED( hr ) ) {
 				trace( "Unable to change device angle: " );
 				error( hr );
@@ -668,58 +820,6 @@ namespace KinectSdk
 			mTiltRequestTime = elapsedSeconds;
 		}
 
-	}
-
-	void Kinect::setDepthResolution( const ImageResolution &depthResolution )
-	{
-		mDepthResolution = depthResolution;
-		switch ( mDepthResolution ) {
-		case ImageResolution::NUI_IMAGE_RESOLUTION_640x480:
-			mDepthWidth = 640;
-			mDepthHeight = 480;
-			break;
-		case ImageResolution::NUI_IMAGE_RESOLUTION_320x240:
-			mDepthWidth = 320;
-			mDepthHeight = 240;
-			break;
-		case ImageResolution::NUI_IMAGE_RESOLUTION_80x60:
-			mDepthWidth = 80;
-			mDepthHeight = 60;
-			break;
-		default:
-			mDepthResolution = NUI_IMAGE_RESOLUTION_320x240;
-			mDepthWidth = 320;
-			mDepthHeight = 240;
-			trace( "Invalid depth resolution specified" );
-			break;
-		}
-		mRgbDepth = new Pixel16u[ mDepthWidth * mDepthHeight * 4 ];
-	}
-
-	void Kinect::setVideoResolution( const ImageResolution &videoResolution )
-	{
-		mVideoResolution = videoResolution;
-		switch ( mVideoResolution ) {
-		case ImageResolution::NUI_IMAGE_RESOLUTION_1280x960:
-			mVideoWidth = 1280;
-			mVideoHeight = 960;
-			break;
-		case ImageResolution::NUI_IMAGE_RESOLUTION_640x480:
-			mVideoWidth = 640;
-			mVideoHeight = 480;
-			break;
-		case ImageResolution::NUI_IMAGE_RESOLUTION_320x240:
-			mVideoWidth = 320;
-			mVideoHeight = 240;
-			break;
-		default:
-			mVideoResolution = NUI_IMAGE_RESOLUTION_640x480;
-			mVideoWidth = 320;
-			mVideoHeight = 240;
-			trace( "Invalid video resolution specified" );
-			break;
-		}
-		mRgbVideo = new Pixel[ mVideoWidth * mVideoHeight * 4 ];
 	}
 
 	Kinect::Pixel16u Kinect::shortToPixel( uint16_t value )
@@ -818,35 +918,26 @@ namespace KinectSdk
 
 	}
 
-	void Kinect::start( int32_t deviceIndex, const ImageResolution &videoResolution, const ImageResolution &depthResolution, bool nearMode )
-	{
-		start( deviceIndex, "", videoResolution, depthResolution, nearMode );
-	}
-	void Kinect::start( std::string deviceId, const ImageResolution &videoResolution, const ImageResolution &depthResolution, bool nearMode )
-	{
-		start( -1, deviceId, videoResolution, depthResolution, nearMode );
-	}
-	void Kinect::start( int32_t deviceIndex, std::string deviceId, const ImageResolution &videoResolution, 
-		const ImageResolution &depthResolution, bool nearMode ) 
+	void Kinect::start( const DeviceOptions &deviceOptions ) 
 	{
 		if ( !mCapture ) {
 
-			// Set near mode (Kinect for Windows only)
-			mEnabledNearMode = nearMode;
+			// Copy device options
+			mDeviceOptions = deviceOptions;
 
 			// Clamp device ID and init surfaces
-			if ( deviceIndex >= 0 ) {
-				mDeviceIndex = math<int32_t>::clamp( deviceIndex, 0, math<int32_t>::max( getDeviceCount() - 1, 0 ) );
+			string deviceId = mDeviceOptions.getDeviceId();
+			int32_t index = mDeviceOptions.getDeviceIndex();
+			if ( index >= 0 ) {
+				index = math<int32_t>::clamp( index, 0, math<int32_t>::max( getDeviceCount() - 1, 0 ) );
 			}
-			setDepthResolution( depthResolution );
-			setVideoResolution( videoResolution );
 
 			// Initialize device instance
-			HRESULT hr;
-			if ( mDeviceIndex >= 0 ) {
-				hr = NuiCreateSensorByIndex( mDeviceIndex, &mSensor );
+			long hr = S_OK;
+			if ( index >= 0 ) {
+				hr = NuiCreateSensorByIndex( index, &mSensor );
 				if ( FAILED( hr ) ) {
-					trace( "Unable to create device instance " + toString( mDeviceIndex ) + ": " );
+					trace( "Unable to create device instance " + toString( index ) + ": " );
 					error( hr );
 					return;
 				}
@@ -872,62 +963,79 @@ namespace KinectSdk
 
 			// Get device name and index
 			if ( mSensor != 0 ) {
-				mDeviceIndex = mSensor->NuiInstanceIndex();
+				mDeviceOptions.setDeviceIndex( mSensor->NuiInstanceIndex() );
 				mSensor->NuiUniqueId();
 				BSTR id = ::SysAllocString( mSensor->NuiUniqueId() ); 
 				_bstr_t idStr( id );
 				if ( idStr.length() > 0 ) {
 					std::string str( idStr );
-					mDeviceId = str;
+					mDeviceOptions.setDeviceId( str );
 				}
 				::SysFreeString( id );
 			} else {
-				mDeviceIndex = -1;
-				mDeviceId = "";
+				index = -1;
+				deviceId = "";
 			}
+
+			// Update device index and ID
+			mDeviceOptions.setDeviceIndex( index );
+			mDeviceOptions.setDeviceId( "" );
 
 			// Initialize sensor image streams
 			unsigned long flags;
-			if ( mDepthResolution == ImageResolution::NUI_IMAGE_RESOLUTION_640x480 ) {
+			if ( mDeviceOptions.getDepthResolution() == ImageResolution::NUI_IMAGE_RESOLUTION_640x480 ) {
 				flags = NUI_INITIALIZE_FLAG_USES_DEPTH;
 			} else {
 				flags = NUI_INITIALIZE_FLAG_USES_DEPTH_AND_PLAYER_INDEX;
-				if ( mEnabledSkeletons ) {
+				if ( mDeviceOptions.isSkeletonTrackingEnabled() ) {
 					flags |= NUI_INITIALIZE_FLAG_USES_SKELETON;
+					if ( mDeviceOptions.isNearModeEnabled() ) {
+						flags |= NUI_SKELETON_TRACKING_FLAG_ENABLE_IN_NEAR_RANGE;
+					}
 				}
 			}
-			if ( mEnabledVideo ) {
+			if ( mDeviceOptions.isVideoEnabled() ) {
 				flags |= NUI_INITIALIZE_FLAG_USES_COLOR;
 			}
 			hr = mSensor->NuiInitialize( flags );
 			if ( FAILED( hr ) ) {
-				trace( "Unable to initialize device " + mDeviceId + ":" );
+				trace( "Unable to initialize device " + mDeviceOptions.getDeviceId() + ":" );
 				error( hr );
 				return;
 			}
 
 			// Skeletons are only supported on the first device
-			if ( mEnabledSkeletons && HasSkeletalEngine( mSensor ) ) {
+			if ( mDeviceOptions.isSkeletonTrackingEnabled() && HasSkeletalEngine( mSensor ) ) {
 				hr = mSensor->NuiSkeletonTrackingEnable( 0, 0 );
 				if ( FAILED( hr ) ) {
-					trace( "Unable to initialize skeleton tracking for device " + mDeviceId + ": " );
+					trace( "Unable to initialize skeleton tracking for device " + mDeviceOptions.getDeviceId() + ": " );
 					error( hr );
 					return;
 				}
 				mIsSkeletonDevice = true;
 			}
 
-			// Open image streams
-			if ( mEnabledDepth && !openDepthStream() ) {
-				return;
+			// Initialize depth image
+			if ( mDeviceOptions.getDepthResolution() != ImageResolution::NUI_IMAGE_RESOLUTION_INVALID ) {
+				const Vec2i& depthSize = mDeviceOptions.getDepthSize();
+				if ( mDeviceOptions.isDepthEnabled() && !openDepthStream() ) {
+					return;
+				}
+				mDepthSurface = Surface16u( depthSize.x, depthSize.y, false, SurfaceChannelOrder::RGB );
 			}
-			if ( mEnabledVideo && !openVideoStream() ) {
-				return;
+
+			// Initialize video image
+			if ( mDeviceOptions.getVideoResolution() != ImageResolution::NUI_IMAGE_RESOLUTION_INVALID ) {
+				const Vec2i& videoSize = mDeviceOptions.getVideoSize();
+				if ( mDeviceOptions.isVideoEnabled() && !openVideoStream() ) {
+					return;
+				}
+				mVideoSurface = Surface8u( videoSize.x, videoSize.y, false, SurfaceChannelOrder::RGBA );
 			}
 
 			// Set image stream flags
 			flags = NUI_IMAGE_STREAM_FRAME_LIMIT_MAXIMUM;
-			if ( mEnabledNearMode ) {
+			if ( mDeviceOptions.isNearModeEnabled() ) {
 				flags |= NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE | NUI_IMAGE_STREAM_FLAG_DISTINCT_OVERFLOW_DEPTH_VALUES;
 			}
 			hr = mSensor->NuiImageStreamSetImageFrameFlags( mDepthStreamHandle, flags );
@@ -936,15 +1044,11 @@ namespace KinectSdk
 				error( hr );
 			}
 
-			bool enabledDepth = mEnabledDepth;
-			bool enabledSkeletons = mEnabledSkeletons;
-			bool enabledVideo = mEnabledVideo;
-			mEnabledDepth = false;
-			mEnabledSkeletons = false;
-			mEnabledVideo = false;
-			enableDepth( enabledDepth );
-			enableSkeletons( enabledSkeletons );
-			enableVideo( enabledVideo );
+			// Initialize skeletons
+			mSkeletons.clear();
+			for ( int32_t i = 0; i < NUI_SKELETON_COUNT; i++ ) {
+				mSkeletons.push_back( Skeleton() );
+			}
 
 			// Start thread
 			mCapture = true;
@@ -961,14 +1065,11 @@ namespace KinectSdk
 			mThread->join();
 			mThread.reset();
 		}
-		if ( mSensor != 0 ) {
-			mSensor->NuiShutdown();
-			if ( mSensor ) {
-				mSensor->Release();
-				mSensor = 0;
-				mDepthStreamHandle = 0;
-				mVideoStreamHandle = 0;
-			}
+		if ( mRgbDepth != 0 ) {
+			delete [] mRgbDepth;
+		}
+		if ( mRgbVideo != 0 ) {
+			delete [] mRgbVideo;
 		}
 		init( true );
 	}
