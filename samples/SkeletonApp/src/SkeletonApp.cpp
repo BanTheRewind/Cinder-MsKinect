@@ -63,25 +63,14 @@ public:
 private:
 
 	// Kinect
-	void								drawSegment( const KinectSdk::Skeleton & skeleton, 
-													 const std::vector<KinectSdk::JointName> & joints );
 	KinectSdk::KinectRef				mKinect;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
 
-	// Skeleton segments
-	void												defineBody();
-	std::vector<KinectSdk::JointName>					mBody;
-	std::vector<KinectSdk::JointName>					mLeftArm;
-	std::vector<KinectSdk::JointName>					mLeftLeg;
-	std::vector<KinectSdk::JointName>					mRightArm;
-	std::vector<KinectSdk::JointName>					mRightLeg;
-	std::vector<std::vector<KinectSdk::JointName> >		mSegments;
-
 	// Camera
-	ci::CameraPersp										mCamera;
+	ci::CameraPersp						mCamera;
 
 	// Save screenshot
-	void												screenShot();
+	void								screenShot();
 
 };
 
@@ -90,58 +79,6 @@ using namespace ci;
 using namespace ci::app;
 using namespace KinectSdk;
 using namespace std;
-
-// Define body drawing
-void SkeletonApp::defineBody()
-{
-
-	// Bail if segments not defined
-	if ( mSegments.size() > 0 ) {
-		return;
-	}
-	
-	// Body
-	mBody.push_back( NUI_SKELETON_POSITION_HIP_CENTER );
-	mBody.push_back( NUI_SKELETON_POSITION_SPINE );
-	mBody.push_back( NUI_SKELETON_POSITION_SHOULDER_CENTER );
-	mBody.push_back( NUI_SKELETON_POSITION_HEAD );
-
-	// Left arm
-	mLeftArm.push_back( NUI_SKELETON_POSITION_SHOULDER_CENTER );
-	mLeftArm.push_back( NUI_SKELETON_POSITION_SHOULDER_LEFT );
-	mLeftArm.push_back( NUI_SKELETON_POSITION_ELBOW_LEFT );
-	mLeftArm.push_back( NUI_SKELETON_POSITION_WRIST_LEFT );
-	mLeftArm.push_back( NUI_SKELETON_POSITION_HAND_LEFT );
-
-	// Left leg
-	mLeftLeg.push_back( NUI_SKELETON_POSITION_HIP_CENTER );
-	mLeftLeg.push_back( NUI_SKELETON_POSITION_HIP_LEFT );
-	mLeftLeg.push_back( NUI_SKELETON_POSITION_KNEE_LEFT );
-	mLeftLeg.push_back( NUI_SKELETON_POSITION_ANKLE_LEFT );
-	mLeftLeg.push_back( NUI_SKELETON_POSITION_FOOT_LEFT );
-
-	// Right arm
-	mRightArm.push_back( NUI_SKELETON_POSITION_SHOULDER_CENTER );
-	mRightArm.push_back( NUI_SKELETON_POSITION_SHOULDER_RIGHT );
-	mRightArm.push_back( NUI_SKELETON_POSITION_ELBOW_RIGHT );
-	mRightArm.push_back( NUI_SKELETON_POSITION_WRIST_RIGHT );
-	mRightArm.push_back( NUI_SKELETON_POSITION_HAND_RIGHT );
-
-	// Right leg
-	mRightLeg.push_back( NUI_SKELETON_POSITION_HIP_CENTER );
-	mRightLeg.push_back( NUI_SKELETON_POSITION_HIP_RIGHT );
-	mRightLeg.push_back( NUI_SKELETON_POSITION_KNEE_RIGHT );
-	mRightLeg.push_back( NUI_SKELETON_POSITION_ANKLE_RIGHT );
-	mRightLeg.push_back( NUI_SKELETON_POSITION_FOOT_RIGHT );
-
-	// Build skeleton drawing list
-	mSegments.push_back( mBody );
-	mSegments.push_back( mLeftArm );
-	mSegments.push_back( mLeftLeg );
-	mSegments.push_back( mRightArm );
-	mSegments.push_back( mRightLeg );
-
-}
 
 // Render
 void SkeletonApp::draw()
@@ -167,15 +104,7 @@ void SkeletonApp::draw()
 				// Set color
 				Colorf color = mKinect->getUserColor( i );
 
-				// Draw body
-				glLineWidth( 2.0f );
-				gl::color( color );
-				for ( vector<vector<JointName> >::const_iterator segmentIt = mSegments.cbegin(); segmentIt != mSegments.cend(); ++segmentIt ) {
-					drawSegment( * skeletonIt, * segmentIt );
-				}
-
 				// Iterate through joints
-				glLineWidth( 0.5f );
 				for ( Skeleton::const_iterator jointIt = skeletonIt->cbegin(); jointIt != skeletonIt->cend(); ++jointIt ) {
 					
 					// Get position and rotation
@@ -188,7 +117,16 @@ void SkeletonApp::draw()
 					gl::color( color );
 					gl::drawSphere( position, 0.025f, 16 );
 					
+					// Draw bone
+					glLineWidth( 2.0f );
+					glBegin( GL_LINES );
+					Vec3f destination = skeletonIt->at( jointIt->second.getStartJoint() ).getPosition();
+					gl::vertex( position );
+					gl::vertex( destination );
+					glEnd();
+
 					// Draw joint orientation
+					glLineWidth( 0.5f );
 					gl::color( ColorAf::white() );
 					gl::drawVector( position, position + direction, 0.05f, 0.01f );
 
@@ -200,17 +138,6 @@ void SkeletonApp::draw()
 
 	}
 
-}
-
-// Draw segment
-void SkeletonApp::drawSegment( const Skeleton &skeleton, const vector<JointName> &joints )
-{
-	glBegin( GL_LINES );
-	for ( uint32_t i = 0; i < joints.size() - 1; i++ ) {
-		gl::vertex( skeleton.at( joints.at( i ) ).getPosition() );
-		gl::vertex( skeleton.at( joints.at( i + 1 ) ).getPosition() );
-	}
-	glEnd();
 }
 
 // Handles key press
@@ -262,9 +189,6 @@ void SkeletonApp::setup()
 	mCamera.lookAt( Vec3f( 0.0f, 0.0f, 2.0f ), Vec3f::zero() );
 	mCamera.setPerspective( 45.0f, getWindowAspectRatio(), 0.01f, 1000.0f );
 
-	// Define drawing body
-	defineBody();
-
 }
 
 // Called on exit
@@ -273,15 +197,6 @@ void SkeletonApp::shutdown()
 
 	// Stop input
 	mKinect->stop();
-
-	// Clean up
-	mBody.clear();
-	mLeftArm.clear();
-	mLeftLeg.clear();
-	mRightArm.clear();
-	mRightLeg.clear();
-	mSegments.clear();
-	mSkeletons.clear();
 
 }
 

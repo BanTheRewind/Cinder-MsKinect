@@ -62,18 +62,22 @@ namespace KinectSdk
 	class Bone
 	{
 	public:
-		Bone( const Vector4 &position, const _NUI_SKELETON_BONE_ORIENTATION &bone = _NUI_SKELETON_BONE_ORIENTATION() );
 		//! Returns rotation of the bone relative to camera coordinates.
 		const ci::Quatf&		getAbsoluteRotation() const;
 		//! Returns rotation matrix of the bone relative to camera coordinates.
 		const ci::Matrix44f&	getAbsoluteRotationMatrix() const;
+		//! Returns index of end joint.
+		JointName				getEndJoint() const;
 		//! Returns position of the bone's start joint.
 		const ci::Vec3f&		getPosition() const;
 		//! Returns rotation of the bone relative to the parent bone.
 		const ci::Quatf&		getRotation() const;
 		//! Returns rotation matrix of the bone relative to the parent bone.
 		const ci::Matrix44f&	getRotationMatrix() const;
+		//! Returns index of start joint.
+		JointName				getStartJoint() const;
 	private:
+		Bone( const Vector4 &position, const _NUI_SKELETON_BONE_ORIENTATION &bone = _NUI_SKELETON_BONE_ORIENTATION() );
 		ci::Matrix44f	mAbsRotMat;
 		ci::Quatf		mAbsRotQuat;
 		JointName		mJointStart;

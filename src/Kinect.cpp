@@ -106,6 +106,10 @@ namespace KinectSdk
 	{ 
 		return mAbsRotMat; 
 	}
+	JointName Bone::getEndJoint() const
+	{
+		return mJointEnd;
+	}
 	const Vec3f& Bone::getPosition() const 
 	{ 
 		return mPosition; 
@@ -117,6 +121,10 @@ namespace KinectSdk
 	const Matrix44f& Bone::getRotationMatrix() const 
 	{ 
 		return mRotMat; 
+	}
+	JointName Bone::getStartJoint() const
+	{
+		return mJointStart;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
