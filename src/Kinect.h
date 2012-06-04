@@ -197,8 +197,6 @@ namespace KinectSdk
 		bool							checkNewSkeletons();
 		//! Returns true if new color frame is available. Sets flag to false when called.
 		bool							checkNewVideoFrame();
-		//! Returns current camera angle in degrees between -28 and 28.
-		int32_t							getCameraAngle();
 		/* Returns 16-bit depth image (12-bit color values). Call Kinect::checkNewDepthFrame() to improve performance and avoid
 		   threading collisions. Consider using Kinect::getDepthAt() in lieu of reading the depth image. */
 		const ci::Surface16u&			getDepth();
@@ -213,6 +211,8 @@ namespace KinectSdk
 		std::vector<Skeleton>			getSkeletons();
 		//! Returns frame rate of skeleton processing.
 		float							getSkeletonFrameRate() const;
+		//! Returns current device angle in degrees between -28 and 28.
+		int32_t							getTilt();
 		//! Returns number of tracked users. Depth resolution must be no more than 320x240 with user tracking enabled.
 		int32_t							getUserCount();
 		/*! Returns latest color image frame. Call Kinect::checkNewVideoFrame() before this to improve performance and avoid
@@ -229,8 +229,8 @@ namespace KinectSdk
 		//! Returns pixel location of skeleton position in color image.
 		ci::Vec2i						getSkeletonVideoPos( const ci::Vec3f &position );
 
-		//! Sets camera angle to \a degrees. Default is 0.
-		void							setCameraAngle( int32_t degrees = 0 );
+		//! Sets device angle to \a degrees. Default is 0.
+		void							setTilt( int32_t degrees = 0 );
 
 		//! Return skeleton transform type.
 		int_fast8_t						getTransform() const;

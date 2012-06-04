@@ -60,81 +60,71 @@ class KinectApp : public ci::app::AppBasic
 public:
 
 	// Cinder callbacks
-	void draw();
-	void prepareSettings( ci::app::AppBasic::Settings * settings );
-	void setup();
-	void shutdown();
-	void update();
+	void								draw();
+	void								prepareSettings( ci::app::AppBasic::Settings * settings );
+	void								setup();
+	void								shutdown();
+	void								update();
 
 	// Audio callback
-	void onData( float * data, int32_t size );
+	void 								onData( float * data, int32_t size );
 
 private:
 
-	// Capturing flag
-	bool	mCapture;
-	bool	mCapturePrev;
-	bool	mBinaryMode;
-	bool	mBinaryModePrev;
-	bool	mEnabledAudio;
-	bool	mEnabledAudioPrev;
-	bool	mEnabledNearMode;
-	bool	mEnabledNearModePrev;
-	bool	mEnabledDepth;
-	bool	mEnabledDepthPrev;
-	bool	mEnabledSkeletons;
-	bool	mEnabledSkeletonsPrev;
-	bool	mEnabledStats;
-	bool	mEnabledVideo;
-	bool	mEnabledVideoPrev;
-	bool	mInverted;
-	bool	mInvertedPrev;
+	// Capturing flags
+	bool								mCapture;
+	bool								mCapturePrev;
+	bool								mBinaryMode;
+	bool								mBinaryModePrev;
+	bool								mEnabledAudio;
+	bool								mEnabledAudioPrev;
+	bool								mEnabledNearMode;
+	bool								mEnabledNearModePrev;
+	bool								mEnabledDepth;
+	bool								mEnabledDepthPrev;
+	bool								mEnabledSkeletons;
+	bool								mEnabledSkeletonsPrev;
+	bool								mEnabledStats;
+	bool								mEnabledVideo;
+	bool								mEnabledVideoPrev;
+	bool								mInverted;
+	bool								mInvertedPrev;
 
 	// Audio input
-	int32_t			mCallbackId;
-	float *			mData;
-	AudioInputRef	mInput;
+	int32_t								mCallbackId;
+	float *								mData;
+	AudioInputRef						mInput;
 
 	// Kinect
-	void											drawSegment( const KinectSdk::Skeleton & skeleton, 
-																 const std::vector<KinectSdk::JointName> & joints );
-	int32_t											mCameraAngle;
-	int32_t											mCameraAnglePrev;
-	ci::Surface16u									mDepthSurface;
-	int32_t											mDeviceCount;
-	KinectSdk::KinectRef							mKinect;
-	std::vector<KinectSdk::Skeleton>				mSkeletons;
-	int32_t											mUserCount;
-	ci::Surface8u									mVideoSurface;
-	void											startAudio();
-	void											startKinect();
-	void											stopAudio();
-
-	// Skeleton segments
-	void											defineBody();
-	std::vector<KinectSdk::JointName>				mBody;
-	std::vector<KinectSdk::JointName>				mLeftArm;
-	std::vector<KinectSdk::JointName>				mLeftLeg;
-	std::vector<KinectSdk::JointName>				mRightArm;
-	std::vector<KinectSdk::JointName>				mRightLeg;
-	std::vector<std::vector<KinectSdk::JointName> >	mSegments;
+	ci::Surface16u						mDepthSurface;
+	int32_t								mDeviceCount;
+	KinectSdk::DeviceOptions			mDeviceOptions;
+	KinectSdk::KinectRef				mKinect;
+	std::vector<KinectSdk::Skeleton>	mSkeletons;
+	int32_t								mTilt;
+	int32_t								mTiltPrev;
+	int32_t								mUserCount;
+	ci::Surface8u						mVideoSurface;
+	void								startAudio();
+	void								startKinect();
+	void								stopAudio();
 
 	// Camera
-	ci::CameraPersp	mCamera;
+	ci::CameraPersp						mCamera;
 
 	// Params
-	float					mFrameRateApp;
-	float					mFrameRateDepth;
-	float					mFrameRateSkeletons;
-	float					mFrameRateVideo;
-	bool					mFullScreen;
-	ci::params::InterfaceGl	mParams;
-	bool					mRemoveBackground;
-	bool					mRemoveBackgroundPrev;
-	void					resetStats();
+	float								mFrameRateApp;
+	float								mFrameRateDepth;
+	float								mFrameRateSkeletons;
+	float								mFrameRateVideo;
+	bool								mFullScreen;
+	ci::params::InterfaceGl				mParams;
+	bool								mRemoveBackground;
+	bool								mRemoveBackgroundPrev;
+	void								resetStats();
 
 	// Save screen shot
-	void	screenShot();
+	void								screenShot();
 
 };
 
@@ -143,58 +133,6 @@ using namespace ci;
 using namespace ci::app;
 using namespace KinectSdk;
 using namespace std;
-
-// Define body drawing
-void KinectApp::defineBody()
-{
-
-	// Bail if defined
-	if ( mSegments.size() > 0 ) {
-		return;
-	}
-	
-	// Body
-	mBody.push_back( NUI_SKELETON_POSITION_HIP_CENTER );
-	mBody.push_back( NUI_SKELETON_POSITION_SPINE );
-	mBody.push_back( NUI_SKELETON_POSITION_SHOULDER_CENTER );
-	mBody.push_back( NUI_SKELETON_POSITION_HEAD );
-
-	// Left arm
-	mLeftArm.push_back( NUI_SKELETON_POSITION_SHOULDER_CENTER );
-	mLeftArm.push_back( NUI_SKELETON_POSITION_SHOULDER_LEFT );
-	mLeftArm.push_back( NUI_SKELETON_POSITION_ELBOW_LEFT );
-	mLeftArm.push_back( NUI_SKELETON_POSITION_WRIST_LEFT );
-	mLeftArm.push_back( NUI_SKELETON_POSITION_HAND_LEFT );
-
-	// Left leg
-	mLeftLeg.push_back( NUI_SKELETON_POSITION_HIP_CENTER );
-	mLeftLeg.push_back( NUI_SKELETON_POSITION_HIP_LEFT );
-	mLeftLeg.push_back( NUI_SKELETON_POSITION_KNEE_LEFT );
-	mLeftLeg.push_back( NUI_SKELETON_POSITION_ANKLE_LEFT );
-	mLeftLeg.push_back( NUI_SKELETON_POSITION_FOOT_LEFT );
-
-	// Right arm
-	mRightArm.push_back( NUI_SKELETON_POSITION_SHOULDER_CENTER );
-	mRightArm.push_back( NUI_SKELETON_POSITION_SHOULDER_RIGHT );
-	mRightArm.push_back( NUI_SKELETON_POSITION_ELBOW_RIGHT );
-	mRightArm.push_back( NUI_SKELETON_POSITION_WRIST_RIGHT );
-	mRightArm.push_back( NUI_SKELETON_POSITION_HAND_RIGHT );
-
-	// Right leg
-	mRightLeg.push_back( NUI_SKELETON_POSITION_HIP_CENTER);
-	mRightLeg.push_back( NUI_SKELETON_POSITION_HIP_RIGHT );
-	mRightLeg.push_back( NUI_SKELETON_POSITION_KNEE_RIGHT );
-	mRightLeg.push_back( NUI_SKELETON_POSITION_ANKLE_RIGHT );
-	mRightLeg.push_back( NUI_SKELETON_POSITION_FOOT_RIGHT );
-
-	// Build skeleton drawing list
-	mSegments.push_back( mBody );
-	mSegments.push_back( mLeftArm );
-	mSegments.push_back( mLeftLeg );
-	mSegments.push_back( mRightArm );
-	mSegments.push_back( mRightLeg );
-
-}
 
 // Render
 void KinectApp::draw()
@@ -224,14 +162,22 @@ void KinectApp::draw()
 				// Set color
 				gl::color( mKinect->getUserColor( i ) );
 
-				// Draw joints
+				// Draw bones and joints
 				for ( Skeleton::const_iterator jointIt = skeletonIt->cbegin(); jointIt != skeletonIt->cend(); ++jointIt ) {
-					gl::drawSphere( jointIt->second * Vec3f( -1.0f, 1.0f, 1.0f ), 0.025f, 16 );
-				}
+					
+					// Get positions of each joint in this bone to draw it
+					Vec3f position = jointIt->second.getPosition();
+					Vec3f destination = skeletonIt->at( jointIt->second.getStartJoint() ).getPosition();
 
-				// Draw body
-				for ( vector<vector<JointName> >::const_iterator segmentIt = mSegments.cbegin(); segmentIt != mSegments.cend(); ++segmentIt ) {
-					drawSegment( * skeletonIt, * segmentIt );
+					// Draw bone
+					glBegin( GL_LINES );
+					gl::vertex( position );
+					gl::vertex( destination );
+					glEnd();
+
+					// Draw joint
+					gl::drawSphere( position * Vec3f( -1.0f, 1.0f, 1.0f ), 0.025f, 16 );
+
 				}
 
 			}
@@ -288,20 +234,6 @@ void KinectApp::draw()
 
 }
 
-// Draw segment
-void KinectApp::drawSegment( const Skeleton & skeleton, const vector<JointName> & joints )
-{
-
-	// Draw lines between each joint
-	glBegin( GL_LINES );
-	for ( uint32_t i = 0; i < joints.size() - 1; i++ ) {
-		gl::vertex( skeleton.at( joints[ i ] ) * Vec3f( -1.0f, 1.0f, 1.0f ) );
-		gl::vertex( skeleton.at( joints[ i + 1 ] ) * Vec3f( -1.0f, 1.0f, 1.0f ) );
-	}
-	glEnd();
-
-}
-
 // Called when audio buffer is full
 void KinectApp::onData( float * data, int32_t size )
 {
@@ -314,23 +246,17 @@ void KinectApp::onData( float * data, int32_t size )
 // Prepare window
 void KinectApp::prepareSettings( Settings * settings )
 {
-
-	// DO IT!
 	settings->setWindowSize( 1005, 570 );
 	settings->setFrameRate( 60.0f );
-
 }
 
 // Reset statistics
 void KinectApp::resetStats()
 {
-
-	// Zero values
-	mFrameRateDepth = 0.0f;
-	mFrameRateSkeletons = 0.0f;
-	mFrameRateVideo = 0.0f;
-	mUserCount = 0;
-
+	mFrameRateDepth		= 0.0f;
+	mFrameRateSkeletons	= 0.0f;
+	mFrameRateVideo		= 0.0f;
+	mUserCount			= 0;
 }
 
 // Take screen shot
@@ -351,38 +277,36 @@ void KinectApp::setup()
 	mCamera.lookAt( Vec3f( 0.0f, 0.0f, -3.0f ), Vec3f::zero() );
 	mCamera.setPerspective( 45.0f, getWindowAspectRatio(), 1.0f, 1000.0f );
 
-	// Define drawing body
-	defineBody();
-
 	// Initialize parameters
-	mBinaryMode = false;
-	mBinaryModePrev = mBinaryMode;
-	mCapture = true;
-	mCapturePrev = mCapture;
-	mDeviceCount = 0;
-	mEnabledAudio = true;
-	mEnabledAudioPrev = true;
-	mEnabledDepth = true;
-	mEnabledDepthPrev = mEnabledDepth;
-	mEnabledNearMode = false;
-	mEnabledNearModePrev = mEnabledNearMode;
-	mEnabledSkeletons = true;
-	mEnabledSkeletonsPrev = mEnabledSkeletons;
-	mEnabledStats = true;
-	mEnabledVideo = true;
-	mEnabledVideoPrev = mEnabledVideo;
-	mFrameRateApp = 0.0f;
-	mFrameRateDepth = 0.0f;
-	mFrameRateSkeletons = 0.0f;
-	mFrameRateVideo = 0.0f;
-	mFullScreen = isFullScreen();
-	mInverted = false;
-	mInvertedPrev = mInverted;
-	mRemoveBackground = false;
-	mRemoveBackgroundPrev = mRemoveBackground;
-	mUserCount = 0;
+	mBinaryMode				= false;
+	mBinaryModePrev			= mBinaryMode;
+	mCapture				= true;
+	mCapturePrev			= mCapture;
+	mDeviceCount			= 0;
+	mEnabledAudio			= true;
+	mEnabledAudioPrev		= true;
+	mEnabledDepth			= true;
+	mEnabledDepthPrev		= mEnabledDepth;
+	mEnabledNearMode		= false;
+	mEnabledNearModePrev	= mEnabledNearMode;
+	mEnabledSkeletons		= true;
+	mEnabledSkeletonsPrev	= mEnabledSkeletons;
+	mEnabledStats			= true;
+	mEnabledVideo			= true;
+	mEnabledVideoPrev		= mEnabledVideo;
+	mFrameRateApp			= 0.0f;
+	mFrameRateDepth			= 0.0f;
+	mFrameRateSkeletons		= 0.0f;
+	mFrameRateVideo			= 0.0f;
+	mFullScreen				= isFullScreen();
+	mInverted				= false;
+	mInvertedPrev			= mInverted;
+	mRemoveBackground		= false;
+	mRemoveBackgroundPrev	= mRemoveBackground;
+	mUserCount				= 0;
 
 	// Start image capture
+	mKinect = Kinect::create();
 	startKinect();
 
 	// Start audio capture
@@ -391,35 +315,35 @@ void KinectApp::setup()
 	// Setup the parameters
 	mParams = params::InterfaceGl( "Parameters", Vec2i( 245, 500 ) );
 	mParams.addText( "DEVICE" );
-	mParams.addParam( "Device count", & mDeviceCount, "", true );
-	mParams.addParam( "Device angle", & mCameraAngle, "min=-" + toString( Kinect::MAXIMUM_TILT_ANGLE ) + 
-		" max=" + toString( Kinect::MAXIMUM_TILT_ANGLE ) + " step=1" );
+	mParams.addParam( "Device count",			&mDeviceCount,							"", true				);
+	mParams.addParam( "Device angle",			&mTilt,									"min=-" + 
+		toString( Kinect::MAXIMUM_TILT_ANGLE ) + " max=" + toString( Kinect::MAXIMUM_TILT_ANGLE ) + " step=1"	);
 	mParams.addSeparator();
 	mParams.addText( "STATISTICS");
-	mParams.addParam( "Collect statistics", & mEnabledStats, "key=t" );
-	mParams.addParam( "App frame rate", & mFrameRateApp, "", true );
-	mParams.addParam( "Depth frame rate", & mFrameRateDepth, "", true );
-	mParams.addParam( "Skeleton frame rate", & mFrameRateSkeletons, "", true );
-	mParams.addParam( "Video frame rate", & mFrameRateVideo, "", true );
-	mParams.addParam( "User count", & mUserCount, "", true );
+	mParams.addParam( "Collect statistics",		&mEnabledStats,							"key=t"					);
+	mParams.addParam( "App frame rate",			&mFrameRateApp,							"", true				);
+	mParams.addParam( "Depth frame rate",		&mFrameRateDepth,						"", true				);
+	mParams.addParam( "Skeleton frame rate",	&mFrameRateSkeletons,					"", true				);
+	mParams.addParam( "Video frame rate",		&mFrameRateVideo,						"", true				);
+	mParams.addParam( "User count",				&mUserCount,							"", true				);
 	mParams.addSeparator();
 	mParams.addText( "CAPTURE" );
-	mParams.addParam( "Capture", & mCapture, "key=c" );
-	mParams.addParam( "Audio", & mEnabledAudio, "key=a" );
-	mParams.addParam( "Depth", & mEnabledDepth, "key=d" );
-	mParams.addParam( "Skeletons", & mEnabledSkeletons, "key=k" );
-	mParams.addParam( "Video", & mEnabledVideo, "key=v" );
+	mParams.addParam( "Capture",				&mCapture,								"key=c" 				);
+	mParams.addParam( "Audio",					&mEnabledAudio,							"key=a" 				);
+	mParams.addParam( "Depth",					&mEnabledDepth,							"key=d" 				);
+	mParams.addParam( "Skeletons",				&mEnabledSkeletons,						"key=k" 				);
+	mParams.addParam( "Video",					&mEnabledVideo,							"key=v" 				);
 	mParams.addSeparator();
 	mParams.addText( "DEPTH IMAGE");
-	mParams.addParam( "Remove background", & mRemoveBackground, "key=b" );
-	mParams.addParam( "Binary depth mode", & mBinaryMode, "key=w" );
-	mParams.addParam( "Invert binary image", & mInverted, "key=i" );
-	mParams.addParam( "Near mode", & mEnabledNearMode, "key=n" );
+	mParams.addParam( "Remove background",		&mRemoveBackground,						"key=b" 				);
+	mParams.addParam( "Binary depth mode",		&mBinaryMode,							"key=w" 				);
+	mParams.addParam( "Invert binary image",	&mInverted,								"key=i" 				);
+	mParams.addParam( "Near mode",				&mEnabledNearMode,						"key=n" 				);
 	mParams.addSeparator();
 	mParams.addText( "APPLICATION" );
-	mParams.addParam( "Full screen", & mFullScreen, "key=f" );
-	mParams.addButton( "Screen shot", std::bind(& KinectApp::screenShot, this ), "key=s" );
-	mParams.addButton( "Quit", std::bind( & KinectApp::quit, this ), "key=esc" );
+	mParams.addParam( "Full screen",			&mFullScreen,							"key=f"					);
+	mParams.addButton( "Screen shot",			bind( &KinectApp::screenShot, this ),	"key=s"					);
+	mParams.addButton( "Quit",					bind( &KinectApp::quit, this ),			"key=esc"				);
 
 }
 
@@ -432,15 +356,9 @@ void KinectApp::shutdown()
 	mKinect->stop();
 
 	// Clean up
-	mBody.clear();
 	if ( mData != 0 ) {
 		delete mData;
 	}
-	mLeftArm.clear();
-	mLeftLeg.clear();
-	mRightArm.clear();
-	mRightLeg.clear();
-	mSegments.clear();
 	mSkeletons.clear();
 
 }
@@ -478,22 +396,29 @@ void KinectApp::startKinect()
 
 	// Update device count
 	mDeviceCount = Kinect::getDeviceCount();
-
-	// Initialize device
-	mKinect = Kinect::create();
-
-	// Configure Kinect
+	
+	// Configure device
+	mDeviceOptions.enableDepth( mEnabledDepth );
+	mDeviceOptions.enableNearMode( mEnabledNearMode );
+	mDeviceOptions.enableSkeletonTracking( mEnabledSkeletons );
+	mDeviceOptions.enableVideo( mEnabledVideo );
 	mKinect->enableBinaryMode( mBinaryMode );
-	mKinect->enableDepth( mEnabledDepth );
-	mKinect->enableVideo( mEnabledVideo );
 	mKinect->removeBackground( mRemoveBackground );
-	mKinect->start();
 
-	console() << "Device ID: " << mKinect->getDeviceId() << endl;
+	// Stop, if capturing
+	if ( mKinect->isCapturing() ) {
+		mKinect->stop();
+	}
 
-	// Kinect camera angle
-	mCameraAngle = mKinect->getCameraAngle();
-	mCameraAnglePrev = mCameraAngle;
+	// Start Kinect
+	mKinect->start( mDeviceOptions );
+	
+	// Trace out the unique device ID
+	console() << "Device ID: " << mKinect->getDeviceOptions().getDeviceId() << endl;
+
+	// Get device angle angle
+	mTilt = mKinect->getTilt();
+	mTiltPrev = mTilt;
 
 	// Clear stats
 	resetStats();
@@ -532,51 +457,46 @@ void KinectApp::update()
 		mCapturePrev = mCapture;
 		if ( mCapture ) {
 			mInput->start();
-			mKinect->start( 0 );
+			startKinect();
 		} else {
 			mInput->stop();
 			mKinect->stop();
 		}
 	}
 
-	// Toggle input tracking types
+	// Toggle audio
 	if ( mEnabledAudio != mEnabledAudioPrev ) {
 		mEnabledAudio ? startAudio() : stopAudio();
 		mEnabledAudioPrev = mEnabledAudio;
 	}
-	if ( mEnabledDepth != mEnabledDepthPrev ) {
-		mKinect->enableDepth( mEnabledDepth );
-		mEnabledDepthPrev = mEnabledDepth;
-	}
-	if ( mEnabledSkeletons != mEnabledSkeletonsPrev ) {
-		mKinect->enableSkeletons( mEnabledSkeletons );
-		mEnabledSkeletonsPrev = mEnabledSkeletons;
-	}
-	if ( mEnabledVideo != mEnabledVideoPrev ) {
-		mKinect->enableVideo( mEnabledVideo );
-		mEnabledVideoPrev = mEnabledVideo;
+
+	// Toggle input tracking types (requires device restart)
+	if ( mEnabledDepth		!= mEnabledDepthPrev		|| 
+		mEnabledNearMode	!= mEnabledNearModePrev		|| 
+		mEnabledSkeletons	!= mEnabledSkeletonsPrev	|| 
+		mEnabledVideo		!= mEnabledVideoPrev ) {
+		startKinect();
+		mEnabledNearModePrev	= mEnabledNearMode;
+		mEnabledDepthPrev		= mEnabledDepth;
+		mEnabledSkeletonsPrev	= mEnabledSkeletons;
+		mEnabledVideoPrev		= mEnabledVideo;
 	}
 
 	// Toggle binary mode
-	if ( mBinaryMode != mBinaryModePrev || mInverted != mInvertedPrev ) {
+	if ( mBinaryMode	!= mBinaryModePrev	|| 
+		mInverted		!= mInvertedPrev ) {
 		mKinect->enableBinaryMode( mBinaryMode, mInverted );
-		mBinaryModePrev = mBinaryMode;
-		mInvertedPrev = mInverted;
-	}
-
-	// Toggle near mode
-	if ( mEnabledNearMode != mEnabledNearModePrev ) {
-		mKinect->enableNearMode( mEnabledNearMode );
-		mEnabledNearModePrev = mEnabledNearMode;
+		mBinaryModePrev	= mBinaryMode;
+		mInvertedPrev	= mInverted;
 	}
 
 	// Check if device is capturing
 	if ( mKinect->isCapturing() ) {
 
 		// Adjust Kinect camera angle, as needed
-		if ( mCameraAngle != mCameraAnglePrev ) {
-			mKinect->setCameraAngle( mCameraAngle );
-			mCameraAnglePrev = mCameraAngle;
+		if ( mTilt != mTiltPrev ) {
+			mKinect->setTilt( mTilt );
+			mTiltPrev = mTilt;
 		}
 
 		// Get latest Kinect data
@@ -594,12 +514,12 @@ void KinectApp::update()
 		if ( mEnabledStats ) {
 
 			// Update user count
-			mUserCount = mKinect->getUserCount();
+			mUserCount			= mKinect->getUserCount();
 		
 			// Update frame rates
-			mFrameRateDepth = mKinect->getDepthFrameRate();
-			mFrameRateSkeletons = mKinect->getSkeletonsFrameRate();
-			mFrameRateVideo = mKinect->getVideoFrameRate();
+			mFrameRateDepth		= mKinect->getDepthFrameRate();
+			mFrameRateSkeletons	= mKinect->getSkeletonFrameRate();
+			mFrameRateVideo		= mKinect->getVideoFrameRate();
 
 		} else {
 

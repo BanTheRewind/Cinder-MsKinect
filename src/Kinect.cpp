@@ -415,19 +415,6 @@ namespace KinectSdk
 		}
 	}
 
-	int32_t Kinect::getCameraAngle()
-	{
-		long degrees = 0L;
-		if ( mCapture && mSensor != 0 ) {
-			long hr = mSensor->NuiCameraElevationGetAngle( &degrees );
-			if ( FAILED( hr ) ) {
-				trace( "Unable to retrieve device angle:" );
-				error( hr );
-			}
-		}
-		return (int32_t)degrees;
-	}
-
 	const Surface16u& Kinect::getDepth()
 	{ 
 		mNewDepthFrame = false;
@@ -473,14 +460,22 @@ namespace KinectSdk
 		return mFrameRateSkeletons; 
 	}
 
+	int32_t Kinect::getTilt()
+	{
+		long degrees = 0L;
+		if ( mCapture && mSensor != 0 ) {
+			long hr = mSensor->NuiCameraElevationGetAngle( &degrees );
+			if ( FAILED( hr ) ) {
+				trace( "Unable to retrieve device angle:" );
+				error( hr );
+			}
+		}
+		return (int32_t)degrees;
+	}
+
 	int_fast8_t Kinect::getTransform() const
 	{
 		return mTransform;
-	}
-
-	void Kinect::setTransform( int_fast8_t transform )
-	{
-		mTransform = transform;
 	}
 
 	int32_t Kinect::getUserCount()
@@ -814,7 +809,7 @@ namespace KinectSdk
 		return;
 	}
 
-	void Kinect::setCameraAngle( int32_t degrees )
+	void Kinect::setTilt( int32_t degrees )
 	{
 
 		// Tilt requests should be spaced apart to prevent wear on the motor
@@ -828,6 +823,11 @@ namespace KinectSdk
 			mTiltRequestTime = elapsedSeconds;
 		}
 
+	}
+
+	void Kinect::setTransform( int_fast8_t transform )
+	{
+		mTransform = transform;
 	}
 
 	Kinect::Pixel16u Kinect::shortToPixel( uint16_t value )
@@ -931,11 +931,11 @@ namespace KinectSdk
 		if ( !mCapture ) {
 
 			// Copy device options
-			mDeviceOptions = deviceOptions;
+			mDeviceOptions	= deviceOptions;
+			string deviceId	= mDeviceOptions.getDeviceId();
+			int32_t index	= mDeviceOptions.getDeviceIndex();
 
-			// Clamp device ID and init surfaces
-			string deviceId = mDeviceOptions.getDeviceId();
-			int32_t index = mDeviceOptions.getDeviceIndex();
+			// Clamp device index
 			if ( index >= 0 ) {
 				index = math<int32_t>::clamp( index, 0, math<int32_t>::max( getDeviceCount() - 1, 0 ) );
 			}
@@ -1029,7 +1029,8 @@ namespace KinectSdk
 				if ( mDeviceOptions.isDepthEnabled() && !openDepthStream() ) {
 					return;
 				}
-				mDepthSurface = Surface16u( depthSize.x, depthSize.y, false, SurfaceChannelOrder::RGB );
+				mDepthSurface	= Surface16u( depthSize.x, depthSize.y, false, SurfaceChannelOrder::RGB );
+				mRgbDepth		= new Pixel16u[ depthSize.x * depthSize.y * 3 ];
 			}
 
 			// Initialize video image
@@ -1038,7 +1039,8 @@ namespace KinectSdk
 				if ( mDeviceOptions.isVideoEnabled() && !openVideoStream() ) {
 					return;
 				}
-				mVideoSurface = Surface8u( videoSize.x, videoSize.y, false, SurfaceChannelOrder::RGBA );
+				mVideoSurface	= Surface8u( videoSize.x, videoSize.y, false, SurfaceChannelOrder::RGBA );
+				mRgbVideo		= new Pixel[ videoSize.x * videoSize.y * 4 ];
 			}
 
 			// Set image stream flags

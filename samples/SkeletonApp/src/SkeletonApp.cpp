@@ -113,10 +113,6 @@ void SkeletonApp::draw()
 					Vec3f direction = transform.transformPoint( position ).normalized();
 					direction *= 0.05f;
 
-					// Draw joint
-					gl::color( color );
-					gl::drawSphere( position, 0.025f, 16 );
-					
 					// Draw bone
 					glLineWidth( 2.0f );
 					glBegin( GL_LINES );
@@ -125,6 +121,10 @@ void SkeletonApp::draw()
 					gl::vertex( destination );
 					glEnd();
 
+					// Draw joint
+					gl::color( color );
+					gl::drawSphere( position, 0.025f, 16 );
+					
 					// Draw joint orientation
 					glLineWidth( 0.5f );
 					gl::color( ColorAf::white() );
