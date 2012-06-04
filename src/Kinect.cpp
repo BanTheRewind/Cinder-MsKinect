@@ -95,7 +95,7 @@ namespace KinectSdk
 		mPosition	= toVec3f( position );
 		mRotQuat	= toQuatf( bone.hierarchicalRotation.rotationQuaternion );
 		mRotMat		= toMatrix44f( bone.hierarchicalRotation.rotationMatrix );
-		mPosition.z	*= -1.0f;
+		mPosition.z = -1.0f;
 	}
 
 	const Quatf& Bone::getAbsoluteRotation() const 
@@ -500,6 +500,7 @@ namespace KinectSdk
 		// Only set these when first initializing the device
 		if ( !reset ) {
 			mBinary				= false;
+			mFlipped			= false;
 			mGreyScale			= false;
 			mInverted			= false;
 			mRemoveBackground	= false;
@@ -530,11 +531,6 @@ namespace KinectSdk
 
 	}
 
-	bool Kinect::isCapturing() const 
-	{ 
-		return mCapture; 
-	}
-
 	Vec2i Kinect::getSkeletonDepthPos( const ci::Vec3f &position )
 	{
 		float x;
@@ -559,6 +555,16 @@ namespace KinectSdk
 		pos.w = 1.0f;
 		NuiTransformSkeletonToDepthImage( pos, &x, &y, mDeviceOptions.getVideoResolution() );
 		return Vec2i( (int32_t)x, (int32_t)y );
+	}
+
+	bool Kinect::isCapturing() const 
+	{ 
+		return mCapture; 
+	}
+
+	bool Kinect::isFlipped() const 
+	{ 
+		return mFlipped; 
 	}
 
 	bool Kinect::openDepthStream()
@@ -590,48 +596,71 @@ namespace KinectSdk
 		return true;
 	}
 
-	void Kinect::pixelToDepthSurface( Surface16u &surface, uint16_t *buffer )
+	void Kinect::pixelToDepthSurface( uint16_t *buffer )
 	{
 		if ( mNewDepthFrame ) {
 			return;
 		}
 
-		int32_t height		= surface.getHeight();
-		int32_t width		= surface.getWidth();
-		int32_t size		= width * height * 3 * 2;
+		int32_t height		= mDepthSurface.getHeight();
+		int32_t width		= mDepthSurface.getWidth();
+		int32_t size		= width * height * 6; // 6 is 3 color channels * sizeof( uint16_t )
 
 		Pixel16u* rgbRun	= mRgbDepth;
 		uint16_t* bufferRun	= buffer;
 
-		for ( int32_t i = 0; i < width * height; i++ ) {
-			Pixel16u pixel = shortToPixel( *bufferRun );
-			bufferRun++;
-			*rgbRun = pixel;
-			rgbRun++;
+		if ( mFlipped ) {
+			for ( int32_t y = 0; y < height; y++ ) {
+				for ( int32_t x = 0; x < width; x++ ) {
+					bufferRun		= buffer + ( y * width + ( ( width - x ) - 1 ) );
+					rgbRun			= mRgbDepth + ( y * width + x );
+					*rgbRun			= shortToPixel( *bufferRun );
+				}
+			}
+		} else {
+			for ( int32_t i = 0; i < width * height; i++ ) {
+				Pixel16u pixel = shortToPixel( *bufferRun );
+				bufferRun++;
+				*rgbRun = pixel;
+				rgbRun++;
+			}
 		}
 
-		memcpy( surface.getData(), mRgbDepth, size );
+		memcpy( mDepthSurface.getData(), mRgbDepth, size );
 		mNewDepthFrame = true;
 	}
 
-	void Kinect::pixelToVideoSurface( Surface8u &surface, uint8_t *buffer )
+	void Kinect::pixelToVideoSurface( uint8_t *buffer )
 	{
 		if ( mNewVideoFrame ) {
 			return;
 		}
 
-		int32_t height	= surface.getHeight();
-		int32_t width	= surface.getWidth();
+		int32_t height	= mVideoSurface.getHeight();
+		int32_t width	= mVideoSurface.getWidth();
 		int32_t size	= width * height * 4;
 
-		// Swap red/blue channels
-		for ( int32_t i = 0; i < size; i += 4 ) {
-			uint8_t b		= buffer[ i ];
-			buffer[ i ]		= buffer[ i + 2 ];
-			buffer[ i + 2 ]	= b;
+		if ( mFlipped ) {
+			uint8_t *flipped = new uint8_t[ size ];
+			for ( int32_t y = 0; y < height; y++ ) {
+				for ( int32_t x = 0; x < width; x++ ) {
+					int32_t dest	= ( y * width + x ) * 4;
+					int32_t src		= ( y * width + ( ( width - x ) - 1 ) ) * 4;
+					for ( int32_t i = 0; i < 4; i++ ) {
+						flipped[ dest + i ] = buffer[ src + i ];
+					}
+					swap( flipped[ dest ], flipped[ dest + 2 ] );
+				}
+			}
+			memcpy( mVideoSurface.getData(), flipped, size );
+			delete [] flipped;
+		} else {
+			for ( int32_t i = 0; i < size; i += 4 ) {
+				swap( buffer[ i ], buffer[ i + 2 ] );
+			}
+			memcpy( mVideoSurface.getData(), buffer, size );
 		}
-
-		memcpy( surface.getData(), buffer, size );
+		
 		mNewVideoFrame = true;
 	}
 
@@ -669,7 +698,7 @@ namespace KinectSdk
 						if ( lockedRect.Pitch == 0 ) {
 							trace( "Invalid buffer length received" );
 						} else {
-							pixelToDepthSurface( mDepthSurface, (uint16_t*)lockedRect.pBits );
+							pixelToDepthSurface( (uint16_t*)lockedRect.pBits );
 						}
 
 						// Clean up
@@ -721,12 +750,20 @@ namespace KinectSdk
 
 								// Smooth out the skeleton data when found
 								if ( !foundSkeleton ) {
-									_NUI_TRANSFORM_SMOOTH_PARAMETERS smoothing = kTransformParams[ mTransform ];
-									hr = mSensor->NuiTransformSmooth( &skeletonFrame, &smoothing );
+									_NUI_TRANSFORM_SMOOTH_PARAMETERS transform = kTransformParams[ mTransform ];
+									hr = mSensor->NuiTransformSmooth( &skeletonFrame, &transform );
 									if ( FAILED( hr ) ) {
 										error( hr );
 									}
 									foundSkeleton = true;
+								}
+
+								// Flip X when NOT flipping the image. Inverting Z in Bone ctor already mirrors the image.
+								if ( !mFlipped ) {
+									( skeletonFrame.SkeletonData + i )->Position.x *= -1.0f;
+									for ( int32_t j = 0; j < (int32_t)NUI_SKELETON_POSITION_COUNT; j++ ) {
+										( skeletonFrame.SkeletonData + i )->SkeletonPositions[ j ].x *= -1.0f;
+									}
 								}
 
 								// Get bone orientation data
@@ -776,7 +813,7 @@ namespace KinectSdk
 							error( hr );
 						}
 						if ( lockedRect.Pitch != 0 ) {
-							pixelToVideoSurface( mVideoSurface, (uint8_t *)lockedRect.pBits );
+							pixelToVideoSurface( (uint8_t *)lockedRect.pBits );
 						} else {
 							trace( "Invalid buffer length received." );
 						}
@@ -800,13 +837,18 @@ namespace KinectSdk
 
 			}
 
-			// Pause thread
-			Sleep( 17 );
+			// Pause thread to reduce CPU usage
+			Sleep( 8 );
 
 		}
 
 		// Return to join thread
 		return;
+	}
+
+	void Kinect::setFlipped( bool flipped ) 
+	{
+		mFlipped = flipped;
 	}
 
 	void Kinect::setTilt( int32_t degrees )

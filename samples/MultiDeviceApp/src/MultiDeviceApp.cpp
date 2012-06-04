@@ -56,12 +56,12 @@ class MultiDeviceApp : public ci::app::AppBasic
 public:
 
 	// Cinder callbacks
-	void draw();
-	void keyDown( ci::app::KeyEvent event );
-	void prepareSettings( ci::app::AppBasic::Settings * settings );
-	void shutdown();
-	void setup();
-	void update();
+	void								draw();
+	void								keyDown( ci::app::KeyEvent event );
+	void								prepareSettings( ci::app::AppBasic::Settings *settings );
+	void								shutdown();
+	void								setup();
+	void								update();
 
 private:
 
@@ -88,9 +88,9 @@ void MultiDeviceApp::draw()
 	// Clear window
 	gl::setViewport( getWindowBounds() );
 	gl::clear( Colorf::black() );
-	gl::color( ColorAf::white() );
 	
 	// Draw images
+	gl::color( ColorAf::white() );
 	int32_t width = getWindowWidth() / mTexture.size();
 	int32_t height = ( width * 3 ) / 4;
 	int32_t x = 0;
@@ -107,8 +107,6 @@ void MultiDeviceApp::draw()
 // Handles key press
 void MultiDeviceApp::keyDown( KeyEvent event )
 {
-
-	// Key on key...
 	switch ( event.getCode() ) {
 	case KeyEvent::KEY_ESCAPE:
 		quit();
@@ -120,11 +118,10 @@ void MultiDeviceApp::keyDown( KeyEvent event )
 		screenShot();
 		break;
 	}
-
 }
 
 // Prepare window
-void MultiDeviceApp::prepareSettings( Settings * settings )
+void MultiDeviceApp::prepareSettings( Settings *settings )
 {
 	settings->setWindowSize( 1024, 768 );
 	settings->setFrameRate( 60.0f );
@@ -149,17 +146,20 @@ void MultiDeviceApp::setup()
 	gl::enableAdditiveBlending();
 	gl::color( ColorAf( Colorf::white(), 0.667f ) );
 
+	DeviceOptions deviceOptions;
+	deviceOptions.enableSkeletonTracking( false );
+	deviceOptions.enableVideo( false );
+
 	// Start all available devices
 	int32_t count = Kinect::getDeviceCount();
 	for ( int32_t i = 0; i < count; i++ ) {
 		KinectRef kinect = Kinect::create();
-		kinect->enableSkeletons( false );
-		kinect->enableVideo( false );
-		kinect->start( i );
+		deviceOptions.setDeviceIndex( i );
+		kinect->start( deviceOptions );
 		mKinect.push_back( kinect );
 		mTexture.push_back( gl::Texture( 320, 240 ) );
 
-		console() << kinect->getDeviceIndex() << ": " << kinect->getDeviceId() << endl;
+		console() << kinect->getDeviceOptions().getDeviceIndex() << ": " << kinect->getDeviceOptions().getDeviceId() << endl;
 	}
 
 }

@@ -60,13 +60,13 @@ class PointCloudGpuApp : public ci::app::AppBasic
 public:
 
 	// Cinder callbacks
-	void draw();
-	void keyDown( ci::app::KeyEvent event );
-	void prepareSettings( ci::app::AppBasic::Settings * settings );
-	void resize( ci::app::ResizeEvent event );
-	void shutdown();
-	void setup();
-	void update();
+	void								draw();
+	void								keyDown( ci::app::KeyEvent event );
+	void								prepareSettings( ci::app::AppBasic::Settings *settings );
+	void								resize( ci::app::ResizeEvent event );
+	void								shutdown();
+	void								setup();
+	void								update();
 
 private:
 
@@ -76,31 +76,31 @@ private:
 	ci::gl::Texture						mTextureDepth;
 
 	// VBO
-	ci::gl::VboMesh		mVboMesh;
-	ci::gl::GlslProg	mShader;
+	ci::gl::GlslProg					mShader;
+	ci::gl::VboMesh						mVboMesh;
 
 	// Camera
-	ci::CameraPersp		mCamera;
-	ci::Vec3f			mEyePoint;
-	ci::Vec3f			mLookAt;
-	ci::Vec3f			mRotation;
-
-	// Save screen shot
-	void				screenShot();
+	ci::CameraPersp						mCamera;
+	ci::Vec3f							mEyePoint;
+	ci::Vec3f							mLookAt;
+	ci::Vec3f							mRotation;
 
 	// Background image
-	ci::gl::Texture		mBackground;
+	ci::gl::Texture						mBackground;
 
 	// Parameters
-	float					mDepth;
-	float					mFrameRate;
-	bool					mFullScreen;
-	bool					mFullScreenPrev;
-	ci::params::InterfaceGl	mParams;
-	float					mPointSize;
-	bool					mRemoveBackground;
-	bool					mRemoveBackgroundPrev;
-	ci::Vec3f				mScale;
+	float								mDepth;
+	float								mFrameRate;
+	bool								mFullScreen;
+	bool								mFullScreenPrev;
+	ci::params::InterfaceGl				mParams;
+	float								mPointSize;
+	bool								mRemoveBackground;
+	bool								mRemoveBackgroundPrev;
+	ci::Vec3f							mScale;
+	
+	// Save screen shot
+	void								screenShot();
 
 };
 
@@ -179,7 +179,7 @@ void PointCloudGpuApp::keyDown( KeyEvent event )
 }
 
 // Prepare window
-void PointCloudGpuApp::prepareSettings( Settings * settings )
+void PointCloudGpuApp::prepareSettings( Settings *settings )
 {
 	settings->setWindowSize( 800, 600 );
 	settings->setFrameRate( 60.0f );
@@ -225,8 +225,7 @@ void PointCloudGpuApp::setup()
 	mKinect = Kinect::create();
 	mKinect->removeBackground();
 	mKinect->enableUserColor( false );
-	mKinect->enableVideo( false );
-	mKinect->start();
+	mKinect->start( DeviceOptions().enableVideo( false ) );
 
 	// VBO data
 	vector<uint32_t> vboIndices;
@@ -293,21 +292,21 @@ void PointCloudGpuApp::setup()
 	mParams = params::InterfaceGl( "Parameters", Vec2i( 200, 500 ) );
 	mParams.addSeparator();
 	mParams.addText( "APPLICATION" );
-	mParams.addParam( "Frame rate", & mFrameRate, "", true );
-	mParams.addParam( "Full screen", & mFullScreen, "key=f" );
-	mParams.addButton( "Screen shot", std::bind( & PointCloudGpuApp::screenShot, this ), "key=s" );
-	mParams.addButton( "Quit", std::bind( & PointCloudGpuApp::quit, this ), "key=esc" );
+	mParams.addParam( "Frame rate",			&mFrameRate,									"", true												);
+	mParams.addParam( "Full screen",		&mFullScreen,									"key=f"													);
+	mParams.addButton( "Screen shot",		bind( &PointCloudGpuApp::screenShot, this ),	"key=s"													);
+	mParams.addButton( "Quit",				bind( &PointCloudGpuApp::quit, this ),			"key=esc"												);
 	mParams.addSeparator();
 	mParams.addText( "CAMERA" );
-	mParams.addParam( "Eye point", & mEyePoint );
-	mParams.addParam( "Look at", & mLookAt );
-	mParams.addParam( "Rotation", & mRotation );
+	mParams.addParam( "Eye point",			&mEyePoint																								);
+	mParams.addParam( "Look at",			&mLookAt																								);
+	mParams.addParam( "Rotation",			&mRotation																								);
 	mParams.addSeparator();
 	mParams.addText( "USER" );
-	mParams.addParam( "Depth", & mDepth, "min=0.0 max=2000.0 step=1.0 keyIncr=Z keyDecr=z" );
-	mParams.addParam( "Point size", & mPointSize, "min=0.025 max=100.000 step=0.001 keyIncr=P keyDecr=p" );
-	mParams.addParam( "Remove background", & mRemoveBackground, "key=b" );
-	mParams.addParam( "Scale", & mScale );
+	mParams.addParam( "Depth",				&mDepth,										"min=0.0 max=2000.0 step=1.0 keyIncr=Z keyDecr=z"		);
+	mParams.addParam( "Point size",			&mPointSize,									"min=0.025 max=100.000 step=0.001 keyIncr=P keyDecr=p"	);
+	mParams.addParam( "Remove background",	&mRemoveBackground,								"key=b"													);
+	mParams.addParam( "Scale",				&mScale																									);
 
 }
 
@@ -363,7 +362,7 @@ void PointCloudGpuApp::update()
 					if ( skeletonIt->size() == (uint32_t)JointName::NUI_SKELETON_POSITION_COUNT ) {
 
 						// Look at spine
-						Vec3f spine = skeletonIt->at( JointName::NUI_SKELETON_POSITION_SPINE ) * mEyePoint.z;
+						Vec3f spine = skeletonIt->at( JointName::NUI_SKELETON_POSITION_SPINE ).getPosition() * mEyePoint.z;
 						mLookAt.x = spine.x;
 						mLookAt.y = spine.y;
 						mEyePoint.x = -mLookAt.x * 0.25f;

@@ -58,7 +58,7 @@ public:
 	void keyDown( ci::app::KeyEvent event );
 	void mouseDown( ci::app::MouseEvent event );
 	void mouseDrag( ci::app::MouseEvent event );
-	void prepareSettings( ci::app::AppBasic::Settings * settings );
+	void prepareSettings( ci::app::AppBasic::Settings *settings );
 	void shutdown();
 	void setup();
 	void update();
@@ -140,7 +140,7 @@ void PointCloudApp::mouseDrag( ci::app::MouseEvent event )
 }
 
 // Prepare window
-void PointCloudApp::prepareSettings( Settings * settings )
+void PointCloudApp::prepareSettings( Settings *settings )
 {
 	settings->setWindowSize( 1024, 768 );
 	settings->setFrameRate( 60.0f );
@@ -166,9 +166,7 @@ void PointCloudApp::setup()
 
 	// Start Kinect with isolated depth tracking only
 	mKinect = Kinect::create();
-	mKinect->enableSkeletons( false );
-	mKinect->enableVideo( false );
-	mKinect->start( 0, ImageResolution::NUI_IMAGE_RESOLUTION_640x480, ImageResolution::NUI_IMAGE_RESOLUTION_640x480 );
+	mKinect->start( DeviceOptions().enableSkeletonTracking( false ).enableVideo( false ).setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 ) );
 
 	// Set up camera
 	mArcball = Arcball( getWindowSize() );

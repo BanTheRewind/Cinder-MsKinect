@@ -61,13 +61,13 @@ public:
 
 	// Cinder callbacks
 	void								draw();
-	void								prepareSettings( ci::app::AppBasic::Settings * settings );
+	void								prepareSettings( ci::app::AppBasic::Settings *settings );
 	void								setup();
 	void								shutdown();
 	void								update();
 
 	// Audio callback
-	void 								onData( float * data, int32_t size );
+	void 								onData( float *data, int32_t size );
 
 private:
 
@@ -87,6 +87,8 @@ private:
 	bool								mEnabledStats;
 	bool								mEnabledVideo;
 	bool								mEnabledVideoPrev;
+	bool								mFlipped;
+	bool								mFlippedPrev;
 	bool								mInverted;
 	bool								mInvertedPrev;
 
@@ -163,11 +165,11 @@ void KinectApp::draw()
 				gl::color( mKinect->getUserColor( i ) );
 
 				// Draw bones and joints
-				for ( Skeleton::const_iterator jointIt = skeletonIt->cbegin(); jointIt != skeletonIt->cend(); ++jointIt ) {
+				for ( Skeleton::const_iterator boneIt = skeletonIt->cbegin(); boneIt != skeletonIt->cend(); ++boneIt ) {
 					
 					// Get positions of each joint in this bone to draw it
-					Vec3f position = jointIt->second.getPosition();
-					Vec3f destination = skeletonIt->at( jointIt->second.getStartJoint() ).getPosition();
+					Vec3f position		= boneIt->second.getPosition();
+					Vec3f destination	= skeletonIt->at( boneIt->second.getStartJoint() ).getPosition();
 
 					// Draw bone
 					glBegin( GL_LINES );
@@ -176,7 +178,7 @@ void KinectApp::draw()
 					glEnd();
 
 					// Draw joint
-					gl::drawSphere( position * Vec3f( -1.0f, 1.0f, 1.0f ), 0.025f, 16 );
+					gl::drawSphere( position, 0.025f, 16 );
 
 				}
 
@@ -207,9 +209,9 @@ void KinectApp::draw()
 	if ( mData != 0 ) {
 
 		// Get dimensions
-		int32_t dataSize = mInput->getDataSize();
-		float scale = 240.0f / (float)dataSize;
-		float height = 180.0f;
+		int32_t dataSize	= mInput->getDataSize();
+		float scale			= 240.0f / (float)dataSize;
+		float height		= 180.0f;
 		Vec2f position( 751.0f, 15.0f );
 
 		// Draw background
@@ -235,16 +237,13 @@ void KinectApp::draw()
 }
 
 // Called when audio buffer is full
-void KinectApp::onData( float * data, int32_t size )
+void KinectApp::onData( float *data, int32_t size )
 {
-
-	// Get data
 	mData = data;
-
 }
 
 // Prepare window
-void KinectApp::prepareSettings( Settings * settings )
+void KinectApp::prepareSettings( Settings *settings )
 {
 	settings->setWindowSize( 1005, 570 );
 	settings->setFrameRate( 60.0f );
@@ -334,10 +333,11 @@ void KinectApp::setup()
 	mParams.addParam( "Skeletons",				&mEnabledSkeletons,						"key=k" 				);
 	mParams.addParam( "Video",					&mEnabledVideo,							"key=v" 				);
 	mParams.addSeparator();
-	mParams.addText( "DEPTH IMAGE");
+	mParams.addText( "INPUT");
 	mParams.addParam( "Remove background",		&mRemoveBackground,						"key=b" 				);
 	mParams.addParam( "Binary depth mode",		&mBinaryMode,							"key=w" 				);
 	mParams.addParam( "Invert binary image",	&mInverted,								"key=i" 				);
+	mParams.addParam( "Mirror input",			&mFlipped,								"key=m" 				);
 	mParams.addParam( "Near mode",				&mEnabledNearMode,						"key=n" 				);
 	mParams.addSeparator();
 	mParams.addText( "APPLICATION" );
@@ -404,6 +404,7 @@ void KinectApp::startKinect()
 	mDeviceOptions.enableVideo( mEnabledVideo );
 	mKinect->enableBinaryMode( mBinaryMode );
 	mKinect->removeBackground( mRemoveBackground );
+	mKinect->setFlipped( mFlipped );
 
 	// Stop, if capturing
 	if ( mKinect->isCapturing() ) {
@@ -441,6 +442,9 @@ void KinectApp::stopAudio()
 void KinectApp::update()
 {
 
+	// Update frame rate
+	mFrameRateApp = getAverageFps();
+
 	// Toggle fullscreen
 	if ( mFullScreen != isFullScreen() ) {
 		setFullScreen( mFullScreen );
@@ -450,6 +454,12 @@ void KinectApp::update()
 	if ( mRemoveBackground != mRemoveBackgroundPrev ) {
 		mKinect->removeBackground( mRemoveBackground );
 		mRemoveBackgroundPrev = mRemoveBackground;
+	}
+
+	// Toggle mirror image
+	if ( mFlipped != mFlippedPrev ) {
+		mKinect->setFlipped( mFlipped );
+		mFlippedPrev = mFlipped;
 	}
 
 	// Toggle capture
@@ -528,10 +538,14 @@ void KinectApp::update()
 
 		}
 
-	}
+	} else {
 
-	// Update frame rate
-	mFrameRateApp = getAverageFps();
+		// If Kinect initialization failed, try again every 90 frames
+		if ( getElapsedFrames() % 90 == 0 ) {
+			mKinect->start();
+		}
+
+	}
 
 }
 

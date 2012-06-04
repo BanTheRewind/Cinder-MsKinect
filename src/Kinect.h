@@ -224,6 +224,11 @@ namespace KinectSdk
 		//! Returns true is actively capturing.
 		bool							isCapturing() const;
 
+		//! Flips input horizontally if \a flipped is true.
+		void							setFlipped( bool flipped = true );
+		//! Returns true if input is flipped.
+		bool							isFlipped() const;
+
 		//! Returns pixel location of skeleton position in depth image.
 		ci::Vec2i						getSkeletonDepthPos( const ci::Vec3f &position );
 		//! Returns pixel location of skeleton position in color image.
@@ -277,6 +282,7 @@ namespace KinectSdk
 		float							mFrameRateVideo;
 
 		bool							mBinary;
+		bool							mFlipped;
 		bool							mGreyScale;
 		bool							mInverted;
 
@@ -306,8 +312,8 @@ namespace KinectSdk
 
 		Pixel16u						*mRgbDepth;
 		Pixel							*mRgbVideo;
-		void							pixelToDepthSurface( ci::Surface16u &surface, uint16_t *buffer );
-		void							pixelToVideoSurface( ci::Surface8u &surface, uint8_t *buffer );
+		void							pixelToDepthSurface( uint16_t *buffer );
+		void							pixelToVideoSurface( uint8_t *buffer );
 		Pixel16u						shortToPixel( uint16_t value );
 
 		double							mReadTimeDepth;

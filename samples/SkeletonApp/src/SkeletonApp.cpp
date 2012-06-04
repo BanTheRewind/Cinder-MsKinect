@@ -55,7 +55,7 @@ public:
 	// Cinder callbacks
 	void draw();
 	void keyDown( ci::app::KeyEvent event );
-	void prepareSettings( ci::app::AppBasic::Settings * settings );
+	void prepareSettings( ci::app::AppBasic::Settings *settings );
 	void setup();
 	void shutdown();
 	void update();
@@ -105,18 +105,18 @@ void SkeletonApp::draw()
 				Colorf color = mKinect->getUserColor( i );
 
 				// Iterate through joints
-				for ( Skeleton::const_iterator jointIt = skeletonIt->cbegin(); jointIt != skeletonIt->cend(); ++jointIt ) {
+				for ( Skeleton::const_iterator boneIt = skeletonIt->cbegin(); boneIt != skeletonIt->cend(); ++boneIt ) {
 					
 					// Get position and rotation
-					Vec3f position = jointIt->second.getPosition();
-					Matrix44f transform = jointIt->second.getAbsoluteRotationMatrix();
-					Vec3f direction = transform.transformPoint( position ).normalized();
-					direction *= 0.05f;
+					Vec3f position		= boneIt->second.getPosition();
+					Matrix44f transform	= boneIt->second.getAbsoluteRotationMatrix();
+					Vec3f direction		= transform.transformPoint( position ).normalized();
+					direction			*= 0.05f;
 
 					// Draw bone
 					glLineWidth( 2.0f );
 					glBegin( GL_LINES );
-					Vec3f destination = skeletonIt->at( jointIt->second.getStartJoint() ).getPosition();
+					Vec3f destination = skeletonIt->at( boneIt->second.getStartJoint() ).getPosition();
 					gl::vertex( position );
 					gl::vertex( destination );
 					glEnd();
@@ -160,7 +160,7 @@ void SkeletonApp::keyDown( KeyEvent event )
 }
 
 // Prepare window
-void SkeletonApp::prepareSettings( Settings * settings )
+void SkeletonApp::prepareSettings( Settings *settings )
 {
 	settings->setWindowSize( 800, 600 );
 	settings->setFrameRate( 60.0f );
@@ -180,6 +180,7 @@ void SkeletonApp::setup()
 	mKinect = Kinect::create();
 	mKinect->start( DeviceOptions().enableDepth( false ).enableVideo( false ) );
 	mKinect->removeBackground();
+	mKinect->setFlipped( true );
 
 	// Set the skeleton smoothing to remove jitters. Better smoothing means
 	// less jitters, but a slower response time.
