@@ -1,0 +1,46 @@
+﻿Build started 6/7/2012 12:04:25 PM.
+     1>Project "C:\Users\Stephen Schieberl\Code\Cinder\cinder_master\blocks\Cinder-KinectSdk\vc10\KinectSdkLib.vcxproj" on node 3 (build target(s)).
+     1>InitializeBuildStatus:
+         Creating "Release\KinectSdkLib.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /I..\..\..\include /I..\..\..\boost /I"..\..\Cinder-KinectSdk\src" /Zi /nologo /W3 /WX- /O2 /Oy- /GL /D WIN32 /D NDEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm- /EHsc /MT /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt ..\src\Kinect.cpp
+         Kinect.cpp
+     1>c:\users\stephen schieberl\code\cinder\cinder_master\blocks\cinder-kinectsdk\src\Kinect.h(134): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+     1>c:\users\stephen schieberl\code\cinder\cinder_master\blocks\cinder-kinectsdk\src\Kinect.h(140): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+     1>c:\users\stephen schieberl\code\cinder\cinder_master\blocks\cinder-kinectsdk\src\Kinect.h(134): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+     1>c:\users\stephen schieberl\code\cinder\cinder_master\blocks\cinder-kinectsdk\src\Kinect.h(140): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+     1>..\src\Kinect.cpp(140): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+     1>..\src\Kinect.cpp(141): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+     1>..\src\Kinect.cpp(228): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+     1>..\src\Kinect.cpp(231): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+     1>..\src\Kinect.cpp(234): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+     1>..\src\Kinect.cpp(262): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+     1>..\src\Kinect.cpp(265): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+     1>..\src\Kinect.cpp(582): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+     1>..\src\Kinect.cpp(1026): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+     1>..\src\Kinect.cpp(1063): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+     1>..\src\Kinect.cpp(1073): warning C4482: nonstandard extension used: enum '_NUI_IMAGE_RESOLUTION' used in qualified name
+       Lib:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\Lib.exe /OUT:"C:\Users\Stephen Schieberl\Code\Cinder\cinder_master\blocks\Cinder-KinectSdk\vc10\..\lib\KinectSdk.lib" Kinect10.lib comsuppw.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib WinMM.lib WinInet.Lib /LIBPATH:"C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\Lib\\" /NOLOGO /LTCG Release\Kinect.obj
+     1>kernel32.lib(KERNEL32.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in Kinect10.lib(Kinect10.dll); second definition ignored
+     1>user32.lib(USER32.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in Kinect10.lib(Kinect10.dll); second definition ignored
+     1>gdi32.lib(GDI32.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in Kinect10.lib(Kinect10.dll); second definition ignored
+     1>winspool.lib(WINSPOOL.DRV) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in Kinect10.lib(Kinect10.dll); second definition ignored
+     1>comdlg32.lib(COMDLG32.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in Kinect10.lib(Kinect10.dll); second definition ignored
+     1>advapi32.lib(ADVAPI32.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in Kinect10.lib(Kinect10.dll); second definition ignored
+     1>shell32.lib(SHELL32.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in Kinect10.lib(Kinect10.dll); second definition ignored
+     1>ole32.lib(ole32.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in Kinect10.lib(Kinect10.dll); second definition ignored
+     1>oleaut32.lib(OLEAUT32.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in Kinect10.lib(Kinect10.dll); second definition ignored
+     1>uuid.lib(seo_i.obj) : warning LNK4006: _IID_IEventDispatcher already defined in uuid.lib(iid.obj); second definition ignored
+     1>odbc32.lib(ODBC32.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in Kinect10.lib(Kinect10.dll); second definition ignored
+     1>WinMM.lib(WINMM.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in Kinect10.lib(Kinect10.dll); second definition ignored
+     1>WinInet.Lib(WININET.dll) : warning LNK4006: __NULL_IMPORT_DESCRIPTOR already defined in Kinect10.lib(Kinect10.dll); second definition ignored
+         KinectSdkLib.vcxproj -> C:\Users\Stephen Schieberl\Code\Cinder\cinder_master\blocks\Cinder-KinectSdk\vc10\..\lib\KinectSdk.lib
+       FinalizeBuildStatus:
+         Deleting file "Release\KinectSdkLib.unsuccessfulbuild".
+         Touching "Release\KinectSdkLib.lastbuildstate".
+     1>Done Building Project "C:\Users\Stephen Schieberl\Code\Cinder\cinder_master\blocks\Cinder-KinectSdk\vc10\KinectSdkLib.vcxproj" (build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:07.68
