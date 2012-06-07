@@ -121,7 +121,7 @@ namespace KinectSdk
 		//! Returns true if color video stream is enabled.
 		bool				isVideoEnabled() const;
 
-		//! Enables depth tracking. Call before start().
+		//! Enables depth tracking.
 		DeviceOptions&		enableDepth( bool enable = true );
 		//! Enables near mode (Kinect for Windows only).
 		DeviceOptions&		enableNearMode( bool enable = true ); 
