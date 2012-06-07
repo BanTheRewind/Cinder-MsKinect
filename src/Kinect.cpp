@@ -331,18 +331,21 @@ namespace KinectSdk
 
 	bool Kinect::checkNewDepthFrame()
 	{
+		boost::lock_guard<boost::mutex> lock( mMutexDepth );
 		bool newDepthFrame = mNewDepthFrame;
 		mNewDepthFrame = false;
 		return newDepthFrame; 
 	}
 	bool Kinect::checkNewSkeletons()
 	{ 
+		boost::lock_guard<boost::mutex> lock( mMutexSkeleton );
 		bool newSkeletons = mNewSkeletons;
 		mNewSkeletons = false;
 		return newSkeletons; 
 	}
 	bool Kinect::checkNewVideoFrame()
 	{ 
+		boost::lock_guard<boost::mutex> lock( mMutexVideo );
 		bool newVideoFrame = mNewVideoFrame;
 		mNewVideoFrame = false;
 		return newVideoFrame; 
@@ -420,7 +423,7 @@ namespace KinectSdk
 
 	Surface16u Kinect::getDepth()
 	{
-		boost::mutex::scoped_lock lock( mMutex );
+		boost::lock_guard<boost::mutex> lock( mMutexDepth );
 		mNewDepthFrame = false;
 		return mDepthSurface;
 	}
@@ -454,13 +457,13 @@ namespace KinectSdk
 
 	std::vector<Skeleton> Kinect::getSkeletons()
 	{
-		boost::mutex::scoped_lock lock( mMutex );
+		boost::lock_guard<boost::mutex> lock( mMutexSkeleton );
 		mNewSkeletons = false;
 		return mSkeletons;
 	}
 
 	float Kinect::getSkeletonFrameRate() const 
-	{ 
+	{
 		return mFrameRateSkeletons; 
 	}
 
@@ -484,19 +487,46 @@ namespace KinectSdk
 
 	int32_t Kinect::getUserCount()
 	{
+		boost::lock_guard<boost::mutex> lock( mMutexDepth );
 		return mDeviceOptions.isDepthEnabled() ? mUserCount : 0;
 	}
 
 	Surface8u Kinect::getVideo()
 	{
-		boost::mutex::scoped_lock lock( mMutex );
+		boost::lock_guard<boost::mutex> lock( mMutexVideo );
 		mNewVideoFrame = false;
 		return mVideoSurface;
 	}
 
 	float Kinect::getVideoFrameRate() const
-	{ 
+	{
 		return mFrameRateVideo; 
+	}
+
+	Vec2i Kinect::getSkeletonDepthPos( const ci::Vec3f &position )
+	{
+		float x;
+		float y;
+		Vector4 pos;
+		pos.x = position.x;
+		pos.y = position.y;
+		pos.z = position.z;
+		pos.w = 1.0f;
+		NuiTransformSkeletonToDepthImage( pos, &x, &y, mDeviceOptions.getDepthResolution() );
+		return Vec2i( (int32_t)x, (int32_t)y );
+	}
+
+	Vec2i Kinect::getSkeletonVideoPos( const ci::Vec3f &position )
+	{
+		float x;
+		float y;
+		Vector4 pos;
+		pos.x = position.x;
+		pos.y = position.y;
+		pos.z = position.z;
+		pos.w = 1.0f;
+		NuiTransformSkeletonToDepthImage( pos, &x, &y, mDeviceOptions.getVideoResolution() );
+		return Vec2i( (int32_t)x, (int32_t)y );
 	}
 
 	void Kinect::init( bool reset )
@@ -536,34 +566,8 @@ namespace KinectSdk
 
 	}
 
-	Vec2i Kinect::getSkeletonDepthPos( const ci::Vec3f &position )
-	{
-		float x;
-		float y;
-		Vector4 pos;
-		pos.x = position.x;
-		pos.y = position.y;
-		pos.z = position.z;
-		pos.w = 1.0f;
-		NuiTransformSkeletonToDepthImage( pos, &x, &y, mDeviceOptions.getDepthResolution() );
-		return Vec2i( (int32_t)x, (int32_t)y );
-	}
-
-	Vec2i Kinect::getSkeletonVideoPos( const ci::Vec3f &position )
-	{
-		float x;
-		float y;
-		Vector4 pos;
-		pos.x = position.x;
-		pos.y = position.y;
-		pos.z = position.z;
-		pos.w = 1.0f;
-		NuiTransformSkeletonToDepthImage( pos, &x, &y, mDeviceOptions.getVideoResolution() );
-		return Vec2i( (int32_t)x, (int32_t)y );
-	}
-
 	bool Kinect::isCapturing() const 
-	{ 
+	{
 		return mCapture; 
 	}
 
@@ -687,15 +691,13 @@ namespace KinectSdk
 				//////////////////////////////////////////////////////////////////////////////////////////////
 
 				if ( mDeviceOptions.isDepthEnabled() && mDepthStreamHandle != 0 && !mNewDepthFrame ) {
-
-					// Acquire depth image
+					
 					_NUI_IMAGE_FRAME imageFrame;
 					long hr = mSensor->NuiImageStreamGetNextFrame( mDepthStreamHandle, WAIT_TIME, &imageFrame );
 					if ( FAILED( hr ) ) {
 						error( hr );
 					} else {
 
-						// Read texture to surface
 						INuiFrameTexture * texture = imageFrame.pFrameTexture;
 						_NUI_LOCKED_RECT lockedRect;
 						hr = texture->LockRect( 0, &lockedRect, 0, 0 );
@@ -708,20 +710,16 @@ namespace KinectSdk
 							pixelToDepthSurface( (uint16_t*)lockedRect.pBits );
 						}
 
-						// Clean up
 						hr = mSensor->NuiImageStreamReleaseFrame( mDepthStreamHandle, &imageFrame );
 						if ( FAILED( hr ) ) {
 							error( hr ); 
 						}
 						
-						// Update frame rate
 						mFrameRateDepth = (float)( 1.0 / ( time - mReadTimeDepth ) );
 						mReadTimeDepth = time;
 
-						// Set flag
 						mNewDepthFrame = true;
 
-						// Update user count
 						mUserCount = 0;
 						for ( uint32_t i = 0; i < NUI_SKELETON_COUNT; i++ ) {
 							if ( mActiveUsers[ i ] ) {
@@ -737,25 +735,20 @@ namespace KinectSdk
 
 				if ( mDeviceOptions.isSkeletonTrackingEnabled() && mIsSkeletonDevice && !mNewSkeletons ) {
 
-					// Acquire skeleton
 					_NUI_SKELETON_FRAME skeletonFrame;
 					long hr = mSensor->NuiSkeletonGetNextFrame( WAIT_TIME, &skeletonFrame );
 					if ( FAILED( hr ) ) {
 						error( hr );
 					} else {
 
-						// Iterate through skeletons
 						bool foundSkeleton = false;
 						for ( int32_t i = 0; i < NUI_SKELETON_COUNT; i++ ) {
 
-							// Clear skeleton data
 							mSkeletons.at( i ).clear();
 
-							// Mark skeleton found
 							NUI_SKELETON_TRACKING_STATE trackingState = skeletonFrame.SkeletonData[ i ].eTrackingState;
 							if ( trackingState == NUI_SKELETON_TRACKED || trackingState == NUI_SKELETON_POSITION_ONLY ) {
 
-								// Smooth out the skeleton data when found
 								if ( !foundSkeleton ) {
 									_NUI_TRANSFORM_SMOOTH_PARAMETERS transform = kTransformParams[ mTransform ];
 									hr = mSensor->NuiTransformSmooth( &skeletonFrame, &transform );
@@ -773,14 +766,12 @@ namespace KinectSdk
 									}
 								}
 
-								// Get bone orientation data
 								_NUI_SKELETON_BONE_ORIENTATION bones[ NUI_SKELETON_POSITION_COUNT ];
 								hr = NuiSkeletonCalculateBoneOrientations( skeletonFrame.SkeletonData + i, bones );
 								if ( FAILED( hr ) ) {
 									error( hr );
 								}
 
-								// Set joint data
 								for ( int32_t j = 0; j < (int32_t)NUI_SKELETON_POSITION_COUNT; j++ ) {
 									Bone bone( *( ( skeletonFrame.SkeletonData + i )->SkeletonPositions + j ), *( bones + j ) );
 									( mSkeletons.begin() + i )->insert( std::make_pair<JointName, Bone>( (JointName)j, bone ) );
@@ -790,11 +781,9 @@ namespace KinectSdk
 
 						}
 
-						// Update frame rate
 						mFrameRateSkeletons = (float)( 1.0 / ( time - mReadTimeSkeletons ) );
 						mReadTimeSkeletons = time;
 
-						// Set flag
 						mNewSkeletons = true;
 
 					}
@@ -805,14 +794,12 @@ namespace KinectSdk
 
 				if ( mDeviceOptions.isVideoEnabled() && mVideoStreamHandle != 0 && !mNewVideoFrame ) {
 
-					// Acquire video image
 					_NUI_IMAGE_FRAME imageFrame;
 					long hr = mSensor->NuiImageStreamGetNextFrame( mVideoStreamHandle, WAIT_TIME, &imageFrame );
 					if ( FAILED( hr ) ) {
 						error( hr );
 					} else {
 
-						// Read texture
 						INuiFrameTexture * texture = imageFrame.pFrameTexture;
 						_NUI_LOCKED_RECT lockedRect;
 						hr = texture->LockRect( 0, &lockedRect, 0, 0 );
@@ -825,17 +812,14 @@ namespace KinectSdk
 							trace( "Invalid buffer length received." );
 						}
 
-						// Clean up
 						hr = mSensor->NuiImageStreamReleaseFrame( mVideoStreamHandle, &imageFrame );
 						if ( FAILED( hr ) ) {
 							error( hr );
 						}
 
-						// Update frame rate
 						mFrameRateVideo = (float)( 1.0 / ( time - mReadTimeVideo ) );
 						mReadTimeVideo = time;
 
-						// Set flag
 						mNewVideoFrame = true;
 
 					}
@@ -844,7 +828,6 @@ namespace KinectSdk
 
 			}
 
-			// Pause thread to reduce CPU usage
 			Sleep( 8 );
 
 		}

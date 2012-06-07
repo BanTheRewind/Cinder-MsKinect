@@ -311,7 +311,9 @@ namespace KinectSdk
 
 		bool							mRemoveBackground;
 
-		boost::mutex					mMutex;
+		boost::mutex					mMutexDepth;
+		boost::mutex					mMutexSkeleton;
+		boost::mutex					mMutexVideo;
 		volatile bool					mRunning;
 		std::shared_ptr<boost::thread>	mThread;
 		void							run();

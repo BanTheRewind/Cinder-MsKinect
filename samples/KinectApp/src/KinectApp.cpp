@@ -201,7 +201,7 @@ void KinectApp::draw()
 		if ( mVideoSurface ) {
 			Area srcArea( 0, 0, mVideoSurface.getWidth(), mVideoSurface.getHeight() );
 			Rectf destRect( 508.0f, 15.0f, 748.0f, 195.0f );
-			gl::draw( gl::Texture( mVideoSurface ), srcArea, destRect);
+			gl::draw( gl::Texture( mVideoSurface ), srcArea, destRect );
 		}
 
 	}
@@ -294,6 +294,8 @@ void KinectApp::setup()
 	mEnabledStats			= true;
 	mEnabledVideo			= true;
 	mEnabledVideoPrev		= mEnabledVideo;
+	mFlipped				= false;
+	mFlippedPrev			= mFlipped;
 	mFrameRateApp			= 0.0f;
 	mFrameRateDepth			= 0.0f;
 	mFrameRateSkeletons		= 0.0f;
@@ -338,7 +340,7 @@ void KinectApp::setup()
 	mParams.addParam( "Remove background",		&mRemoveBackground,						"key=b" 				);
 	mParams.addParam( "Binary depth mode",		&mBinaryMode,							"key=w" 				);
 	mParams.addParam( "Invert binary image",	&mInverted,								"key=i" 				);
-	mParams.addParam( "Mirror input",			&mFlipped,								"key=m" 				);
+	mParams.addParam( "Flip input",				&mFlipped,								"key=m" 				);
 	mParams.addParam( "Near mode",				&mEnabledNearMode,						"key=n" 				);
 	mParams.addSeparator();
 	mParams.addText( "APPLICATION" );
