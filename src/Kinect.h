@@ -114,6 +114,8 @@ namespace KinectSdk
 		bool				isDepthEnabled() const;
 		//! Returns true if background remove is enabled.
 		bool				isNearModeEnabled() const; 
+		//! Returns true if seated mode is enabled.
+		bool				isSeatedModeEnabled() const;
 		//! Returns true if skeleton tracking is enabled.
 		bool				isSkeletonTrackingEnabled() const;
 		//! Returns true if color video stream is enabled.
@@ -123,8 +125,9 @@ namespace KinectSdk
 		DeviceOptions&		enableDepth( bool enable = true );
 		//! Enables near mode (Kinect for Windows only).
 		DeviceOptions&		enableNearMode( bool enable = true ); 
-		//! Enables skeleton tracking. Only available on first device running 320x240.
-		DeviceOptions&		enableSkeletonTracking( bool enable = true );
+		/*! Enables skeleton tracking. Set \a seatedMode to true to support seated skeletons.
+		    Only available on first device running at 320x240. */
+		DeviceOptions&		enableSkeletonTracking( bool enable = true, bool seatedMode = false );
 		//! Enables color video stream.
 		DeviceOptions&		enableVideo( bool enable = true );
 		//! Sets resolution of depth image.
@@ -137,6 +140,7 @@ namespace KinectSdk
 		DeviceOptions&		setVideoResolution( const ImageResolution &resolution = ImageResolution::NUI_IMAGE_RESOLUTION_640x480 ); 
 	private:
 		bool				mEnabledDepth;
+		bool				mEnabledSeatedMode;
 		bool				mEnabledSkeletonTracking;
 		bool				mEnabledVideo;
 
@@ -157,6 +161,8 @@ namespace KinectSdk
 	{
 	public:
 
+		/*! Skeleton smoothing enumeration. Smoother transform improve skeleton accuracy, 
+			but increase latency. */
 		enum : uint_fast8_t
 		{
 			TRANSFORM_NONE, TRANSFORM_DEFAULT, TRANSFORM_SMOOTH, TRANSFORM_VERY_SMOOTH, TRANSFORM_MAX
@@ -197,9 +203,9 @@ namespace KinectSdk
 		bool							checkNewSkeletons();
 		//! Returns true if new color frame is available. Sets flag to false when called.
 		bool							checkNewVideoFrame();
-		/* Returns 16-bit depth image (12-bit color values). Call Kinect::checkNewDepthFrame() to improve performance and avoid
-		   threading collisions. Consider using Kinect::getDepthAt() in lieu of reading the depth image. */
-		const ci::Surface16u&			getDepth();
+		/* Returns 16-bit depth image (12-bit color values). Call Kinect::checkNewDepthFrame() to improve performance. 
+			Consider using Kinect::getDepthAt() in lieu of reading the depth image. */
+		ci::Surface16u					getDepth();
 		//! Returns depth value as 0.0 - 1.0 float for pixel at \a pos.
 		float							getDepthAt( const ci::Vec2i &pos ) const;
 		//! Returns frame rate of depth image processing.
@@ -215,9 +221,9 @@ namespace KinectSdk
 		int32_t							getTilt();
 		//! Returns number of tracked users. Depth resolution must be no more than 320x240 with user tracking enabled.
 		int32_t							getUserCount();
-		/*! Returns latest color image frame. Call Kinect::checkNewVideoFrame() before this to improve performance and avoid
-		    threading collisions. Sets flag to false. */
-		const ci::Surface8u&			getVideo();
+		/*! Returns latest color image frame. Call Kinect::checkNewVideoFrame() before this to improve performance. 
+			Sets flag to false. */
+		ci::Surface8u					getVideo();
 		//! Returns frame rate of color image processing.
 		float							getVideoFrameRate() const;
 		

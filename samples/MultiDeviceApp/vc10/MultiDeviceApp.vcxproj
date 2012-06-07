@@ -74,7 +74,7 @@
       <IgnoreSpecificDefaultLibraries>LIBCMT</IgnoreSpecificDefaultLibraries>
     </Link>
     <PreBuildEvent>
-      <Command>xcopy "$(KINECTSDK10_DIR)\Assemblies\*.dll" "$(SolutionDir)bin\" /Y /C</Command>
+      <Command>xcopy "$(KINECTSDK10_DIR)\Assemblies\*.dll" "$(ProjectDir)bin\" /Y /C</Command>
     </PreBuildEvent>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\..\..\..\include;</AdditionalIncludeDirectories>
@@ -108,7 +108,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PreBuildEvent>
-      <Command>xcopy "$(KINECTSDK10_DIR)\Assemblies\*.dll" "$(SolutionDir)bin\" /Y /C</Command>
+      <Command>xcopy "$(KINECTSDK10_DIR)\Assemblies\*.dll" "$(ProjectDir)bin\" /Y /C</Command>
     </PreBuildEvent>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\..\..\..\include;</AdditionalIncludeDirectories>

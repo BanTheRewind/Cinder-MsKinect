@@ -152,6 +152,7 @@ void KinectApp::draw()
 
 		// Move skeletons down below the rest of the interface
 		gl::pushMatrices();
+		gl::scale( Vec2f::one() * 0.5f );
 		gl::translate( 0.0f, -0.62f, 0.0f );
 
 		// Iterate through skeletons

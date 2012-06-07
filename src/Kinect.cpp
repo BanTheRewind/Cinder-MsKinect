@@ -141,6 +141,31 @@ namespace KinectSdk
 		setVideoResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 );
 	}
 
+	DeviceOptions& DeviceOptions::enableDepth( bool enable )
+	{
+		mEnabledDepth = enable;
+		return *this;
+	}
+
+	DeviceOptions& DeviceOptions::enableNearMode( bool enable )
+	{
+		mEnabledNearMode = enable;
+		return *this;
+	}
+
+	DeviceOptions& DeviceOptions::enableSkeletonTracking( bool enable, bool seatedMode )
+	{
+		mEnabledSeatedMode			= seatedMode;
+		mEnabledSkeletonTracking	= enable;
+		return *this;
+	}
+
+	DeviceOptions& DeviceOptions::enableVideo( bool enable )
+	{
+		mEnabledVideo = enable;
+		return *this;
+	}
+
 	ImageResolution DeviceOptions::getDepthResolution() const
 	{
 		return mDepthResolution;
@@ -181,6 +206,11 @@ namespace KinectSdk
 		return mEnabledNearMode;
 	}
 	
+	bool DeviceOptions::isSeatedModeEnabled() const
+	{
+		return mEnabledSeatedMode;
+	}
+
 	bool DeviceOptions::isSkeletonTrackingEnabled() const
 	{
 		return mEnabledSkeletonTracking;
@@ -191,30 +221,6 @@ namespace KinectSdk
 		return mEnabledVideo;
 	}
 
-	DeviceOptions& DeviceOptions::enableDepth( bool enable )
-	{
-		mEnabledDepth = enable;
-		return *this;
-	}
-
-	DeviceOptions& DeviceOptions::enableNearMode( bool enable )
-	{
-		mEnabledNearMode = enable;
-		return *this;
-	}
-	
-	DeviceOptions& DeviceOptions::enableSkeletonTracking( bool enable )
-	{
-		mEnabledSkeletonTracking = enable;
-		return *this;
-	}
-	
-	DeviceOptions& DeviceOptions::enableVideo( bool enable )
-	{
-		mEnabledVideo = enable;
-		return *this;
-	}
-	
 	DeviceOptions& DeviceOptions::setDepthResolution( const ImageResolution &resolution )
 	{
 		mDepthResolution = resolution;
@@ -259,11 +265,8 @@ namespace KinectSdk
 		case ImageResolution::NUI_IMAGE_RESOLUTION_640x480:
 			mVideoSize = Vec2i( 640, 480 );
 			break;
-		case ImageResolution::NUI_IMAGE_RESOLUTION_320x240:
-			mVideoSize = Vec2i( 320, 240 );
-			break;
 		default:
-			mVideoResolution = NUI_IMAGE_RESOLUTION_640x480;
+			mVideoResolution = NUI_IMAGE_RESOLUTION_INVALID;
 			mVideoSize = Vec2i::zero();
 			mEnabledVideo = false;
 			break;
@@ -415,8 +418,9 @@ namespace KinectSdk
 		}
 	}
 
-	const Surface16u& Kinect::getDepth()
-	{ 
+	Surface16u Kinect::getDepth()
+	{
+		boost::mutex::scoped_lock lock( mMutex );
 		mNewDepthFrame = false;
 		return mDepthSurface;
 	}
@@ -483,8 +487,9 @@ namespace KinectSdk
 		return mDeviceOptions.isDepthEnabled() ? mUserCount : 0;
 	}
 
-	const Surface8u& Kinect::getVideo()
+	Surface8u Kinect::getVideo()
 	{
+		boost::mutex::scoped_lock lock( mMutex );
 		mNewVideoFrame = false;
 		return mVideoSurface;
 	}
@@ -650,6 +655,7 @@ namespace KinectSdk
 						flipped[ dest + i ] = buffer[ src + i ];
 					}
 					swap( flipped[ dest ], flipped[ dest + 2 ] );
+					flipped[ dest + 3 ] = 255;
 				}
 			}
 			memcpy( mVideoSurface.getData(), flipped, size );
@@ -657,6 +663,7 @@ namespace KinectSdk
 		} else {
 			for ( int32_t i = 0; i < size; i += 4 ) {
 				swap( buffer[ i ], buffer[ i + 2 ] );
+				buffer[ i + 3 ] = 255;
 			}
 			memcpy( mVideoSurface.getData(), buffer, size );
 		}
@@ -1056,7 +1063,11 @@ namespace KinectSdk
 
 			// Skeletons are only supported on the first device
 			if ( mDeviceOptions.isSkeletonTrackingEnabled() && HasSkeletalEngine( mSensor ) ) {
-				hr = mSensor->NuiSkeletonTrackingEnable( 0, 0 );
+				flags = NUI_SKELETON_TRACKING_FLAG_ENABLE_IN_NEAR_RANGE;
+				if ( mDeviceOptions.isSeatedModeEnabled() ) {
+					flags |= NUI_SKELETON_TRACKING_FLAG_ENABLE_SEATED_SUPPORT;
+				}
+				hr = mSensor->NuiSkeletonTrackingEnable( 0, flags );
 				if ( FAILED( hr ) ) {
 					trace( "Unable to initialize skeleton tracking for device " + mDeviceOptions.getDeviceId() + ": " );
 					error( hr );
