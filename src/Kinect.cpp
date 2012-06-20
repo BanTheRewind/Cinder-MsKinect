@@ -135,6 +135,7 @@ namespace KinectSdk
 		mDeviceIndex				= 0;
 		mEnabledDepth				= true;
 		mEnabledNearMode			= false;
+		mEnabledSeatedMode			= false;
 		mEnabledSkeletonTracking	= true;
 		mEnabledVideo				= true;
 		setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_320x240 );
