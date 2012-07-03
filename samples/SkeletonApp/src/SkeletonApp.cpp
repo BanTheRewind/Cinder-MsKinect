@@ -68,6 +68,7 @@ private:
 	KinectSdk::KinectRef				mKinect;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
 
+	bool								mRead;
 	uint32_t							mCallbackId;
 
 	// Camera
@@ -95,10 +96,11 @@ void SkeletonApp::draw()
 	// We're capturing
 	if ( mKinect->isCapturing() ) {
 
-		// Set up camera for 3D
+		// Set up 3D view
 		gl::setMatrices( mCamera );
 
 		// Iterate through skeletons
+		mRead = true;
 		uint32_t i = 0;
 		for ( vector<Skeleton>::iterator skeletonIt = mSkeletons.begin(); skeletonIt != mSkeletons.end(); ++skeletonIt, i++ ) {
 
@@ -119,7 +121,7 @@ void SkeletonApp::draw()
 
 					// Draw bone
 					JointName startJoint = boneIt->second.getStartJoint();
-					if ( skeletonIt->find( startJoint ) != skeletonIt->cend() ) {
+					if ( skeletonIt->find( startJoint ) != skeletonIt->end() ) {
 						glLineWidth( 2.0f );
 						glBegin( GL_LINES );
 						Vec3f destination = skeletonIt->find( startJoint )->second.getPosition();
@@ -142,6 +144,7 @@ void SkeletonApp::draw()
 			}
 
 		}
+		mRead = false;
 
 	}
 
@@ -168,7 +171,9 @@ void SkeletonApp::keyDown( KeyEvent event )
 
 void SkeletonApp::onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions )
 {
-	mSkeletons = skeletons;
+	if ( !mRead ) {
+		mSkeletons = skeletons;
+	}
 }
 
 // Prepare window
@@ -193,6 +198,8 @@ void SkeletonApp::setup()
 	mKinect->start( DeviceOptions().enableDepth( false ).enableVideo( false ) );
 	mKinect->removeBackground();
 	mKinect->setFlipped( true );
+
+	mRead = false;
 
 	// Set the skeleton smoothing to remove jitters. Better smoothing means
 	// less jitters, but a slower response time.
