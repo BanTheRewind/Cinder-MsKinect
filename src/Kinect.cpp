@@ -319,6 +319,14 @@ namespace KinectSdk
 	Kinect::~Kinect()
 	{
 		stop();
+
+		for ( CallbackList::iterator callbackIt = mCallbacks.begin(); callbackIt != mCallbacks.end(); ++callbackIt ) {
+			if ( callbackIt->second->connected() ) {
+				callbackIt->second->disconnect();
+			}
+		}
+		mCallbacks.clear();
+
 		if ( mSensor != 0 ) {
 			mSensor->NuiShutdown();
 			if ( mSensor ) {
@@ -330,26 +338,43 @@ namespace KinectSdk
 		}
 	}
 
-	bool Kinect::checkNewDepthFrame()
+	uint32_t Kinect::addDepthCallback( const boost::function<void ( const Surface16u&, const DeviceOptions& )> &callback )
 	{
-		boost::lock_guard<boost::mutex> lock( mMutexDepth );
-		bool newDepthFrame = mNewDepthFrame;
-		mNewDepthFrame = false;
-		return newDepthFrame; 
+		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
+		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalDepth.connect( callback ) ) ) ) );
+		return id;
 	}
-	bool Kinect::checkNewSkeletons()
-	{ 
-		boost::lock_guard<boost::mutex> lock( mMutexSkeleton );
-		bool newSkeletons = mNewSkeletons;
-		mNewSkeletons = false;
-		return newSkeletons; 
+
+	template<typename T> 
+	uint32_t Kinect::addDepthCallback( void ( T::*callbackFunction )( const Surface16u& surface, const DeviceOptions& deviceOptions ), T *callbackObject ) 
+	{
+		return addDepthCallback( boost::function<void ( const Surface16u&, const DeviceOptions& )>( boost::bind( callbackFunction, callbackObject, ::_1, ::_2 ) ) );
 	}
-	bool Kinect::checkNewVideoFrame()
-	{ 
-		boost::lock_guard<boost::mutex> lock( mMutexVideo );
-		bool newVideoFrame = mNewVideoFrame;
-		mNewVideoFrame = false;
-		return newVideoFrame; 
+
+	uint32_t Kinect::addSkeletonTrackingCallback( const boost::function<void ( const vector<Skeleton>&, const DeviceOptions& )> &callback )
+	{
+		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
+		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalSkeleton.connect( callback ) ) ) ) );
+		return id;
+	}
+
+	template<typename T> 
+	uint32_t Kinect::addSkeletonTrackingCallback( void ( T::*callbackFunction )( const vector<Skeleton>& skeletons, const DeviceOptions& deviceOptions ), T *callbackObject ) 
+	{
+		return addSkeletonTrackingCallback( boost::function<void ( const vector<Skeleton>&, const DeviceOptions& )>( boost::bind( callbackFunction, callbackObject, ::_1, ::_2 ) ) );
+	}
+
+	uint32_t Kinect::addVideoCallback( const boost::function<void ( const Surface8u&, const DeviceOptions& )> &callback )
+	{
+		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
+		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalVideo.connect( callback ) ) ) ) );
+		return id;
+	}
+
+	template<typename T> 
+	uint32_t Kinect::addVideoCallback( void ( T::*callbackFunction )( const Surface8u& surface, const DeviceOptions& deviceOptions ), T *callbackObject ) 
+	{
+		return addVideoCallback( boost::function<void ( const Surface8u&, const DeviceOptions& )>( boost::bind( callbackFunction, callbackObject, ::_1, ::_2 ) ) );
 	}
 
 	void Kinect::deactivateUsers()
@@ -422,13 +447,6 @@ namespace KinectSdk
 		}
 	}
 
-	Surface16u Kinect::getDepth()
-	{
-		boost::lock_guard<boost::mutex> lock( mMutexDepth );
-		mNewDepthFrame = false;
-		return mDepthSurface;
-	}
-
 	float Kinect::getDepthAt( const ci::Vec2i &pos ) const
 	{
 		float depthNorm = 0.0f;
@@ -456,13 +474,6 @@ namespace KinectSdk
 		return mDeviceOptions;
 	}
 
-	std::vector<Skeleton> Kinect::getSkeletons()
-	{
-		boost::lock_guard<boost::mutex> lock( mMutexSkeleton );
-		mNewSkeletons = false;
-		return mSkeletons;
-	}
-
 	float Kinect::getSkeletonFrameRate() const 
 	{
 		return mFrameRateSkeletons; 
@@ -488,15 +499,7 @@ namespace KinectSdk
 
 	int32_t Kinect::getUserCount()
 	{
-		boost::lock_guard<boost::mutex> lock( mMutexDepth );
 		return mDeviceOptions.isDepthEnabled() ? mUserCount : 0;
-	}
-
-	Surface8u Kinect::getVideo()
-	{
-		boost::lock_guard<boost::mutex> lock( mMutexVideo );
-		mNewVideoFrame = false;
-		return mVideoSurface;
 	}
 
 	float Kinect::getVideoFrameRate() const
@@ -564,7 +567,6 @@ namespace KinectSdk
 		mVideoStreamHandle	= 0;
 
 		deactivateUsers();
-
 	}
 
 	bool Kinect::isCapturing() const 
@@ -681,6 +683,12 @@ namespace KinectSdk
 		mRemoveBackground = remove;
 	}
 
+	void Kinect::removeCallback( uint32_t id )
+	{
+		mCallbacks.find( id )->second->disconnect();
+		mCallbacks.erase( id ); 
+	}
+
 	void Kinect::run()
 	{
 		while ( mCapture ) {
@@ -719,14 +727,15 @@ namespace KinectSdk
 						mFrameRateDepth = (float)( 1.0 / ( time - mReadTimeDepth ) );
 						mReadTimeDepth = time;
 
-						mNewDepthFrame = true;
-
 						mUserCount = 0;
 						for ( uint32_t i = 0; i < NUI_SKELETON_COUNT; i++ ) {
 							if ( mActiveUsers[ i ] ) {
 								mUserCount++;
 							}
 						}
+
+						mSignalDepth( mDepthSurface, mDeviceOptions );
+						mNewDepthFrame = true;
 
 					}
 
@@ -785,6 +794,7 @@ namespace KinectSdk
 						mFrameRateSkeletons = (float)( 1.0 / ( time - mReadTimeSkeletons ) );
 						mReadTimeSkeletons = time;
 
+						mSignalSkeleton( mSkeletons, mDeviceOptions );
 						mNewSkeletons = true;
 
 					}
@@ -821,6 +831,7 @@ namespace KinectSdk
 						mFrameRateVideo = (float)( 1.0 / ( time - mReadTimeVideo ) );
 						mReadTimeVideo = time;
 
+						mSignalVideo( mVideoSurface, mDeviceOptions );
 						mNewVideoFrame = true;
 
 					}

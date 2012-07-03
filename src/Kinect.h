@@ -37,6 +37,7 @@
 #pragma once
 
 // Includes
+#include "boost/signals2.hpp"
 #include "cinder/Cinder.h"
 #include "cinder/Matrix.h"
 #include "cinder/Quaternion.h"
@@ -175,7 +176,26 @@ namespace KinectSdk
 
 		~Kinect();
 
-		// Creates pointer to instance of Kinect
+		//! Adds depth image callback
+		uint32_t						addDepthCallback( const boost::function<void ( const ci::Surface16u&, const DeviceOptions& )> &callback );
+		//! Adds depth image callback
+		template<typename T> 
+		uint32_t						addDepthCallback( void ( T::*callbackFunction )( const ci::Surface16u& surface, const DeviceOptions& deviceOptions ), T *callbackObject );
+		//! Adds skeleton tracking callback
+		uint32_t						addSkeletonTrackingCallback( const boost::function<void ( const std::vector<Skeleton>&, const DeviceOptions& )> &callback );
+		//! Adds skeleton tracking callback
+		template<typename T> 
+		uint32_t						addSkeletonTrackingCallback( void ( T::*callbackFunction )( const std::vector<Skeleton>& skeletons, const DeviceOptions& deviceOptions ), T *callbackObject );
+		//! Adds video image callback
+		uint32_t						addVideoCallback( const boost::function<void ( const ci::Surface8u&, const DeviceOptions& )> &callback );
+		//! Adds video image callback
+		template<typename T> 
+		uint32_t						addVideoCallback( void ( T::*callbackFunction )( const ci::Surface8u& surface, const DeviceOptions& deviceOptions ), T *callbackObject );
+
+		//! Removes callback
+		void							removeCallback( uint32_t id );
+
+		//! Creates pointer to instance of Kinect
 		static KinectRef				create();		
 		//! Returns number of Kinect devices.
 		static int32_t					getDeviceCount();
@@ -197,15 +217,6 @@ namespace KinectSdk
 		//! Remove background for better user tracking.
 		void							removeBackground( bool remove = true );
 
-		//! Returns true if new depth frame is available. Sets flag to false when called.
-		bool							checkNewDepthFrame();
-		//! Returns true if new skeleton data is available. Sets flag to false when called.
-		bool							checkNewSkeletons();
-		//! Returns true if new color frame is available. Sets flag to false when called.
-		bool							checkNewVideoFrame();
-		/* Returns 16-bit depth image (12-bit color values). Call Kinect::checkNewDepthFrame() to improve performance. 
-			Consider using Kinect::getDepthAt() in lieu of reading the depth image. */
-		ci::Surface16u					getDepth();
 		//! Returns depth value as 0.0 - 1.0 float for pixel at \a pos.
 		float							getDepthAt( const ci::Vec2i &pos ) const;
 		//! Returns frame rate of depth image processing.
@@ -214,16 +225,11 @@ namespace KinectSdk
 		const DeviceOptions&			getDeviceOptions() const;
 		/*! Returns skeleton data. Call Kinect::checkNewSkeletons() before this to improve performance and avoid
 		    threading collisions. Sets flag to false. */
-		std::vector<Skeleton>			getSkeletons();
-		//! Returns frame rate of skeleton processing.
 		float							getSkeletonFrameRate() const;
 		//! Returns current device angle in degrees between -28 and 28.
 		int32_t							getTilt();
 		//! Returns number of tracked users. Depth resolution must be no more than 320x240 with user tracking enabled.
 		int32_t							getUserCount();
-		/*! Returns latest color image frame. Call Kinect::checkNewVideoFrame() before this to improve performance. 
-			Sets flag to false. */
-		ci::Surface8u					getVideo();
 		//! Returns frame rate of color image processing.
 		float							getVideoFrameRate() const;
 		
@@ -249,6 +255,9 @@ namespace KinectSdk
 		void							setTransform( int_fast8_t transform = TRANSFORM_DEFAULT );
 
 	private:
+		typedef boost::signals2::connection			Callback;
+		typedef std::shared_ptr<Callback>			CallbackRef;
+		typedef std::map<uint32_t, CallbackRef>		CallbackList;
 
 		static const int32_t			WAIT_TIME = 250;
 
@@ -276,6 +285,11 @@ namespace KinectSdk
 		void							init( bool reset = false );
 		
 		bool							mCapture;
+
+		boost::signals2::signal<void ( const ci::Surface16u&, const DeviceOptions& )>			mSignalDepth;
+		boost::signals2::signal<void ( const std::vector<Skeleton>&, const DeviceOptions& )>	mSignalSkeleton;
+		boost::signals2::signal<void ( const ci::Surface8u&, const DeviceOptions& )>			mSignalVideo;
+		CallbackList					mCallbacks;
 
 		DeviceOptions					mDeviceOptions;
 
@@ -311,9 +325,6 @@ namespace KinectSdk
 
 		bool							mRemoveBackground;
 
-		boost::mutex					mMutexDepth;
-		boost::mutex					mMutexSkeleton;
-		boost::mutex					mMutexVideo;
 		volatile bool					mRunning;
 		std::shared_ptr<boost::thread>	mThread;
 		void							run();
@@ -329,7 +340,7 @@ namespace KinectSdk
 		double							mReadTimeVideo;
 
 		void							deactivateUsers();
-		int32_t							mUserCount;
+		volatile int32_t				mUserCount;
 		bool							mActiveUsers[ NUI_SKELETON_COUNT ];
 
 		void							error( long hr );
