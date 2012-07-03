@@ -53,18 +53,22 @@ class SkeletonApp : public ci::app::AppBasic
 public:
 
 	// Cinder callbacks
-	void draw();
-	void keyDown( ci::app::KeyEvent event );
-	void prepareSettings( ci::app::AppBasic::Settings *settings );
-	void setup();
-	void shutdown();
-	void update();
+	void	draw();
+	void	keyDown( ci::app::KeyEvent event );
+	void	prepareSettings( ci::app::AppBasic::Settings *settings );
+	void	setup();
+	void	shutdown();
+	void	update();
+
+	void	onSkeletonData( const std::vector<KinectSdk::Skeleton> &skeletons, const KinectSdk::DeviceOptions &deviceOptions );
 
 private:
 
 	// Kinect
 	KinectSdk::KinectRef				mKinect;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
+
+	uint32_t							mCallbackId;
 
 	// Camera
 	ci::CameraPersp						mCamera;
@@ -159,6 +163,11 @@ void SkeletonApp::keyDown( KeyEvent event )
 
 }
 
+void SkeletonApp::onSkeletonData( const std::vector<KinectSdk::Skeleton> &skeletons, const KinectSdk::DeviceOptions &deviceOptions )
+{
+	mSkeletons = skeletons;
+}
+
 // Prepare window
 void SkeletonApp::prepareSettings( Settings *settings )
 {
@@ -186,6 +195,9 @@ void SkeletonApp::setup()
 	// less jitters, but a slower response time.
 	mKinect->setTransform( Kinect::TRANSFORM_SMOOTH );
 
+	// Add bacllback to receive skeleton data
+	mCallbackId = mKinect->addSkeletonTrackingCallback<SkeletonApp>( &SkeletonApp::onSkeletonData, this );
+
 	// Set up camera
 	mCamera.lookAt( Vec3f( 0.0f, 0.0f, 2.0f ), Vec3f::zero() );
 	mCamera.setPerspective( 45.0f, getWindowAspectRatio(), 0.01f, 1000.0f );
@@ -197,6 +209,7 @@ void SkeletonApp::shutdown()
 {
 
 	// Stop input
+	mKinect->removeCallback( mCallbackId );
 	mKinect->stop();
 
 }
@@ -205,21 +218,11 @@ void SkeletonApp::shutdown()
 void SkeletonApp::update()
 {
 
-	// Kinect is capturing
-	if ( mKinect->isCapturing() ) {
-	
-		// Acquire skeletons
-		if ( mKinect->checkNewSkeletons() ) {
-			mSkeletons = mKinect->getSkeletons();
-		}
-
-	} else {
-
-		// If Kinect initialization failed, try again every 90 frames
+	// If Kinect initialization failed, try again every 90 frames
+	if ( !mKinect->isCapturing() ) {
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mKinect->start();
 		}
-
 	}
 
 }

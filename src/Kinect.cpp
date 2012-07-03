@@ -345,12 +345,6 @@ namespace KinectSdk
 		return id;
 	}
 
-	template<typename T> 
-	uint32_t Kinect::addDepthCallback( void ( T::*callbackFunction )( const Surface16u& surface, const DeviceOptions& deviceOptions ), T *callbackObject ) 
-	{
-		return addDepthCallback( boost::function<void ( const Surface16u&, const DeviceOptions& )>( boost::bind( callbackFunction, callbackObject, ::_1, ::_2 ) ) );
-	}
-
 	uint32_t Kinect::addSkeletonTrackingCallback( const boost::function<void ( const vector<Skeleton>&, const DeviceOptions& )> &callback )
 	{
 		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
@@ -358,23 +352,11 @@ namespace KinectSdk
 		return id;
 	}
 
-	template<typename T> 
-	uint32_t Kinect::addSkeletonTrackingCallback( void ( T::*callbackFunction )( const vector<Skeleton>& skeletons, const DeviceOptions& deviceOptions ), T *callbackObject ) 
-	{
-		return addSkeletonTrackingCallback( boost::function<void ( const vector<Skeleton>&, const DeviceOptions& )>( boost::bind( callbackFunction, callbackObject, ::_1, ::_2 ) ) );
-	}
-
 	uint32_t Kinect::addVideoCallback( const boost::function<void ( const Surface8u&, const DeviceOptions& )> &callback )
 	{
 		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
 		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalVideo.connect( callback ) ) ) ) );
 		return id;
-	}
-
-	template<typename T> 
-	uint32_t Kinect::addVideoCallback( void ( T::*callbackFunction )( const Surface8u& surface, const DeviceOptions& deviceOptions ), T *callbackObject ) 
-	{
-		return addVideoCallback( boost::function<void ( const Surface8u&, const DeviceOptions& )>( boost::bind( callbackFunction, callbackObject, ::_1, ::_2 ) ) );
 	}
 
 	void Kinect::deactivateUsers()

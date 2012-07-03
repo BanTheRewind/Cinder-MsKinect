@@ -178,20 +178,29 @@ namespace KinectSdk
 
 		//! Adds depth image callback
 		uint32_t						addDepthCallback( const boost::function<void ( const ci::Surface16u&, const DeviceOptions& )> &callback );
-		//! Adds depth image callback
-		template<typename T> 
-		uint32_t						addDepthCallback( void ( T::*callbackFunction )( const ci::Surface16u& surface, const DeviceOptions& deviceOptions ), T *callbackObject );
 		//! Adds skeleton tracking callback
 		uint32_t						addSkeletonTrackingCallback( const boost::function<void ( const std::vector<Skeleton>&, const DeviceOptions& )> &callback );
-		//! Adds skeleton tracking callback
-		template<typename T> 
-		uint32_t						addSkeletonTrackingCallback( void ( T::*callbackFunction )( const std::vector<Skeleton>& skeletons, const DeviceOptions& deviceOptions ), T *callbackObject );
 		//! Adds video image callback
 		uint32_t						addVideoCallback( const boost::function<void ( const ci::Surface8u&, const DeviceOptions& )> &callback );
+
+		//! Adds depth image callback
+		template<typename T> 
+		inline uint32_t					addDepthCallback( void ( T::*callbackFunction )( const ci::Surface16u& surface, const DeviceOptions& deviceOptions ), T *callbackObject )
+		{
+			return addDepthCallback( boost::function<void ( const ci::Surface16u&, const DeviceOptions& )>( boost::bind( callbackFunction, callbackObject, ::_1, ::_2 ) ) );
+		}
+		//! Adds skeleton tracking callback
+		template<typename T> 
+		inline uint32_t					addSkeletonTrackingCallback( void ( T::*callbackFunction )( const std::vector<Skeleton> &skeletons, const DeviceOptions &deviceOptions ), T *callbackObject )
+		{
+			return addSkeletonTrackingCallback( boost::function<void ( const std::vector<Skeleton>&, const DeviceOptions& )>( boost::bind( callbackFunction, callbackObject, ::_1, ::_2 ) ) );
+		}
 		//! Adds video image callback
 		template<typename T> 
-		uint32_t						addVideoCallback( void ( T::*callbackFunction )( const ci::Surface8u& surface, const DeviceOptions& deviceOptions ), T *callbackObject );
-
+		inline uint32_t					addVideoCallback( void ( T::*callbackFunction )( const ci::Surface8u& surface, const DeviceOptions& deviceOptions ), T *callbackObject ) 
+		{
+			return addVideoCallback( boost::function<void ( const ci::Surface8u&, const DeviceOptions& )>( boost::bind( callbackFunction, callbackObject, ::_1, ::_2 ) ) );
+		}
 		//! Removes callback
 		void							removeCallback( uint32_t id );
 
