@@ -338,21 +338,21 @@ namespace KinectSdk
 		}
 	}
 
-	uint32_t Kinect::addDepthCallback( const boost::function<void ( const Surface16u&, const DeviceOptions& )> &callback )
+	uint32_t Kinect::addDepthCallback( const boost::function<void ( Surface16u, const DeviceOptions& )> &callback )
 	{
 		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
 		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalDepth.connect( callback ) ) ) ) );
 		return id;
 	}
 
-	uint32_t Kinect::addSkeletonTrackingCallback( const boost::function<void ( const vector<Skeleton>&, const DeviceOptions& )> &callback )
+	uint32_t Kinect::addSkeletonTrackingCallback( const boost::function<void ( vector<Skeleton>, const DeviceOptions& )> &callback )
 	{
 		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
 		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalSkeleton.connect( callback ) ) ) ) );
 		return id;
 	}
 
-	uint32_t Kinect::addVideoCallback( const boost::function<void ( const Surface8u&, const DeviceOptions& )> &callback )
+	uint32_t Kinect::addVideoCallback( const boost::function<void ( Surface8u, const DeviceOptions& )> &callback )
 	{
 		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
 		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalVideo.connect( callback ) ) ) ) );
@@ -536,9 +536,6 @@ namespace KinectSdk
 		mFrameRateVideo		= 0.0f;
 		mSensor				= 0;
 		mIsSkeletonDevice	= false;
-		mNewDepthFrame		= false;
-		mNewSkeletons		= false;
-		mNewVideoFrame		= false;
 		mReadTimeDepth		= 0.0;
 		mReadTimeSkeletons	= 0.0;
 		mReadTimeVideo		= 0.0;
@@ -592,10 +589,6 @@ namespace KinectSdk
 
 	void Kinect::pixelToDepthSurface( uint16_t *buffer )
 	{
-		if ( mNewDepthFrame ) {
-			return;
-		}
-
 		int32_t height		= mDepthSurface.getHeight();
 		int32_t width		= mDepthSurface.getWidth();
 		int32_t size		= width * height * 6; // 6 is 3 color channels * sizeof( uint16_t )
@@ -621,15 +614,10 @@ namespace KinectSdk
 		}
 
 		memcpy( mDepthSurface.getData(), mRgbDepth, size );
-		mNewDepthFrame = true;
 	}
 
 	void Kinect::pixelToVideoSurface( uint8_t *buffer )
 	{
-		if ( mNewVideoFrame ) {
-			return;
-		}
-
 		int32_t height	= mVideoSurface.getHeight();
 		int32_t width	= mVideoSurface.getWidth();
 		int32_t size	= width * height * 4;
@@ -656,8 +644,6 @@ namespace KinectSdk
 			}
 			memcpy( mVideoSurface.getData(), buffer, size );
 		}
-		
-		mNewVideoFrame = true;
 	}
 
 	void Kinect::removeBackground( bool remove )
@@ -681,7 +667,7 @@ namespace KinectSdk
 
 				//////////////////////////////////////////////////////////////////////////////////////////////
 
-				if ( mDeviceOptions.isDepthEnabled() && mDepthStreamHandle != 0 && !mNewDepthFrame ) {
+				if ( mDeviceOptions.isDepthEnabled() && mDepthStreamHandle != 0 ) {
 					
 					_NUI_IMAGE_FRAME imageFrame;
 					long hr = mSensor->NuiImageStreamGetNextFrame( mDepthStreamHandle, WAIT_TIME, &imageFrame );
@@ -717,15 +703,13 @@ namespace KinectSdk
 						}
 
 						mSignalDepth( mDepthSurface, mDeviceOptions );
-						mNewDepthFrame = true;
-
 					}
 
 				}
 
 				//////////////////////////////////////////////////////////////////////////////////////////////
 
-				if ( mDeviceOptions.isSkeletonTrackingEnabled() && mIsSkeletonDevice && !mNewSkeletons ) {
+				if ( mDeviceOptions.isSkeletonTrackingEnabled() && mIsSkeletonDevice ) {
 
 					_NUI_SKELETON_FRAME skeletonFrame;
 					long hr = mSensor->NuiSkeletonGetNextFrame( WAIT_TIME, &skeletonFrame );
@@ -777,15 +761,13 @@ namespace KinectSdk
 						mReadTimeSkeletons = time;
 
 						mSignalSkeleton( mSkeletons, mDeviceOptions );
-						mNewSkeletons = true;
-
 					}
 
 				}
 
 				//////////////////////////////////////////////////////////////////////////////////////////////
 
-				if ( mDeviceOptions.isVideoEnabled() && mVideoStreamHandle != 0 && !mNewVideoFrame ) {
+				if ( mDeviceOptions.isVideoEnabled() && mVideoStreamHandle != 0 ) {
 
 					_NUI_IMAGE_FRAME imageFrame;
 					long hr = mSensor->NuiImageStreamGetNextFrame( mVideoStreamHandle, WAIT_TIME, &imageFrame );
@@ -814,8 +796,6 @@ namespace KinectSdk
 						mReadTimeVideo = time;
 
 						mSignalVideo( mVideoSurface, mDeviceOptions );
-						mNewVideoFrame = true;
-
 					}
 
 				}

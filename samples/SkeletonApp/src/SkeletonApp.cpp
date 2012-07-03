@@ -60,7 +60,7 @@ public:
 	void	shutdown();
 	void	update();
 
-	void	onSkeletonData( const std::vector<KinectSdk::Skeleton> &skeletons, const KinectSdk::DeviceOptions &deviceOptions );
+	void	onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions );
 
 private:
 
@@ -100,7 +100,7 @@ void SkeletonApp::draw()
 
 		// Iterate through skeletons
 		uint32_t i = 0;
-		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt, i++ ) {
+		for ( vector<Skeleton>::iterator skeletonIt = mSkeletons.begin(); skeletonIt != mSkeletons.end(); ++skeletonIt, i++ ) {
 
 			// Valid skeletons have all joints
 			if ( skeletonIt->size() == JointName::NUI_SKELETON_POSITION_COUNT ) {
@@ -109,7 +109,7 @@ void SkeletonApp::draw()
 				Colorf color = mKinect->getUserColor( i );
 
 				// Iterate through joints
-				for ( Skeleton::const_iterator boneIt = skeletonIt->cbegin(); boneIt != skeletonIt->cend(); ++boneIt ) {
+				for ( Skeleton::iterator boneIt = skeletonIt->begin(); boneIt != skeletonIt->end(); ++boneIt ) {
 					
 					// Get position and rotation
 					Vec3f position		= boneIt->second.getPosition();
@@ -118,12 +118,15 @@ void SkeletonApp::draw()
 					direction			*= 0.05f;
 
 					// Draw bone
-					glLineWidth( 2.0f );
-					glBegin( GL_LINES );
-					Vec3f destination = skeletonIt->at( boneIt->second.getStartJoint() ).getPosition();
-					gl::vertex( position );
-					gl::vertex( destination );
-					glEnd();
+					JointName startJoint = boneIt->second.getStartJoint();
+					if ( skeletonIt->find( startJoint ) != skeletonIt->cend() ) {
+						glLineWidth( 2.0f );
+						glBegin( GL_LINES );
+						Vec3f destination = skeletonIt->find( startJoint )->second.getPosition();
+						gl::vertex( position );
+						gl::vertex( destination );
+						glEnd();
+					}
 
 					// Draw joint
 					gl::color( color );
@@ -133,7 +136,7 @@ void SkeletonApp::draw()
 					glLineWidth( 0.5f );
 					gl::color( ColorAf::white() );
 					gl::drawVector( position, position + direction, 0.05f, 0.01f );
-
+					
 				}
 
 			}
@@ -163,7 +166,7 @@ void SkeletonApp::keyDown( KeyEvent event )
 
 }
 
-void SkeletonApp::onSkeletonData( const std::vector<KinectSdk::Skeleton> &skeletons, const KinectSdk::DeviceOptions &deviceOptions )
+void SkeletonApp::onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions )
 {
 	mSkeletons = skeletons;
 }
@@ -193,7 +196,7 @@ void SkeletonApp::setup()
 
 	// Set the skeleton smoothing to remove jitters. Better smoothing means
 	// less jitters, but a slower response time.
-	mKinect->setTransform( Kinect::TRANSFORM_SMOOTH );
+	//mKinect->setTransform( Kinect::TRANSFORM_SMOOTH );
 
 	// Add bacllback to receive skeleton data
 	mCallbackId = mKinect->addSkeletonTrackingCallback<SkeletonApp>( &SkeletonApp::onSkeletonData, this );
