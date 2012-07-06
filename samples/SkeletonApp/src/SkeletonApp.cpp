@@ -115,13 +115,15 @@ void SkeletonApp::draw()
 				Vec3f position		= bone.getPosition();
 				Matrix44f transform	= bone.getAbsoluteRotationMatrix();
 				Vec3f direction		= transform.transformPoint( position ).normalized();
-				direction			*= -0.05f;
+				direction			*= 0.05f;
+				position.z			*= -1.0f;
 
 				// Draw bone
 				glLineWidth( 2.0f );
 				JointName startJoint = bone.getStartJoint();
 				if ( skeletonIt->find( startJoint ) != skeletonIt->end() ) {
-					Vec3f destination = skeletonIt->find( startJoint )->second.getPosition();
+					Vec3f destination	= skeletonIt->find( startJoint )->second.getPosition();
+					destination.z		*= -1.0f;
 					gl::drawLine( position, destination );
 				}
 
@@ -187,7 +189,6 @@ void SkeletonApp::setup()
 	mKinect = Kinect::create();
 	mKinect->start( DeviceOptions().enableDepth( false ).enableVideo( false ) );
 	mKinect->removeBackground();
-	mKinect->setFlipped( true );
 
 	// Set the skeleton smoothing to remove jitters. Better smoothing means
 	// less jitters, but a slower response time.
