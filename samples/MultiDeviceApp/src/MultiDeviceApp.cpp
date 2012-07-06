@@ -65,13 +65,20 @@ public:
 
 private:
 
-	// Kinect
-	std::vector<KinectSdk::KinectRef>	mKinect;
-	ci::Surface16u						mSurface;
-	std::vector<ci::gl::Texture>		mTexture;
+	// Device info
+	struct Device
+	{
+		int32_t					mCallbackId;
+		KinectSdk::KinectRef	mKinect;
+		ci::gl::Texture			mTexture;
+	};
+	std::vector<Device>			mDevices;
+
+	// Callback
+	void						onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions &deviceOptions );
 
 	// Save screen shot
-	void								screenShot();
+	void						screenShot();
 
 };
 
@@ -91,13 +98,13 @@ void MultiDeviceApp::draw()
 	
 	// Draw images
 	gl::color( ColorAf::white() );
-	int32_t width = getWindowWidth() / mTexture.size();
+	int32_t width = getWindowWidth() / mDevices.size();
 	int32_t height = ( width * 3 ) / 4;
 	int32_t x = 0;
 	int32_t y = ( getWindowHeight() - height ) / 2;
-	for ( uint32_t i = 0; i < mTexture.size(); i++ ) {
-		if ( mTexture.at( i ) ) {
-			gl::draw( mTexture.at( i ), Area( x, y, x + width, y + height ) );
+	for ( uint32_t i = 0; i < mDevices.size(); i++ ) {
+		if ( mDevices.at( i ).mTexture ) {
+			gl::draw( mDevices.at( i ).mTexture, Area( x, y, x + width, y + height ) );
 			x += width;
 		}
 	}
@@ -117,6 +124,17 @@ void MultiDeviceApp::keyDown( KeyEvent event )
 	case KeyEvent::KEY_s:
 		screenShot();
 		break;
+	}
+}
+
+void MultiDeviceApp::onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions &deviceOptions )
+{
+	string id = deviceOptions.getDeviceId();
+	for ( size_t i = 0; i < mDevices.size(); ++i ) {
+		if ( id == mDevices.at( i ).mKinect->getDeviceOptions().getDeviceId() ) {
+			mDevices.at( i ).mTexture = gl::Texture( surface );
+			break;
+		}
 	}
 }
 
@@ -140,7 +158,7 @@ void MultiDeviceApp::setup()
 	// Set up OpenGL
 	gl::enable( GL_DEPTH_TEST );
 	glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
-	glEnable( GL_POINT_SMOOTH );
+	gl::enable( GL_POINT_SMOOTH );
 	glPointSize( 0.25f );
 	gl::enableAlphaBlending();
 	gl::enableAdditiveBlending();
@@ -153,13 +171,17 @@ void MultiDeviceApp::setup()
 	// Start all available devices
 	int32_t count = Kinect::getDeviceCount();
 	for ( int32_t i = 0; i < count; i++ ) {
-		KinectRef kinect = Kinect::create();
 		deviceOptions.setDeviceIndex( i );
-		kinect->start( deviceOptions );
-		mKinect.push_back( kinect );
-		mTexture.push_back( gl::Texture( 320, 240 ) );
+		
+		Device device;
+		device.mKinect = Kinect::create();
+		device.mKinect->start( deviceOptions );
+		device.mCallbackId = device.mKinect->addDepthCallback<MultiDeviceApp>( &MultiDeviceApp::onDepthData, this );
+		device.mTexture = gl::Texture( 320, 240 );
+		
+		mDevices.push_back( device );
 
-		console() << kinect->getDeviceOptions().getDeviceIndex() << ": " << kinect->getDeviceOptions().getDeviceId() << endl;
+		console() << device.mKinect->getDeviceOptions().getDeviceIndex() << ": " << device.mKinect->getDeviceOptions().getDeviceId() << endl;
 	}
 
 }
@@ -167,20 +189,23 @@ void MultiDeviceApp::setup()
 // Called on exit
 void MultiDeviceApp::shutdown()
 {
-	for ( uint32_t i = 0; i < mKinect.size(); i++ ) {
-		mKinect.at( i )->stop();
+	for ( uint32_t i = 0; i < mDevices.size(); i++ ) {
+		Device& device = mDevices.at( i );
+		device.mKinect->removeCallback( device.mCallbackId );
+		device.mKinect->stop();
 	}
+	mDevices.clear();
 }
 
 // Runs update logic
 void MultiDeviceApp::update()
 {
 
-	// Acquire images
-	for ( uint32_t i = 0; i < mKinect.size(); i++ ) {
-		KinectRef& kinect = mKinect.at( i );
-		if ( kinect->isCapturing() && kinect->checkNewDepthFrame() ) {
-			mTexture.at( i ) = gl::Texture( kinect->getDepth() );
+	// Update Kinect
+	for ( uint32_t i = 0; i < mDevices.size(); i++ ) {
+		Device& device = mDevices.at( i );
+		if ( device.mKinect->isCapturing() ) {
+			device.mKinect->update();
 		}
 	}
 

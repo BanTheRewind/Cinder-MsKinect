@@ -67,7 +67,7 @@ public:
 	void								update();
 
 	// Audio callback
-	void 								onData( float *data, int32_t size );
+	void 								onAudioData( float *data, int32_t size );
 
 private:
 
@@ -111,6 +111,14 @@ private:
 	void								startKinect();
 	void								stopAudio();
 
+	// Kinect callbacks
+	int32_t								mCallbackDepthId;
+	int32_t								mCallbackSkeletonId;
+	int32_t								mCallbackVideoId;
+	void								onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions &deviceOptions );
+	void								onSkeletonAudioData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions );
+	void								onVideoData( ci::Surface8u surface, const KinectSdk::DeviceOptions &deviceOptions );
+
 	// Camera
 	ci::CameraPersp						mCamera;
 
@@ -142,7 +150,7 @@ void KinectApp::draw()
 
 	// Clear window
 	gl::setViewport( getWindowBounds() );
-	gl::clear( Colorf( 0.1f, 0.1f, 0.1f ) );
+	gl::clear( Colorf::gray( 0.1f ) );
 
 	// We're capturing
 	if ( mKinect->isCapturing() ) {
@@ -159,29 +167,22 @@ void KinectApp::draw()
 		uint32_t i = 0;
 		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt, i++ ) {
 
-			// Skeleton is valid when all joints are present
-			if ( skeletonIt->size() == JointName::NUI_SKELETON_POSITION_COUNT ) {
+			// Set color
+			gl::color( mKinect->getUserColor( i ) );
 
-				// Set color
-				gl::color( mKinect->getUserColor( i ) );
-
-				// Draw bones and joints
-				for ( Skeleton::const_iterator boneIt = skeletonIt->cbegin(); boneIt != skeletonIt->cend(); ++boneIt ) {
+			// Draw bones and joints
+			for ( Skeleton::const_iterator boneIt = skeletonIt->cbegin(); boneIt != skeletonIt->cend(); ++boneIt ) {
 					
-					// Get positions of each joint in this bone to draw it
-					Vec3f position		= boneIt->second.getPosition();
-					Vec3f destination	= skeletonIt->at( boneIt->second.getStartJoint() ).getPosition();
+				// Get positions of each joint in this bone to draw it
+				const Bone &bone	= boneIt->second;
+				Vec3f position		= bone.getPosition();
+				Vec3f destination	= skeletonIt->at( bone.getStartJoint() ).getPosition();
 
-					// Draw bone
-					glBegin( GL_LINES );
-					gl::vertex( position );
-					gl::vertex( destination );
-					glEnd();
+				// Draw bone
+				gl::drawLine( position, destination );
 
-					// Draw joint
-					gl::drawSphere( position, 0.025f, 16 );
-
-				}
+				// Draw joint
+				gl::drawSphere( position, 0.025f, 16 );
 
 			}
 
@@ -238,9 +239,27 @@ void KinectApp::draw()
 }
 
 // Called when audio buffer is full
-void KinectApp::onData( float *data, int32_t size )
+void KinectApp::onAudioData( float *data, int32_t size )
 {
 	mData = data;
+}
+
+// Receives depth data
+void KinectApp::onDepthData( Surface16u surface, const DeviceOptions &deviceOptions )
+{
+	mDepthSurface = surface;
+}
+
+// Receives skeleton data
+void KinectApp::onSkeletonAudioData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
+{
+	mSkeletons = skeletons;
+}
+
+// Receives video data
+void KinectApp::onVideoData( Surface8u surface, const DeviceOptions &deviceOptions )
+{
+	mVideoSurface = surface;
 }
 
 // Prepare window
@@ -274,7 +293,7 @@ void KinectApp::setup()
 	gl::color( ColorAf::white() );
 
 	// Set up camera
-	mCamera.lookAt( Vec3f( 0.0f, 0.0f, -3.0f ), Vec3f::zero() );
+	mCamera.lookAt( Vec3f( 0.0f, 0.0f, 3.0f ), Vec3f::zero() );
 	mCamera.setPerspective( 45.0f, getWindowAspectRatio(), 1.0f, 1000.0f );
 
 	// Initialize parameters
@@ -310,6 +329,11 @@ void KinectApp::setup()
 	// Start image capture
 	mKinect = Kinect::create();
 	startKinect();
+
+	// Add callbacks
+	mCallbackDepthId	= mKinect->addDepthCallback<KinectApp>( &KinectApp::onDepthData, this );
+	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback<KinectApp>( &KinectApp::onSkeletonAudioData, this );
+	mCallbackVideoId	= mKinect->addVideoCallback<KinectApp>( &KinectApp::onVideoData, this );
 
 	// Start audio capture
 	startAudio();
@@ -356,6 +380,9 @@ void KinectApp::shutdown()
 
 	// Stop input
 	stopAudio();
+	mKinect->removeCallback( mCallbackDepthId );
+	mKinect->removeCallback( mCallbackSkeletonId );
+	mKinect->removeCallback( mCallbackVideoId );
 	mKinect->stop();
 
 	// Clean up
@@ -388,7 +415,7 @@ void KinectApp::startAudio()
 
 	// Start receiving audio
 	mInput->setDevice( deviceId );
-	mCallbackId = mInput->addCallback<KinectApp>( & KinectApp::onData, this );
+	mCallbackId = mInput->addCallback<KinectApp>( & KinectApp::onAudioData, this );
 	mInput->start();
 
 }
@@ -506,21 +533,13 @@ void KinectApp::update()
 	// Check if device is capturing
 	if ( mKinect->isCapturing() ) {
 
+		// Update device
+		mKinect->update();
+
 		// Adjust Kinect camera angle, as needed
 		if ( mTilt != mTiltPrev ) {
 			mKinect->setTilt( mTilt );
 			mTiltPrev = mTilt;
-		}
-
-		// Get latest Kinect data
-		if ( mKinect->checkNewDepthFrame() ) {
-			mDepthSurface = mKinect->getDepth();
-		}
-		if ( mKinect->checkNewSkeletons() ) {
-			mSkeletons = mKinect->getSkeletons();
-		}
-		if ( mKinect->checkNewVideoFrame() ) {
-			mVideoSurface = mKinect->getVideo();
 		}
 
 		// Statistics enabled (turn off to improve performance)

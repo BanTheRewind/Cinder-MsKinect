@@ -85,6 +85,14 @@ private:
 	float								mVideoOffsetX;
 	float								mVideoOffsetY;
 
+	// Kinect callbacks
+	int32_t								mCallbackDepthId;
+	int32_t								mCallbackSkeletonId;
+	int32_t								mCallbackVideoId;
+	void								onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions &deviceOptions );
+	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions );
+	void								onVideoData( ci::Surface8u surface, const KinectSdk::DeviceOptions &deviceOptions );
+
 	// VBO
 	void								initMesh();
 	ci::gl::VboMesh						mVboMesh;
@@ -288,6 +296,29 @@ void MeshApp::keyDown( KeyEvent event )
 
 }
 
+// Receives depth data 
+void MeshApp::onDepthData( Surface16u surface, const DeviceOptions &deviceOptions )
+{
+	mTextureDepth = gl::Texture( surface );
+}
+
+// Receives skeleton data
+void MeshApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
+{
+	mSkeletons = skeletons;
+}
+
+// Receives video data
+void MeshApp::onVideoData( Surface8u surface, const DeviceOptions &deviceOptions )
+{
+	if ( mTextureVideo ) {
+		mTextureVideo.update( surface, surface.getBounds() );
+	} else {
+		mTextureVideo = gl::Texture( surface );
+		mTextureVideo.setWrap( GL_REPEAT, GL_REPEAT );
+	}
+}
+
 // Prepare window
 void MeshApp::prepareSettings( Settings *settings )
 {
@@ -333,6 +364,11 @@ void MeshApp::setup()
 	mKinect->enableUserColor( false );
 	mKinect->removeBackground();
 	mKinect->start();
+
+	// Add callbacks
+	mCallbackDepthId	= mKinect->addDepthCallback<MeshApp>( &MeshApp::onDepthData, this );
+	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback<MeshApp>( &MeshApp::onSkeletonData, this );
+	mCallbackVideoId	= mKinect->addVideoCallback<MeshApp>( &MeshApp::onVideoData, this );
 
 	// Set up the light. This application does not actually use OpenGL 
 	// lighting. Instead, it passes a light position and color 
@@ -396,6 +432,9 @@ void MeshApp::shutdown()
 {
 
 	// Stop input
+	mKinect->removeCallback( mCallbackDepthId );
+	mKinect->removeCallback( mCallbackSkeletonId );
+	mKinect->removeCallback( mCallbackVideoId );
 	mKinect->stop();
 
 	// Clean up
@@ -434,42 +473,20 @@ void MeshApp::update()
 
 	// Kinect is running
 	if ( mKinect->isCapturing() ) {
+		mKinect->update();
 
-		// Get video image
-		if ( mKinect->checkNewVideoFrame() ) {
-			mTextureVideo = gl::Texture( mKinect->getVideo() );
-			mTextureVideo.setWrap( GL_REPEAT, GL_REPEAT );
-		}
+		// Find first active skeleton...
+		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt ) {
 
-		// Check depth texture
-		if ( mKinect->checkNewDepthFrame() ) {
+			// Valid skeletons have all joints available
+			if ( skeletonIt->size() == (uint32_t)JointName::NUI_SKELETON_POSITION_COUNT ) {
 
-			// Get depth texture
-			mTextureDepth = gl::Texture( mKinect->getDepth() );
-
-			// Check for skeletons
-			mSkeletons.clear();
-			if ( mKinect->checkNewSkeletons() ) {
-
-				// Get skeletons
-				mSkeletons = mKinect->getSkeletons();
-
-				// Find first active skeleton...
-				for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt ) {
-
-					// Valid skeletons have all joints available
-					if ( skeletonIt->size() == (uint32_t)JointName::NUI_SKELETON_POSITION_COUNT ) {
-
-						// Subtle camera follow
-						Vec3f spine = skeletonIt->at( JointName::NUI_SKELETON_POSITION_SPINE ).getPosition() * mEyePoint.z;
-						mLookAt.x = spine.x * 0.05f;
-						mLookAt.y = spine.y * 0.05f;
-						mEyePoint.x = -mLookAt.x * 0.5f;
-						mEyePoint.y = -mLookAt.y * 0.25f;
-
-					}
-
-				}
+				// Subtle camera follow
+				Vec3f spine = skeletonIt->at( JointName::NUI_SKELETON_POSITION_SPINE ).getPosition() * mEyePoint.z;
+				mLookAt.x = spine.x * 0.05f;
+				mLookAt.y = spine.y * 0.05f;
+				mEyePoint.x = -mLookAt.x * 0.5f;
+				mEyePoint.y = -mLookAt.y * 0.25f;
 
 			}
 

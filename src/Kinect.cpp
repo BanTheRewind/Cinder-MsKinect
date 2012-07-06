@@ -983,8 +983,7 @@ namespace KinectSdk
 			// Get device name and index
 			if ( mSensor != 0 ) {
 				mDeviceOptions.setDeviceIndex( mSensor->NuiInstanceIndex() );
-				mSensor->NuiUniqueId();
-				BSTR id = ::SysAllocString( mSensor->NuiUniqueId() ); 
+				BSTR id = ::SysAllocString( mSensor->NuiDeviceConnectionId() ); 
 				_bstr_t idStr( id );
 				if ( idStr.length() > 0 ) {
 					std::string str( idStr );

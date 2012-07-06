@@ -66,12 +66,19 @@ private:
 	// Kinect
 	KinectSdk::KinectRef				mKinect;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
+	ci::Surface16u						mSurfaceDepth;
+	ci::Surface8u						mSurfaceVideo;
+
+	// Kinect callbacks
+	int32_t								mCallbackDepthId;
+	int32_t								mCallbackSkeletonsId;
+	int32_t								mCallbackVideoId;
+	void								onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions &deviceOptions );
+	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions );
+	void								onVideoData( ci::Surface8u surface, const KinectSdk::DeviceOptions &deviceOptions );
 
 	// Face tracker
 	FaceTrackerRef						mFaceTracker;
-
-	// Camera
-	ci::CameraPersp						mCamera;
 
 	// Save screenshot
 	void								screenShot();
@@ -91,55 +98,14 @@ void FaceTrackerApp::draw()
 	// Clear window
 	gl::setViewport( getWindowBounds() );
 	gl::clear( Colorf::gray( 0.1f ) );
+	gl::setMatricesWindow( getWindowSize() );
 
-	// We're capturing
-	if ( mKinect->isCapturing() ) {
-
-		// Set up camera for 3D
-		gl::setMatrices( mCamera );
-
-		// Iterate through skeletons
-		uint32_t i = 0;
-		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt, i++ ) {
-
-			// Valid skeletons have all joints
-			if ( skeletonIt->size() == JointName::NUI_SKELETON_POSITION_COUNT ) {
-
-				// Set color
-				Colorf color = mKinect->getUserColor( i );
-
-				// Iterate through joints
-				for ( Skeleton::const_iterator boneIt = skeletonIt->cbegin(); boneIt != skeletonIt->cend(); ++boneIt ) {
-					
-					// Get position and rotation
-					Vec3f position		= boneIt->second.getPosition();
-					Matrix44f transform	= boneIt->second.getAbsoluteRotationMatrix();
-					Vec3f direction		= transform.transformPoint( position ).normalized();
-					direction			*= 0.05f;
-
-					// Draw bone
-					glLineWidth( 2.0f );
-					glBegin( GL_LINES );
-					Vec3f destination = skeletonIt->at( boneIt->second.getStartJoint() ).getPosition();
-					gl::vertex( position );
-					gl::vertex( destination );
-					glEnd();
-
-					// Draw joint
-					gl::color( color );
-					gl::drawSphere( position, 0.025f, 16 );
-					
-					// Draw joint orientation
-					glLineWidth( 0.5f );
-					gl::color( ColorAf::white() );
-					gl::drawVector( position, position + direction, 0.05f, 0.01f );
-
-				}
-
-			}
-
+	// Draw streams
+	if ( mSurfaceVideo ) {
+		gl::draw( gl::Texture( mSurfaceVideo ), Rectf( 0.0f, 0.0f, 320.0f, 240.0f ) );
+		if ( mSurfaceDepth ) {
+			gl::draw( gl::Texture( mSurfaceDepth ), Rectf( 320.0f, 0.0f, 640.0f, 240.0f ) );
 		}
-
 	}
 
 }
@@ -161,6 +127,24 @@ void FaceTrackerApp::keyDown( KeyEvent event )
 		break;
 	}
 
+}
+
+// Receives depth data
+void FaceTrackerApp::onDepthData( Surface16u surface, const DeviceOptions &deviceOptions )
+{
+	mSurfaceDepth = surface;
+}
+
+// Receives skeleton data
+void FaceTrackerApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
+{
+	mSkeletons = skeletons;
+}
+
+// Receives video data
+void FaceTrackerApp::onVideoData( Surface8u surface, const DeviceOptions &deviceOptions )
+{
+	mSurfaceVideo = surface;
 }
 
 // Prepare window
@@ -185,7 +169,9 @@ void FaceTrackerApp::setup()
 	DeviceOptions deviceOptions;
 	mKinect->start( deviceOptions );
 	mKinect->removeBackground();
-	mKinect->setFlipped( true );
+	mCallbackDepthId = mKinect->addSkeletonTrackingCallback<FaceTrackerApp>( &FaceTrackerApp::onSkeletonData, this );
+	mCallbackSkeletonsId = mKinect->addSkeletonTrackingCallback<FaceTrackerApp>( &FaceTrackerApp::onSkeletonData, this );
+	mCallbackVideoId = mKinect->addSkeletonTrackingCallback<FaceTrackerApp>( &FaceTrackerApp::onSkeletonData, this );
 
 	// Set up face tracker
 	mFaceTracker = FaceTracker::create();
@@ -195,10 +181,6 @@ void FaceTrackerApp::setup()
 	// less jitters, but a slower response time.nclude
 	mKinect->setTransform( Kinect::TRANSFORM_SMOOTH );
 
-	// Set up camera
-	mCamera.lookAt( Vec3f( 0.0f, 0.0f, 2.0f ), Vec3f::zero() );
-	mCamera.setPerspective( 45.0f, getWindowAspectRatio(), 0.01f, 1000.0f );
-
 }
 
 // Called on exit
@@ -206,6 +188,9 @@ void FaceTrackerApp::shutdown()
 {
 
 	// Stop input
+	mKinect->removeCallback( mCallbackDepthId );
+	mKinect->removeCallback( mCallbackSkeletonsId );
+	mKinect->removeCallback( mCallbackVideoId );
 	mKinect->stop();
 
 }
@@ -216,12 +201,12 @@ void FaceTrackerApp::update()
 
 	// Kinect is capturing
 	if ( mKinect->isCapturing() ) {
-	
-		// Acquire skeletons
-		if ( mKinect->checkNewSkeletons() ) {
-			mSkeletons = mKinect->getSkeletons();
+		mKinect->update();
+		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt ) {
+			if ( mFaceTracker->findFace( *skeletonIt, mSurfaceVideo, mSurfaceDepth ) ) {
+				break;
+			}
 		}
-
 	} else {
 
 		// If Kinect initialization failed, try again every 90 frames
