@@ -98,7 +98,6 @@ namespace KinectSdk
 		mPosition	= toVec3f( position );
 		mRotQuat	= toQuatf( bone.hierarchicalRotation.rotationQuaternion );
 		mRotMat		= toMatrix44f( bone.hierarchicalRotation.rotationMatrix );
-		mPosition.z *= -1.0f;
 	}
 
 	const Quatf& Bone::getAbsoluteRotation() const 
@@ -740,8 +739,8 @@ namespace KinectSdk
 									foundSkeleton = true;
 								}
 
-								// Flip X when NOT flipping the image. Inverting Z in Bone ctor already mirrors the image.
-								if ( !mFlipped ) {
+								// Flip X when flipping the image.
+								if ( mFlipped ) {
 									( skeletonFrame.SkeletonData + i )->Position.x *= -1.0f;
 									for ( int32_t j = 0; j < (int32_t)NUI_SKELETON_POSITION_COUNT; j++ ) {
 										( skeletonFrame.SkeletonData + i )->SkeletonPositions[ j ].x *= -1.0f;

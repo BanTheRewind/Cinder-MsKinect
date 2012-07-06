@@ -60,14 +60,14 @@ public:
 	void	shutdown();
 	void	update();
 
-	void	onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions );
-
 private:
 
 	// Kinect
 	uint32_t							mCallbackId;
 	KinectSdk::KinectRef				mKinect;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
+	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, 
+		const KinectSdk::DeviceOptions &deviceOptions );
 
 	// Camera
 	ci::CameraPersp						mCamera;
@@ -160,7 +160,8 @@ void SkeletonApp::keyDown( KeyEvent event )
 
 }
 
-void SkeletonApp::onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions )
+// Receives skeleton data
+void SkeletonApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
 {
 	mSkeletons = skeletons;
 }
@@ -175,7 +176,7 @@ void SkeletonApp::prepareSettings( Settings *settings )
 // Take screen shot
 void SkeletonApp::screenShot()
 {
-	writeImage( getAppPath() / fs::path( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
+	writeImage( getAppPath() / ( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 }
 
 // Set up
@@ -192,7 +193,7 @@ void SkeletonApp::setup()
 	// less jitters, but a slower response time.
 	mKinect->setTransform( Kinect::TRANSFORM_SMOOTH );
 
-	// Add bacllback to receive skeleton data
+	// Add callback to receive skeleton data
 	mCallbackId = mKinect->addSkeletonTrackingCallback<SkeletonApp>( &SkeletonApp::onSkeletonData, this );
 
 	// Set up camera

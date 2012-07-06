@@ -61,10 +61,18 @@ public:
 
 private:
 
-	// Kinect
+	// Kinect device, data
 	KinectSdk::KinectRef				mKinect;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
 	ci::gl::Texture						mTexture;
+
+	// Kinect callbacks
+	uint32_t							mCallbackSkeletonId;
+	uint32_t							mCallbackVideoId;
+	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, 
+		const KinectSdk::DeviceOptions &deviceOptions );
+	void								onVideoData( ci::Surface8u surface, 
+		const KinectSdk::DeviceOptions &deviceOptions );
 
 	void screenShot();
 
@@ -82,7 +90,7 @@ void SkeletonBitmapApp::draw()
 
 	// Clear window
 	gl::setViewport( getWindowBounds() );
-	gl::clear( Colorf( 0.1f, 0.1f, 0.1f ) );
+	gl::clear();
 	gl::setMatricesWindow( getWindowSize() );
 
 	// We're capturing
@@ -100,31 +108,24 @@ void SkeletonBitmapApp::draw()
 		uint32_t i = 0;
 		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt, i++ ) {
 
-			// Valid skeletons have all joints
-			if ( skeletonIt->size() == JointName::NUI_SKELETON_POSITION_COUNT ) {
+			// Set color
+			gl::color( mKinect->getUserColor( i ) );
 
-				// Set color
-				gl::color( mKinect->getUserColor( i ) );
+			// Draw bones and joints
+			for ( Skeleton::const_iterator boneIt = skeletonIt->cbegin(); boneIt != skeletonIt->cend(); ++boneIt ) {
+				
+				// Get joint positions 
+				const Bone& bone		= boneIt->second;
+				Vec3f position			= bone.getPosition();
+				Vec3f destination		= skeletonIt->at( bone.getStartJoint() ).getPosition();
+				Vec2f positionScreen	= Vec2f( mKinect->getSkeletonVideoPos( position ) );
+				Vec2f destinationSceen	= Vec2f( mKinect->getSkeletonVideoPos( destination ) );
 
-				// Draw bones and joints
-				for ( Skeleton::const_iterator boneIt = skeletonIt->cbegin(); boneIt != skeletonIt->cend(); ++boneIt ) {
-					
-					// Get joint positions 
-					Vec3f position			= boneIt->second.getPosition();
-					Vec3f destination		= skeletonIt->at( boneIt->second.getStartJoint() ).getPosition();
-					Vec2i positionScreen	= mKinect->getSkeletonVideoPos( position );
-					Vec2i destinationSceen	= mKinect->getSkeletonVideoPos( destination );
+				// Draw bone
+				gl::drawLine( positionScreen, destinationSceen );
 
-					// Draw bone
-					gl::begin( GL_LINES );
-					gl::vertex( positionScreen );
-					gl::vertex( destinationSceen );
-					glEnd();
-
-					// Draw joint
-					gl::drawSolidCircle( positionScreen, 10.0f, 16 );
-
-				}
+				// Draw joint
+				gl::drawSolidCircle( positionScreen, 10.0f, 16 );
 
 			}
 
@@ -156,6 +157,22 @@ void SkeletonBitmapApp::keyDown( KeyEvent event )
 
 }
 
+// Receives skeleton data
+void SkeletonBitmapApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
+{
+	mSkeletons = skeletons;
+}
+
+// Receives video data
+void SkeletonBitmapApp::onVideoData( Surface8u surface, const DeviceOptions &deviceOptions )
+{
+	if ( mTexture ) {
+		mTexture.update( surface );
+	} else {
+		mTexture = gl::Texture( surface );
+	}
+}
+
 // Prepare window
 void SkeletonBitmapApp::prepareSettings( Settings *settings )
 {
@@ -166,7 +183,7 @@ void SkeletonBitmapApp::prepareSettings( Settings *settings )
 // Take screen shot
 void SkeletonBitmapApp::screenShot()
 {
-	writeImage( getAppPath() / fs::path( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
+	writeImage( getAppPath() / ( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 }
 
 // Set up
@@ -181,6 +198,10 @@ void SkeletonBitmapApp::setup()
 	mKinect = Kinect::create();
 	mKinect->start( DeviceOptions().enableDepth( false ) );
 
+	// Add callbacks
+	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback<SkeletonBitmapApp>( &SkeletonBitmapApp::onSkeletonData, this );
+	mCallbackVideoId	= mKinect->addVideoCallback<SkeletonBitmapApp>( &SkeletonBitmapApp::onVideoData, this );
+
 }
 
 // Called on exit
@@ -188,6 +209,8 @@ void SkeletonBitmapApp::shutdown()
 {
 
 	// Stop input
+	mKinect->removeCallback( mCallbackSkeletonId );
+	mKinect->removeCallback( mCallbackVideoId );
 	mKinect->stop();
 
 	// Clean up
@@ -201,17 +224,7 @@ void SkeletonBitmapApp::update()
 
 	// Kinect is capturing
 	if ( mKinect->isCapturing() ) {
-	
-		// Update video
-		if ( mKinect->checkNewVideoFrame() ) {
-			mTexture = gl::Texture( mKinect->getVideo() );
-		}
-
-		// Acquire skeletons
-		if ( mKinect->checkNewSkeletons() ) {
-			mSkeletons = mKinect->getSkeletons();
-		}
-
+		mKinect->update();
 	} else {
 
 		// If Kinect initialization failed, try again every 90 frames
