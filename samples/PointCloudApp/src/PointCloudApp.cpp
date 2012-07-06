@@ -189,39 +189,35 @@ void PointCloudApp::update()
 
 	// Device is capturing
 	if ( mKinect->isCapturing() ) {
+		mKinect->update();
 
-		// Check for latest depth map
-		if ( mKinect->checkNewDepthFrame() ) {
+		// Clear point list
+		Vec3f offset( Vec2f( kKinectSize ) * Vec2f( -0.5f, 0.5f ) );
+		offset.z = mCamera.getEyePoint().z * 0.5f;
+		Vec3f position = Vec3f::zero();
+		mPoints.clear();
 
-			// Clear point list
-			Vec3f offset( Vec2f( kKinectSize ) * Vec2f( -0.5f, 0.5f ) );
-			offset.z = mCamera.getEyePoint().z * 0.5f;
-			Vec3f position = Vec3f::zero();
-			mPoints.clear();
+		// Iterate image rows
+		for ( int32_t y = 0; y < kKinectSize.y; y++ ) {
+			for ( int32_t x = 0; x < kKinectSize.x; x++ ) {
 
-			// Iterate image rows
-			for ( int32_t y = 0; y < kKinectSize.y; y++ ) {
-				for ( int32_t x = 0; x < kKinectSize.x; x++ ) {
+				// Read depth as 0.0 - 1.0 float
+				float depth = mKinect->getDepthAt( Vec2i( x, y ) );
 
-					// Read depth as 0.0 - 1.0 float
-					float depth = mKinect->getDepthAt( Vec2i( x, y ) );
-
-					// Add position to point list
-					if ( depth > 0.0f ) {
-						position.z = depth * -mCamera.getEyePoint().z * 2.0f;
-						mPoints.push_back( position * Vec3f( 1.1f, -1.1f, 1.0f ) + offset );
-					}
-
-					// Shift point
-					position.x++;
-
+				// Add position to point list
+				if ( depth > 0.0f ) {
+					position.z = depth * -mCamera.getEyePoint().z * 2.0f;
+					mPoints.push_back( position * Vec3f( 1.1f, -1.1f, 1.0f ) + offset );
 				}
 
-				// Update position
-				position.x = 0.0f;
-				position.y++;
+				// Shift point
+				position.x++;
 
 			}
+
+			// Update position
+			position.x = 0.0f;
+			position.y++;
 
 		}
 

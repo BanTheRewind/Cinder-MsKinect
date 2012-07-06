@@ -71,9 +71,13 @@ public:
 private:
 
 	// Kinect
+	int32_t								mCallbackDepthId;
+	int32_t								mCallbackSkeletonId;
 	KinectSdk::KinectRef				mKinect;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
 	ci::gl::Texture						mTextureDepth;
+	void								onDepthData( ci::Surface16u  surface, const KinectSdk::DeviceOptions &deviceOptions );
+	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions );
 
 	// VBO
 	ci::gl::GlslProg					mShader;
@@ -178,6 +182,16 @@ void PointCloudGpuApp::keyDown( KeyEvent event )
 
 }
 
+void PointCloudGpuApp::onDepthData( Surface16u surface, const DeviceOptions &deviceOptions )
+{
+	mTextureDepth = gl::Texture(  surface );
+}
+
+void PointCloudGpuApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
+{
+	mSkeletons = skeletons;
+}
+
 // Prepare window
 void PointCloudGpuApp::prepareSettings( Settings *settings )
 {
@@ -226,6 +240,10 @@ void PointCloudGpuApp::setup()
 	mKinect->removeBackground();
 	mKinect->enableUserColor( false );
 	mKinect->start( DeviceOptions().enableVideo( false ) );
+
+	// Add callbacks
+	mCallbackDepthId = mKinect->addDepthCallback<PointCloudGpuApp>( &PointCloudGpuApp::onDepthData, this );
+	mCallbackSkeletonId = mKinect->addSkeletonTrackingCallback<PointCloudGpuApp>( &PointCloudGpuApp::onSkeletonData, this );
 
 	// VBO data
 	vector<uint32_t> vboIndices;
@@ -314,7 +332,9 @@ void PointCloudGpuApp::setup()
 void PointCloudGpuApp::shutdown()
 {
 
-	// Stop input
+	// Stop Kinect input
+	mKinect->removeCallback( mCallbackDepthId );
+	mKinect->removeCallback( mCallbackSkeletonId );
 	mKinect->stop();
 
 }
@@ -339,38 +359,22 @@ void PointCloudGpuApp::update()
 		mRemoveBackgroundPrev = mRemoveBackground;
 	}
 
-	// Kinect is running
+	// Update Kinect
 	if ( mKinect->isCapturing() ) {
+		mKinect->update();
 
-		// Check depth texture
-		if ( mKinect->checkNewDepthFrame() ) {
-
-			// Get depth texture
-			mTextureDepth = gl::Texture( mKinect->getDepth() );
-
-			// Check for skeletons
-			mSkeletons.clear();
-			if ( mKinect->checkNewSkeletons() ) {
-
-				// Get skeletons
-				mSkeletons = mKinect->getSkeletons();
-
-				// Find first active skeleton
-				for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt ) {
+		// Find first active skeleton
+		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt ) {
 					
-					// Valid skeletons have all joints
-					if ( skeletonIt->size() == (uint32_t)JointName::NUI_SKELETON_POSITION_COUNT ) {
+			// Valid skeletons have all joints
+			if ( skeletonIt->size() == (uint32_t)JointName::NUI_SKELETON_POSITION_COUNT ) {
 
-						// Look at spine
-						Vec3f spine = skeletonIt->at( JointName::NUI_SKELETON_POSITION_SPINE ).getPosition() * mEyePoint.z;
-						mLookAt.x = spine.x;
-						mLookAt.y = spine.y;
-						mEyePoint.x = -mLookAt.x * 0.25f;
-						mEyePoint.y = -mLookAt.y * 0.125f;
-
-					}
-
-				}
+				// Look at spine
+				Vec3f spine = skeletonIt->at( JointName::NUI_SKELETON_POSITION_SPINE ).getPosition() * -mEyePoint.z;
+				mLookAt.x = spine.x;
+				mLookAt.y = spine.y;
+				mEyePoint.x = -mLookAt.x * 0.25f;
+				mEyePoint.y = -mLookAt.y * 0.125f;
 
 			}
 
