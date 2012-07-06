@@ -78,7 +78,7 @@ namespace KinectSdk
 		//! Returns index of start joint.
 		JointName				getStartJoint() const;
 	private:
-		Bone( const Vector4 &position, const _NUI_SKELETON_BONE_ORIENTATION &bone = _NUI_SKELETON_BONE_ORIENTATION() );
+		Bone( const Vector4 &position, const _NUI_SKELETON_BONE_ORIENTATION &bone );
 		ci::Matrix44f	mAbsRotMat;
 		ci::Quatf		mAbsRotQuat;
 		JointName		mJointStart;
@@ -315,9 +315,9 @@ namespace KinectSdk
 
 		uint_fast8_t					mTransform;
 
-		bool							mNewDepthSurface;
-		bool							mNewSkeletons;
-		bool							mNewVideoSurface;
+		volatile bool					mNewDepthSurface;
+		volatile bool					mNewSkeletons;
+		volatile bool					mNewVideoSurface;
 
 		ci::Surface16u					mDepthSurface;
 		std::vector<Skeleton>			mSkeletons;

@@ -52,16 +52,19 @@ namespace KinectSdk
 
 	const double kTiltRequestInterval = 1.5;
 
-	Matrix44f toMatrix44f( const Matrix4 &matrix ) {
+	Matrix44f toMatrix44f( const Matrix4 &matrix ) 
+	{
 		return Matrix44f( Vec4f( matrix.M11, matrix.M12, matrix.M13, matrix.M14 ), 
 			Vec4f( matrix.M21, matrix.M22, matrix.M23, matrix.M24 ), 
 			Vec4f( matrix.M31, matrix.M32, matrix.M33, matrix.M34 ), 
 			Vec4f( matrix.M41, matrix.M42, matrix.M43, matrix.M44 ) );
 	}
-	Quatf toQuatf( const Vector4 &vec ) {
+	Quatf toQuatf( const Vector4 &vec ) 
+	{
 		return Quatf( vec.w, vec.x, vec.y, vec.z );
 	}
-	Vec3f toVec3f( const Vector4 &vec ) {
+	Vec3f toVec3f( const Vector4 &vec ) 
+	{
 		return Vec3f( vec.x, vec.y, vec.z );
 	}
 
@@ -95,7 +98,7 @@ namespace KinectSdk
 		mPosition	= toVec3f( position );
 		mRotQuat	= toQuatf( bone.hierarchicalRotation.rotationQuaternion );
 		mRotMat		= toMatrix44f( bone.hierarchicalRotation.rotationMatrix );
-		mPosition.z = -1.0f;
+		mPosition.z *= -1.0f;
 	}
 
 	const Quatf& Bone::getAbsoluteRotation() const 

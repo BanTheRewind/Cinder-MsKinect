@@ -99,44 +99,39 @@ void SkeletonApp::draw()
 
 		// Iterate through skeletons
 		uint32_t i = 0;
-		for ( vector<Skeleton>::iterator skeletonIt = mSkeletons.begin(); skeletonIt != mSkeletons.end(); ++skeletonIt, i++ ) {
+		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt, i++ ) {
 
-			// Valid skeletons have all joints
-			if ( skeletonIt->size() == JointName::NUI_SKELETON_POSITION_COUNT ) {
+			// Set color
+			Colorf color = mKinect->getUserColor( i );
 
-				// Set color
-				Colorf color = mKinect->getUserColor( i );
+			// Iterate through joints
+			for ( Skeleton::const_iterator boneIt = skeletonIt->cbegin(); boneIt != skeletonIt->cend(); ++boneIt ) {
 
-				// Iterate through joints
-				for ( Skeleton::iterator boneIt = skeletonIt->begin(); boneIt != skeletonIt->end(); ++boneIt ) {
-					
-					// Get position and rotation
-					Vec3f position		= boneIt->second.getPosition();
-					Matrix44f transform	= boneIt->second.getAbsoluteRotationMatrix();
-					Vec3f direction		= transform.transformPoint( position ).normalized();
-					direction			*= 0.05f;
+				// Set user color
+				gl::color( color );
 
-					// Draw bone
-					JointName startJoint = boneIt->second.getStartJoint();
-					if ( skeletonIt->find( startJoint ) != skeletonIt->end() ) {
-						glLineWidth( 2.0f );
-						glBegin( GL_LINES );
-						Vec3f destination = skeletonIt->find( startJoint )->second.getPosition();
-						gl::vertex( position );
-						gl::vertex( destination );
-						glEnd();
-					}
+				// Get position and rotation
+				const Bone& bone	= boneIt->second;
+				Vec3f position		= bone.getPosition();
+				Matrix44f transform	= bone.getAbsoluteRotationMatrix();
+				Vec3f direction		= transform.transformPoint( position ).normalized();
+				direction			*= -0.05f;
 
-					// Draw joint
-					gl::color( color );
-					gl::drawSphere( position, 0.025f, 16 );
-					
-					// Draw joint orientation
-					glLineWidth( 0.5f );
-					gl::color( ColorAf::white() );
-					gl::drawVector( position, position + direction, 0.05f, 0.01f );
-					
+				// Draw bone
+				glLineWidth( 2.0f );
+				JointName startJoint = bone.getStartJoint();
+				if ( skeletonIt->find( startJoint ) != skeletonIt->end() ) {
+					Vec3f destination = skeletonIt->find( startJoint )->second.getPosition();
+					gl::drawLine( position, destination );
 				}
+
+				// Draw joint
+				gl::drawSphere( position, 0.025f, 16 );
+
+				// Draw joint orientation
+				glLineWidth( 0.5f );
+				gl::color( ColorAf::white() );
+				gl::drawVector( position, position + direction, 0.05f, 0.01f );
 
 			}
 
