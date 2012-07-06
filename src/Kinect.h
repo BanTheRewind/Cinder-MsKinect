@@ -176,11 +176,11 @@ namespace KinectSdk
 
 		~Kinect();
 
-		//! Adds depth image callback
+		//! Adds depth image callback.
 		uint32_t						addDepthCallback( const boost::function<void ( ci::Surface16u, const DeviceOptions& )> &callback );
-		//! Adds skeleton tracking callback
+		//! Adds skeleton tracking callback.
 		uint32_t						addSkeletonTrackingCallback( const boost::function<void ( std::vector<Skeleton>, const DeviceOptions& )> &callback );
-		//! Adds video image callback
+		//! Adds video image callback.
 		uint32_t						addVideoCallback( const boost::function<void ( ci::Surface8u, const DeviceOptions& )> &callback );
 
 		//! Adds depth image callback
@@ -189,19 +189,19 @@ namespace KinectSdk
 		{
 			return addDepthCallback( boost::function<void ( ci::Surface16u, const DeviceOptions& )>( boost::bind( callbackFunction, callbackObject, ::_1, ::_2 ) ) );
 		}
-		//! Adds skeleton tracking callback
+		//! Adds skeleton tracking callback.
 		template<typename T> 
 		inline uint32_t					addSkeletonTrackingCallback( void ( T::*callbackFunction )( std::vector<Skeleton> skeletons, const DeviceOptions &deviceOptions ), T *callbackObject )
 		{
 			return addSkeletonTrackingCallback( boost::function<void ( std::vector<Skeleton>, const DeviceOptions& )>( boost::bind( callbackFunction, callbackObject, ::_1, ::_2 ) ) );
 		}
-		//! Adds video image callback
+		//! Adds video image callback.
 		template<typename T> 
 		inline uint32_t					addVideoCallback( void ( T::*callbackFunction )( ci::Surface8u surface, const DeviceOptions& deviceOptions ), T *callbackObject ) 
 		{
 			return addVideoCallback( boost::function<void ( ci::Surface8u, const DeviceOptions& )>( boost::bind( callbackFunction, callbackObject, ::_1, ::_2 ) ) );
 		}
-		//! Removes callback
+		//! Removes callback.
 		void							removeCallback( uint32_t id );
 
 		//! Creates pointer to instance of Kinect
@@ -211,10 +211,12 @@ namespace KinectSdk
 		//! Returns use color for user ID \a id.
 		static ci::Colorf				getUserColor( uint32_t id );
 
-		//! Start capturing using settings specified in \a deviceOptions
+		//! Start capturing using settings specified in \a deviceOptions .
 		void							start( const DeviceOptions &deviceOptions = DeviceOptions() );
 		//! Stop capture.
 		void							stop();
+		//! Sends any new data to callbacks.
+		void							update();
 
 		//! Convert depth image to binary. \a invertImage to flip black and white. Default is false.
 		void							enableBinaryMode( bool enable = true, bool invertImage = false );
@@ -312,6 +314,10 @@ namespace KinectSdk
 		bool							mInverted;
 
 		uint_fast8_t					mTransform;
+
+		bool							mNewDepthSurface;
+		bool							mNewSkeletons;
+		bool							mNewVideoSurface;
 
 		ci::Surface16u					mDepthSurface;
 		std::vector<Skeleton>			mSkeletons;

@@ -534,13 +534,16 @@ namespace KinectSdk
 		mFrameRateDepth		= 0.0f;
 		mFrameRateSkeletons = 0.0f;
 		mFrameRateVideo		= 0.0f;
-		mSensor				= 0;
+		mNewDepthSurface	= false;
+		mNewSkeletons		= false;
+		mNewVideoSurface	= false;
 		mIsSkeletonDevice	= false;
 		mReadTimeDepth		= 0.0;
 		mReadTimeSkeletons	= 0.0;
 		mReadTimeVideo		= 0.0;
 		mRgbDepth			= 0;
 		mRgbVideo			= 0;
+		mSensor				= 0;
 		mTiltRequestTime	= 0.0;
 		mUserCount			= 0;
 		mVideoStreamHandle	= 0;
@@ -667,7 +670,7 @@ namespace KinectSdk
 
 				//////////////////////////////////////////////////////////////////////////////////////////////
 
-				if ( mDeviceOptions.isDepthEnabled() && mDepthStreamHandle != 0 ) {
+				if ( mDeviceOptions.isDepthEnabled() && mDepthStreamHandle != 0 && !mNewDepthSurface ) {
 					
 					_NUI_IMAGE_FRAME imageFrame;
 					long hr = mSensor->NuiImageStreamGetNextFrame( mDepthStreamHandle, WAIT_TIME, &imageFrame );
@@ -702,14 +705,14 @@ namespace KinectSdk
 							}
 						}
 
-						mSignalDepth( mDepthSurface, mDeviceOptions );
+						mNewDepthSurface = true;
 					}
 
 				}
 
 				//////////////////////////////////////////////////////////////////////////////////////////////
 
-				if ( mDeviceOptions.isSkeletonTrackingEnabled() && mIsSkeletonDevice ) {
+				if ( mDeviceOptions.isSkeletonTrackingEnabled() && mIsSkeletonDevice && !mNewSkeletons ) {
 
 					_NUI_SKELETON_FRAME skeletonFrame;
 					long hr = mSensor->NuiSkeletonGetNextFrame( WAIT_TIME, &skeletonFrame );
@@ -760,14 +763,14 @@ namespace KinectSdk
 						mFrameRateSkeletons = (float)( 1.0 / ( time - mReadTimeSkeletons ) );
 						mReadTimeSkeletons = time;
 
-						mSignalSkeleton( mSkeletons, mDeviceOptions );
+						mNewSkeletons = true;
 					}
 
 				}
 
 				//////////////////////////////////////////////////////////////////////////////////////////////
 
-				if ( mDeviceOptions.isVideoEnabled() && mVideoStreamHandle != 0 ) {
+				if ( mDeviceOptions.isVideoEnabled() && mVideoStreamHandle != 0 && !mNewVideoSurface ) {
 
 					_NUI_IMAGE_FRAME imageFrame;
 					long hr = mSensor->NuiImageStreamGetNextFrame( mVideoStreamHandle, WAIT_TIME, &imageFrame );
@@ -795,7 +798,7 @@ namespace KinectSdk
 						mFrameRateVideo = (float)( 1.0 / ( time - mReadTimeVideo ) );
 						mReadTimeVideo = time;
 
-						mSignalVideo( mVideoSurface, mDeviceOptions );
+						mNewVideoSurface = true;
 					}
 
 				}
@@ -1098,6 +1101,22 @@ namespace KinectSdk
 	{
 		console() << message << "\n";
 		OutputDebugStringA( ( message + "\n" ).c_str() );
+	}
+
+	void Kinect::update()
+	{
+		if ( mNewDepthSurface ) {
+			mSignalDepth( mDepthSurface, mDeviceOptions );
+			mNewDepthSurface = false;
+		}
+		if ( mNewSkeletons ) {
+			mSignalSkeleton( mSkeletons, mDeviceOptions );
+			mNewSkeletons = false;
+		}
+		if ( mNewVideoSurface ) {
+			mSignalVideo( mVideoSurface, mDeviceOptions );
+			mNewVideoSurface = false;
+		}
 	}
 
 }

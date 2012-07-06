@@ -65,11 +65,9 @@ public:
 private:
 
 	// Kinect
+	uint32_t							mCallbackId;
 	KinectSdk::KinectRef				mKinect;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
-
-	bool								mRead;
-	uint32_t							mCallbackId;
 
 	// Camera
 	ci::CameraPersp						mCamera;
@@ -100,7 +98,6 @@ void SkeletonApp::draw()
 		gl::setMatrices( mCamera );
 
 		// Iterate through skeletons
-		mRead = true;
 		uint32_t i = 0;
 		for ( vector<Skeleton>::iterator skeletonIt = mSkeletons.begin(); skeletonIt != mSkeletons.end(); ++skeletonIt, i++ ) {
 
@@ -144,7 +141,6 @@ void SkeletonApp::draw()
 			}
 
 		}
-		mRead = false;
 
 	}
 
@@ -171,9 +167,7 @@ void SkeletonApp::keyDown( KeyEvent event )
 
 void SkeletonApp::onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions )
 {
-	if ( !mRead ) {
-		mSkeletons = skeletons;
-	}
+	mSkeletons = skeletons;
 }
 
 // Prepare window
@@ -199,11 +193,9 @@ void SkeletonApp::setup()
 	mKinect->removeBackground();
 	mKinect->setFlipped( true );
 
-	mRead = false;
-
 	// Set the skeleton smoothing to remove jitters. Better smoothing means
 	// less jitters, but a slower response time.
-	//mKinect->setTransform( Kinect::TRANSFORM_SMOOTH );
+	mKinect->setTransform( Kinect::TRANSFORM_SMOOTH );
 
 	// Add bacllback to receive skeleton data
 	mCallbackId = mKinect->addSkeletonTrackingCallback<SkeletonApp>( &SkeletonApp::onSkeletonData, this );
@@ -228,8 +220,10 @@ void SkeletonApp::shutdown()
 void SkeletonApp::update()
 {
 
-	// If Kinect initialization failed, try again every 90 frames
-	if ( !mKinect->isCapturing() ) {
+	if ( mKinect->isCapturing() ) {
+		mKinect->update();
+	} else {
+		// If Kinect initialization failed, try again every 90 frames
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mKinect->start();
 		}
