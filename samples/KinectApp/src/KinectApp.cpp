@@ -78,10 +78,12 @@ private:
 	bool								mBinaryModePrev;
 	bool								mEnabledAudio;
 	bool								mEnabledAudioPrev;
-	bool								mEnabledNearMode;
-	bool								mEnabledNearModePrev;
 	bool								mEnabledDepth;
 	bool								mEnabledDepthPrev;
+	bool								mEnabledNearMode;
+	bool								mEnabledNearModePrev;
+	bool								mEnabledSeatedMode;
+	bool								mEnabledSeatedModePrev;
 	bool								mEnabledSkeletons;
 	bool								mEnabledSkeletonsPrev;
 	bool								mEnabledStats;
@@ -308,6 +310,8 @@ void KinectApp::setup()
 	mEnabledDepthPrev		= mEnabledDepth;
 	mEnabledNearMode		= false;
 	mEnabledNearModePrev	= mEnabledNearMode;
+	mEnabledSeatedMode		= false;
+	mEnabledSeatedModePrev	= mEnabledSeatedMode;
 	mEnabledSkeletons		= true;
 	mEnabledSkeletonsPrev	= mEnabledSkeletons;
 	mEnabledStats			= true;
@@ -366,6 +370,7 @@ void KinectApp::setup()
 	mParams.addParam( "Invert binary image",	&mInverted,								"key=i" 				);
 	mParams.addParam( "Flip input",				&mFlipped,								"key=m" 				);
 	mParams.addParam( "Near mode",				&mEnabledNearMode,						"key=n" 				);
+	mParams.addParam( "Seated mode",			&mEnabledSeatedMode,					"key=e" 				);
 	mParams.addSeparator();
 	mParams.addText( "APPLICATION" );
 	mParams.addParam( "Full screen",			&mFullScreen,							"key=f"					);
@@ -430,7 +435,7 @@ void KinectApp::startKinect()
 	// Configure device
 	mDeviceOptions.enableDepth( mEnabledDepth );
 	mDeviceOptions.enableNearMode( mEnabledNearMode );
-	mDeviceOptions.enableSkeletonTracking( mEnabledSkeletons );
+	mDeviceOptions.enableSkeletonTracking( mEnabledSkeletons, mEnabledSeatedMode );
 	mDeviceOptions.enableVideo( mEnabledVideo );
 	mKinect->enableBinaryMode( mBinaryMode );
 	mKinect->removeBackground( mRemoveBackground );
@@ -513,11 +518,13 @@ void KinectApp::update()
 	// Toggle input tracking types (requires device restart)
 	if ( mEnabledDepth		!= mEnabledDepthPrev		|| 
 		mEnabledNearMode	!= mEnabledNearModePrev		|| 
+		mEnabledSeatedMode	!= mEnabledSeatedModePrev	|| 
 		mEnabledSkeletons	!= mEnabledSkeletonsPrev	|| 
 		mEnabledVideo		!= mEnabledVideoPrev ) {
 		startKinect();
-		mEnabledNearModePrev	= mEnabledNearMode;
 		mEnabledDepthPrev		= mEnabledDepth;
+		mEnabledNearModePrev	= mEnabledNearMode;
+		mEnabledSeatedModePrev	= mEnabledSeatedMode;
 		mEnabledSkeletonsPrev	= mEnabledSkeletons;
 		mEnabledVideoPrev		= mEnabledVideo;
 	}
