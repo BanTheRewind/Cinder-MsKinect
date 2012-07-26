@@ -139,6 +139,7 @@ namespace KinectSdk
 		mEnabledNearMode			= false;
 		mEnabledSeatedMode			= false;
 		mEnabledSkeletonTracking	= true;
+		mEnabledUserTracking		= true;
 		mEnabledVideo				= true;
 		setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_320x240 );
 		setVideoResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 );
@@ -160,6 +161,12 @@ namespace KinectSdk
 	{
 		mEnabledSeatedMode			= seatedMode;
 		mEnabledSkeletonTracking	= enable;
+		return *this;
+	}
+
+	DeviceOptions& DeviceOptions::enableUserTracking( bool enable )
+	{
+		mEnabledUserTracking = enable;
 		return *this;
 	}
 
@@ -219,6 +226,11 @@ namespace KinectSdk
 		return mEnabledSkeletonTracking;
 	}
 	
+	bool DeviceOptions::isUserTrackingEnabled() const
+	{
+		return mEnabledUserTracking;
+	}
+
 	bool DeviceOptions::isVideoEnabled() const
 	{
 		return mEnabledVideo;
@@ -229,7 +241,10 @@ namespace KinectSdk
 		mDepthResolution = resolution;
 		switch ( mDepthResolution ) {
 		case ImageResolution::NUI_IMAGE_RESOLUTION_640x480:
-			mDepthSize = Vec2i( 640, 480 );
+			mDepthSize					= Vec2i( 640, 480 );
+			mEnabledUserTracking		= false;
+			mEnabledSkeletonTracking	= false;
+			mEnabledSeatedMode			= false;
 			break;
 		case ImageResolution::NUI_IMAGE_RESOLUTION_320x240:
 			mDepthSize = Vec2i( 320, 240 );
@@ -1001,7 +1016,7 @@ namespace KinectSdk
 
 			// Initialize sensor image streams
 			unsigned long flags;
-			if ( mDeviceOptions.getDepthResolution() == ImageResolution::NUI_IMAGE_RESOLUTION_640x480 ) {
+			if ( !mDeviceOptions.isUserTrackingEnabled() ) {
 				flags = NUI_INITIALIZE_FLAG_USES_DEPTH;
 			} else {
 				flags = NUI_INITIALIZE_FLAG_USES_DEPTH_AND_PLAYER_INDEX;

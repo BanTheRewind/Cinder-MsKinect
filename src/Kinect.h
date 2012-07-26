@@ -121,6 +121,8 @@ namespace KinectSdk
 		bool				isSkeletonTrackingEnabled() const;
 		//! Returns true if color video stream is enabled.
 		bool				isVideoEnabled() const;
+		//! Returns true if user tracking is enabled.
+		bool				isUserTrackingEnabled() const;
 
 		//! Enables depth tracking.
 		DeviceOptions&		enableDepth( bool enable = true );
@@ -131,6 +133,8 @@ namespace KinectSdk
 		DeviceOptions&		enableSkeletonTracking( bool enable = true, bool seatedMode = false );
 		//! Enables color video stream.
 		DeviceOptions&		enableVideo( bool enable = true );
+		/*! Enables user tracking. Only available on first device running at 320x240. */
+		DeviceOptions&		enableUserTracking( bool enable = true );
 		//! Sets resolution of depth image.
 		DeviceOptions&		setDepthResolution( const ImageResolution &resolution = ImageResolution::NUI_IMAGE_RESOLUTION_320x240 ); 
 		//! Starts device with this unique ID.
@@ -143,6 +147,7 @@ namespace KinectSdk
 		bool				mEnabledDepth;
 		bool				mEnabledSeatedMode;
 		bool				mEnabledSkeletonTracking;
+		bool				mEnabledUserTracking;
 		bool				mEnabledVideo;
 
 		ImageResolution		mDepthResolution;

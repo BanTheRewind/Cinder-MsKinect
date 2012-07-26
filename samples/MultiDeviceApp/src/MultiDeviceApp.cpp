@@ -98,14 +98,12 @@ void MultiDeviceApp::draw()
 	
 	// Draw images
 	gl::color( ColorAf::white() );
-	int32_t width = getWindowWidth() / mDevices.size();
-	int32_t height = ( width * 3 ) / 4;
-	int32_t x = 0;
-	int32_t y = ( getWindowHeight() - height ) / 2;
-	for ( uint32_t i = 0; i < mDevices.size(); i++ ) {
+	int32_t width	= getWindowWidth() / mDevices.size();
+	int32_t height	= ( width * 3 ) / 4;
+	int32_t y		= ( getWindowHeight() - height ) / 2;
+	for ( uint32_t i = 0; i < mDevices.size(); ++i ) {
 		if ( mDevices.at( i ).mTexture ) {
-			gl::draw( mDevices.at( i ).mTexture, Area( x, y, x + width, y + height ) );
-			x += width;
+			gl::draw( mDevices.at( i ).mTexture, Area( width * i, y, width * ( i + 1 ), y + height ) );
 		}
 	}
 
@@ -129,9 +127,9 @@ void MultiDeviceApp::keyDown( KeyEvent event )
 
 void MultiDeviceApp::onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions &deviceOptions )
 {
-	string id = deviceOptions.getDeviceId();
+	int32_t index = deviceOptions.getDeviceIndex();
 	for ( size_t i = 0; i < mDevices.size(); ++i ) {
-		if ( id == mDevices.at( i ).mKinect->getDeviceOptions().getDeviceId() ) {
+		if ( index == mDevices.at( i ).mKinect->getDeviceOptions().getDeviceIndex() ) {
 			mDevices.at( i ).mTexture = gl::Texture( surface );
 			break;
 		}
@@ -157,15 +155,13 @@ void MultiDeviceApp::setup()
 
 	// Set up OpenGL
 	gl::enable( GL_DEPTH_TEST );
-	glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
-	gl::enable( GL_POINT_SMOOTH );
-	glPointSize( 0.25f );
 	gl::enableAlphaBlending();
 	gl::enableAdditiveBlending();
 	gl::color( ColorAf( Colorf::white(), 0.667f ) );
 
 	DeviceOptions deviceOptions;
 	deviceOptions.enableSkeletonTracking( false );
+	deviceOptions.enableUserTracking( false );
 	deviceOptions.enableVideo( false );
 
 	// Start all available devices
