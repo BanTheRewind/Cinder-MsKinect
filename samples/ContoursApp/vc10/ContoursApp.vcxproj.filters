@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="blocks">
+      <UniqueIdentifier>{bc923a7f-9032-44d0-91e8-3747da8487ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{e1f6b9f4-7ce9-455e-95ea-a5e34f637e60}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{ad41e824-6b72-4403-9929-10ebd7c1098c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="blocks\Cinder-KinectSdk">
+      <UniqueIdentifier>{1889549a-f9cc-477d-a1b8-75dc6b47e9dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="blocks\Cinder-OpenCV">
+      <UniqueIdentifier>{0884117b-0eee-45c8-9fd6-61a6fda2f5bd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\src\Kinect.h">
+      <Filter>blocks\Cinder-KinectSdk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Cinder-OpenCV\include\CinderOpenCV.h">
+      <Filter>blocks\Cinder-OpenCV</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\ContourFinder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Particle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resources.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\ContoursApp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ContourFinder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Particle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
