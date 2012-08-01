@@ -1,6 +1,9 @@
 This block wraps Microsoft official SDK for the Kinect 
 device.
 
+The "ContoursApp" sample requires "Cinder-OpenCV":
+https://github.com/cinder/Cinder-OpenCV
+
 The "KinectApp" sample requires "Cinder-AudioInputWin":
 https://github.com/BanTheRewind/Cinder-AudioInputWin
 
@@ -9,7 +12,7 @@ http://www.bantherewind.com/kinectsdk-for-cinder
 
 -----------------------------------------
 
-Version 1.1.9
+Version 1.2.1
 
 -----------------------------------------
 

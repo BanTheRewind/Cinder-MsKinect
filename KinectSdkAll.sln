@@ -17,7 +17,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SkeletonBitmapApp", "sample
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MultiDeviceApp", "samples\MultiDeviceApp\vc10\MultiDeviceApp.vcxproj", "{A15B829E-A57F-458A-B420-970F06265BF2}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FaceTrackerApp", "samples\FaceTrackerApp\vc10\FaceTrackerApp.vcxproj", "{C9A23BBA-2F38-4E19-988C-8BD99EB1E3F9}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ContoursApp", "samples\ContoursApp\vc10\ContoursApp.vcxproj", "{AA1B6478-CCA0-4C0E-8B33-0C45CB82251F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,10 +57,10 @@ Global
 		{A15B829E-A57F-458A-B420-970F06265BF2}.Debug|Win32.Build.0 = Debug|Win32
 		{A15B829E-A57F-458A-B420-970F06265BF2}.Release|Win32.ActiveCfg = Release|Win32
 		{A15B829E-A57F-458A-B420-970F06265BF2}.Release|Win32.Build.0 = Release|Win32
-		{C9A23BBA-2F38-4E19-988C-8BD99EB1E3F9}.Debug|Win32.ActiveCfg = Debug|Win32
-		{C9A23BBA-2F38-4E19-988C-8BD99EB1E3F9}.Debug|Win32.Build.0 = Debug|Win32
-		{C9A23BBA-2F38-4E19-988C-8BD99EB1E3F9}.Release|Win32.ActiveCfg = Release|Win32
-		{C9A23BBA-2F38-4E19-988C-8BD99EB1E3F9}.Release|Win32.Build.0 = Release|Win32
+		{AA1B6478-CCA0-4C0E-8B33-0C45CB82251F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AA1B6478-CCA0-4C0E-8B33-0C45CB82251F}.Debug|Win32.Build.0 = Debug|Win32
+		{AA1B6478-CCA0-4C0E-8B33-0C45CB82251F}.Release|Win32.ActiveCfg = Release|Win32
+		{AA1B6478-CCA0-4C0E-8B33-0C45CB82251F}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
