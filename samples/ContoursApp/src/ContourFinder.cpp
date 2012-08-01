@@ -85,6 +85,9 @@ vector<Contour> ContourFinder::findContours( const Channel8u &channel, int32_t s
 
 	// Convert image to OpenCV
 	mCvMatFrame = toOcv( channel );
+
+	// THreshold the image
+	cv::threshold( mCvMatFrame, mCvMatFrame, 0.5, 255.0, CV_THRESH_BINARY );
 	
 	// Find difference between input channel and solid background
 	cv::absdiff( mCvMatBackground, mCvMatFrame, mCvMatDiff );

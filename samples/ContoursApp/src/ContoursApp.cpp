@@ -75,8 +75,7 @@ private:
 	std::vector<Particle>	mParticles;
 
 	// Contours
-	ci::Channel16u			mChannel16;
-	ci::Channel8u			mChannel8;
+	ci::Channel16u			mChannel;
 	ContourFinderRef		mContourFinder;
 	std::vector<Contour>	mContours;
 
@@ -139,18 +138,7 @@ void ContoursApp::keyDown( KeyEvent event )
 // Handles depth data
 void ContoursApp::onDepthData( Surface16u surface, const DeviceOptions &deviceOptions )
 {
-	// Convert 16-bit to 8-bit
-	mChannel16	= Channel16u( surface.getChannelRed() );
-	mChannel8	= Channel8u( mChannel16.getWidth(), mChannel16.getHeight() );
-
-	Channel16u::Iter iter = mChannel16.getIter();
-	while ( iter.line() ) {
-		while ( iter.pixel() ) {
-			uint8_t value = (uint8_t)math<float>::floor( ( (float)iter.v() / 65535.0f ) * 255.0f );
-			value = value > 0 ? 255 : 0;
-			mChannel8.setValue( iter.getPos(), value );
-		}
-	}
+	mChannel = surface.getChannelRed();
 }
 
 // Prepare window
@@ -217,6 +205,7 @@ void ContoursApp::setup()
 		position.y += kPointSpacing * 1.5f;
 	}
 
+	// Initialize contour finder
 	mContourFinder = ContourFinder::create();
 	
 }
@@ -244,13 +233,13 @@ void ContoursApp::update()
 	if ( mKinect->isCapturing() ) {
 		mKinect->update();
 
-		if ( mChannel8 ) {
+		if ( mChannel ) {
 			
 			// Find contours
-			mContours = mContourFinder->findContours( mChannel8 );
+			mContours = mContourFinder->findContours( Channel8u( mChannel ) );
 			
 			// Scale contours to window
-			Vec2f scale = Vec2f( getWindowSize() ) / Vec2f( mChannel8.getSize() );
+			Vec2f scale = Vec2f( getWindowSize() ) / Vec2f( mChannel.getSize() );
 			for ( vector<Contour>::iterator contourIt = mContours.begin(); contourIt != mContours.end(); ++contourIt ) {
 				for ( vector<Vec2f>::iterator pointIt = contourIt->getPoints().begin(); pointIt != contourIt->getPoints().end(); ++pointIt ) {
 					pointIt->operator*=( scale );
