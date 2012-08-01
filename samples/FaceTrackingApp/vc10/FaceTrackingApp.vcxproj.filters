@@ -19,7 +19,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\FaceTrackerApp.cpp">
+    <ClCompile Include="..\src\FaceTrackingApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\FaceTracker.cpp">

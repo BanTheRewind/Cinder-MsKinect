@@ -12,7 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{C9A23BBA-2F38-4E19-988C-8BD99EB1E3F9}</ProjectGuid>
-    <RootNamespace>FaceTrackerApp</RootNamespace>
+    <RootNamespace>FaceTrackingApp</RootNamespace>
     <Keyword>Win32Proj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -118,7 +118,7 @@ xcopy "$(FTSDK_DIR)Redist\x86\*.dll" "$(ProjectDir)bin\" /Y /C</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\FaceTracker.cpp" />
-    <ClCompile Include="..\src\FaceTrackerApp.cpp" />
+    <ClCompile Include="..\src\FaceTrackingApp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources.rc" />

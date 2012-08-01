@@ -48,7 +48,7 @@
 * This application demonstrates how to the Face Tracker SDK with the 
 * Kinect SDK to track faces with a Kinect.
 */ 
-class FaceTrackerApp : public ci::app::AppBasic 
+class FaceTrackingApp : public ci::app::AppBasic 
 {
 
 public:
@@ -92,7 +92,7 @@ using namespace KinectSdk;
 using namespace std;
 
 // Render
-void FaceTrackerApp::draw()
+void FaceTrackingApp::draw()
 {
 
 	// Clear window
@@ -111,7 +111,7 @@ void FaceTrackerApp::draw()
 }
 
 // Handles key press
-void FaceTrackerApp::keyDown( KeyEvent event )
+void FaceTrackingApp::keyDown( KeyEvent event )
 {
 
 	// Quit, toggle fullscreen
@@ -130,38 +130,38 @@ void FaceTrackerApp::keyDown( KeyEvent event )
 }
 
 // Receives depth data
-void FaceTrackerApp::onDepthData( Surface16u surface, const DeviceOptions &deviceOptions )
+void FaceTrackingApp::onDepthData( Surface16u surface, const DeviceOptions &deviceOptions )
 {
 	mSurfaceDepth = surface;
 }
 
 // Receives skeleton data
-void FaceTrackerApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
+void FaceTrackingApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
 {
 	mSkeletons = skeletons;
 }
 
 // Receives video data
-void FaceTrackerApp::onVideoData( Surface8u surface, const DeviceOptions &deviceOptions )
+void FaceTrackingApp::onVideoData( Surface8u surface, const DeviceOptions &deviceOptions )
 {
 	mSurfaceVideo = surface;
 }
 
 // Prepare window
-void FaceTrackerApp::prepareSettings( Settings *settings )
+void FaceTrackingApp::prepareSettings( Settings *settings )
 {
 	settings->setWindowSize( 800, 600 );
 	settings->setFrameRate( 60.0f );
 }
 
 // Take screen shot
-void FaceTrackerApp::screenShot()
+void FaceTrackingApp::screenShot()
 {
 	writeImage( getAppPath() / fs::path( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 }
 
 // Set up
-void FaceTrackerApp::setup()
+void FaceTrackingApp::setup()
 {
 
 	// Start Kinect
@@ -169,9 +169,9 @@ void FaceTrackerApp::setup()
 	DeviceOptions deviceOptions;
 	mKinect->start( deviceOptions );
 	mKinect->removeBackground();
-	mCallbackDepthId = mKinect->addSkeletonTrackingCallback<FaceTrackerApp>( &FaceTrackerApp::onSkeletonData, this );
-	mCallbackSkeletonsId = mKinect->addSkeletonTrackingCallback<FaceTrackerApp>( &FaceTrackerApp::onSkeletonData, this );
-	mCallbackVideoId = mKinect->addSkeletonTrackingCallback<FaceTrackerApp>( &FaceTrackerApp::onSkeletonData, this );
+	mCallbackDepthId = mKinect->addSkeletonTrackingCallback<FaceTrackingApp>( &FaceTrackingApp::onSkeletonData, this );
+	mCallbackSkeletonsId = mKinect->addSkeletonTrackingCallback<FaceTrackingApp>( &FaceTrackingApp::onSkeletonData, this );
+	mCallbackVideoId = mKinect->addSkeletonTrackingCallback<FaceTrackingApp>( &FaceTrackingApp::onSkeletonData, this );
 
 	// Set up face tracker
 	mFaceTracker = FaceTracker::create();
@@ -184,7 +184,7 @@ void FaceTrackerApp::setup()
 }
 
 // Called on exit
-void FaceTrackerApp::shutdown()
+void FaceTrackingApp::shutdown()
 {
 
 	// Stop input
@@ -196,7 +196,7 @@ void FaceTrackerApp::shutdown()
 }
 
 // Runs update logic
-void FaceTrackerApp::update()
+void FaceTrackingApp::update()
 {
 
 	// Kinect is capturing
@@ -219,4 +219,4 @@ void FaceTrackerApp::update()
 }
 
 // Run application
-CINDER_APP_BASIC( FaceTrackerApp, RendererGl )
+CINDER_APP_BASIC( FaceTrackingApp, RendererGl )
