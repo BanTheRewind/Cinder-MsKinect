@@ -335,9 +335,9 @@ void KinectApp::setup()
 	startKinect();
 
 	// Add callbacks
-	mCallbackDepthId	= mKinect->addDepthCallback<KinectApp>( &KinectApp::onDepthData, this );
-	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback<KinectApp>( &KinectApp::onSkeletonAudioData, this );
-	mCallbackVideoId	= mKinect->addVideoCallback<KinectApp>( &KinectApp::onVideoData, this );
+	mCallbackDepthId	= mKinect->addDepthCallback( &KinectApp::onDepthData, this );
+	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback( &KinectApp::onSkeletonAudioData, this );
+	mCallbackVideoId	= mKinect->addVideoCallback( &KinectApp::onVideoData, this );
 
 	// Start audio capture
 	startAudio();

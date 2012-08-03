@@ -172,7 +172,7 @@ void MultiDeviceApp::setup()
 		Device device;
 		device.mKinect = Kinect::create();
 		device.mKinect->start( deviceOptions );
-		device.mCallbackId = device.mKinect->addDepthCallback<MultiDeviceApp>( &MultiDeviceApp::onDepthData, this );
+		device.mCallbackId = device.mKinect->addDepthCallback( &MultiDeviceApp::onDepthData, this );
 		device.mTexture = gl::Texture( 320, 240 );
 		
 		mDevices.push_back( device );

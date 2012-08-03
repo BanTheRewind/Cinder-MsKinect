@@ -195,7 +195,7 @@ void SkeletonApp::setup()
 	mKinect->setTransform( Kinect::TRANSFORM_SMOOTH );
 
 	// Add callback to receive skeleton data
-	mCallbackId = mKinect->addSkeletonTrackingCallback<SkeletonApp>( &SkeletonApp::onSkeletonData, this );
+	mCallbackId = mKinect->addSkeletonTrackingCallback( &SkeletonApp::onSkeletonData, this );
 
 	// Set up camera
 	mCamera.lookAt( Vec3f( 0.0f, 0.0f, 2.0f ), Vec3f::zero() );

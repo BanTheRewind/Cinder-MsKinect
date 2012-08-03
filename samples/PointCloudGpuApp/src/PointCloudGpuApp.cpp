@@ -242,8 +242,8 @@ void PointCloudGpuApp::setup()
 	mKinect->start( DeviceOptions().enableVideo( false ) );
 
 	// Add callbacks
-	mCallbackDepthId = mKinect->addDepthCallback<PointCloudGpuApp>( &PointCloudGpuApp::onDepthData, this );
-	mCallbackSkeletonId = mKinect->addSkeletonTrackingCallback<PointCloudGpuApp>( &PointCloudGpuApp::onSkeletonData, this );
+	mCallbackDepthId = mKinect->addDepthCallback( &PointCloudGpuApp::onDepthData, this );
+	mCallbackSkeletonId = mKinect->addSkeletonTrackingCallback( &PointCloudGpuApp::onSkeletonData, this );
 
 	// VBO data
 	vector<uint32_t> vboIndices;

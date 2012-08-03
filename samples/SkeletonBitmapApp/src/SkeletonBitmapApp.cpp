@@ -199,8 +199,8 @@ void SkeletonBitmapApp::setup()
 	mKinect->start( DeviceOptions().enableDepth( false ) );
 
 	// Add callbacks
-	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback<SkeletonBitmapApp>( &SkeletonBitmapApp::onSkeletonData, this );
-	mCallbackVideoId	= mKinect->addVideoCallback<SkeletonBitmapApp>( &SkeletonBitmapApp::onVideoData, this );
+	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback( &SkeletonBitmapApp::onSkeletonData, this );
+	mCallbackVideoId	= mKinect->addVideoCallback( &SkeletonBitmapApp::onVideoData, this );
 
 }
 

@@ -355,27 +355,6 @@ namespace KinectSdk
 		}
 	}
 
-	uint32_t Kinect::addDepthCallback( const boost::function<void ( Surface16u, const DeviceOptions& )> &callback )
-	{
-		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
-		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalDepth.connect( callback ) ) ) ) );
-		return id;
-	}
-
-	uint32_t Kinect::addSkeletonTrackingCallback( const boost::function<void ( vector<Skeleton>, const DeviceOptions& )> &callback )
-	{
-		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
-		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalSkeleton.connect( callback ) ) ) ) );
-		return id;
-	}
-
-	uint32_t Kinect::addVideoCallback( const boost::function<void ( Surface8u, const DeviceOptions& )> &callback )
-	{
-		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
-		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalVideo.connect( callback ) ) ) ) );
-		return id;
-	}
-
 	void Kinect::deactivateUsers()
 	{
 		for ( uint32_t i = 0; i < NUI_SKELETON_COUNT; i++ ) {
