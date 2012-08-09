@@ -366,9 +366,9 @@ void MeshApp::setup()
 	mKinect->start();
 
 	// Add callbacks
-	mCallbackDepthId	= mKinect->addDepthCallback<MeshApp>( &MeshApp::onDepthData, this );
-	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback<MeshApp>( &MeshApp::onSkeletonData, this );
-	mCallbackVideoId	= mKinect->addVideoCallback<MeshApp>( &MeshApp::onVideoData, this );
+	mCallbackDepthId	= mKinect->addDepthCallback( &MeshApp::onDepthData, this );
+	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback( &MeshApp::onSkeletonData, this );
+	mCallbackVideoId	= mKinect->addVideoCallback( &MeshApp::onVideoData, this );
 
 	// Set up the light. This application does not actually use OpenGL 
 	// lighting. Instead, it passes a light position and color 

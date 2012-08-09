@@ -178,7 +178,7 @@ void ContoursApp::setup()
 	mKinect->enableBinaryMode( true );
 
 	// Add callbacks
-	mCallbackId = mKinect->addDepthCallback<ContoursApp>( &ContoursApp::onDepthData, this );
+	mCallbackId = mKinect->addDepthCallback( &ContoursApp::onDepthData, this );
 
 	// Run first window resize
 	resize( ResizeEvent( getWindowSize() ) );
