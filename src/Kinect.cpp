@@ -427,10 +427,11 @@ namespace KinectSdk
 
 	float Kinect::getDepthAt( const ci::Vec2i &pos ) const
 	{
-		float depthNorm = 0.0f;
+		float depthNorm		= 0.0f;
 		if ( mDepthSurface ) {
-			uint16_t depth = mDepthSurface.getPixel( pos ).r;
-			depthNorm = 2.0f * ( (float)( depth / ( 1.0 * 0x8000 ) ) - 1.5f );
+			uint16_t depth	= 0x10000 - mDepthSurface.getPixel( pos ).r;
+			depth			= depth << 2;
+			depthNorm		= 1.0f - (float)depth / 65535.0f;
 		}
 		return depthNorm;
 	}

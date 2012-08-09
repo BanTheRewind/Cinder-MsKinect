@@ -102,7 +102,7 @@ void PointCloudApp::draw()
 	// Draw point cloud
 	glBegin( GL_POINTS );
 	for ( vector<Vec3f>::const_iterator pointIt = mPoints.cbegin(); pointIt != mPoints.cend(); ++pointIt ) {
-		float depth = 1.0f - pointIt->z / ( mCamera.getEyePoint().z * -2.0f );
+		float depth = 1.0f - pointIt->z / mCamera.getEyePoint().z * -1.5f;
 		gl::color( ColorAf( 1.0f, depth, 1.0f - depth, depth ) );
 		gl::vertex( *pointIt );
 	}
@@ -193,7 +193,7 @@ void PointCloudApp::update()
 
 		// Clear point list
 		Vec3f offset( Vec2f( kKinectSize ) * Vec2f( -0.5f, 0.5f ) );
-		offset.z = mCamera.getEyePoint().z * 0.5f;
+		offset.z = mCamera.getEyePoint().z * 1.0f;
 		Vec3f position = Vec3f::zero();
 		mPoints.clear();
 
@@ -205,10 +205,8 @@ void PointCloudApp::update()
 				float depth = mKinect->getDepthAt( Vec2i( x, y ) );
 
 				// Add position to point list
-				if ( depth > 0.0f ) {
-					position.z = depth * -mCamera.getEyePoint().z * 2.0f;
-					mPoints.push_back( position * Vec3f( 1.1f, -1.1f, 1.0f ) + offset );
-				}
+				position.z = depth * mCamera.getEyePoint().z * -3.0f;
+				mPoints.push_back( position * Vec3f( 1.1f, -1.1f, 1.0f ) + offset );
 
 				// Shift point
 				position.x++;
