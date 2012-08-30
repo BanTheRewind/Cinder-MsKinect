@@ -193,7 +193,7 @@ void PointCloudApp::update()
 
 		// Clear point list
 		Vec3f offset( Vec2f( kKinectSize ) * Vec2f( -0.5f, 0.5f ) );
-		offset.z = mCamera.getEyePoint().z * 1.0f;
+		offset.z = mCamera.getEyePoint().z;
 		Vec3f position = Vec3f::zero();
 		mPoints.clear();
 
