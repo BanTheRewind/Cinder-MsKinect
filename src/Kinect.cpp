@@ -750,7 +750,7 @@ namespace KinectSdk
 
 								for ( int32_t j = 0; j < (int32_t)NUI_SKELETON_POSITION_COUNT; j++ ) {
 									Bone bone( *( ( skeletonFrame.SkeletonData + i )->SkeletonPositions + j ), *( bones + j ) );
-									( mSkeletons.begin() + i )->insert( std::make_pair<JointName, Bone>( (JointName)j, bone ) );
+									( mSkeletons.begin() + i )->insert( std::pair<JointName, Bone>( (JointName)j, bone ) );
 								}
 
 							}
@@ -1071,7 +1071,7 @@ namespace KinectSdk
 
 			// Start thread
 			mCapture = true;
-			mThread = std::shared_ptr<boost::thread>( new boost::thread( boost::bind( &Kinect::run, this ) ) );
+			mThread = std::shared_ptr<std::thread>( new std::thread( boost::bind( &Kinect::run, this ) ) );
 
 		}
 

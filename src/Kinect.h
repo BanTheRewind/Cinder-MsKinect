@@ -341,7 +341,7 @@ namespace KinectSdk
 		bool							mRemoveBackground;
 
 		volatile bool					mRunning;
-		std::shared_ptr<boost::thread>	mThread;
+		std::shared_ptr<std::thread>	mThread;
 		void							run();
 
 		Pixel16u						*mRgbDepth;
