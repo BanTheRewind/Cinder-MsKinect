@@ -17,5 +17,5 @@
 	<staticLibrary absolute="true">Kinect10.lib</staticLibrary>
 	<buildCopy absolute="true">$(KINECTSDK10_DIR)/Assemblies/*.dll</buildCopy>
 </block>
-<template>templates/Basic FMOD/template.xml</template>
+<template>templates/Basic/template.xml</template>
 </cinder>
