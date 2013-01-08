@@ -59,7 +59,7 @@ public:
 	void					draw();
 	void					keyDown( ci::app::KeyEvent event );
 	void					prepareSettings( ci::app::AppBasic::Settings *settings );
-	void					resize( ci::app::ResizeEvent event );
+	void					resize();
 	void					shutdown();
 	void					setup();
 	void					update();
@@ -150,7 +150,7 @@ void ContoursApp::prepareSettings( Settings *settings )
 }
 
 // Handles window resize
-void ContoursApp::resize( ResizeEvent event )
+void ContoursApp::resize()
 {
 	gl::enable( GL_POINT_SMOOTH );
 	glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
@@ -181,7 +181,7 @@ void ContoursApp::setup()
 	mCallbackId = mKinect->addDepthCallback( &ContoursApp::onDepthData, this );
 
 	// Run first window resize
-	resize( ResizeEvent( getWindowSize() ) );
+	resize();
 
 	// Set default properties
 	mFullScreen		= false;

@@ -50,5 +50,8 @@
     <ClCompile Include="..\src\Particle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\Kinect.cpp">
+      <Filter>blocks\Cinder-KinectSdk</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
