@@ -118,7 +118,7 @@ private:
 	int32_t								mCallbackSkeletonId;
 	int32_t								mCallbackVideoId;
 	void								onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions &deviceOptions );
-	void								onSkeletonAudioData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions );
+	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions );
 	void								onVideoData( ci::Surface8u surface, const KinectSdk::DeviceOptions &deviceOptions );
 
 	// Camera
@@ -253,7 +253,7 @@ void KinectApp::onDepthData( Surface16u surface, const DeviceOptions &deviceOpti
 }
 
 // Receives skeleton data
-void KinectApp::onSkeletonAudioData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
+void KinectApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
 {
 	mSkeletons = skeletons;
 }
