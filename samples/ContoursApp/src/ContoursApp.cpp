@@ -1,6 +1,6 @@
 /*
 * 
-* Copyright (c) 2012, Ban the Rewind
+* Copyright (c) 2013, Ban the Rewind
 * All rights reserved.
 * 
 * Redistribution and use in source and binary forms, with or 
@@ -59,7 +59,7 @@ public:
 	void					draw();
 	void					keyDown( ci::app::KeyEvent event );
 	void					prepareSettings( ci::app::AppBasic::Settings *settings );
-	void					resize( ci::app::ResizeEvent event );
+	void					resize();
 	void					shutdown();
 	void					setup();
 	void					update();
@@ -122,7 +122,7 @@ void ContoursApp::keyDown( KeyEvent event )
 
 	// Key on key...
 	switch ( event.getCode() ) {
-	case KeyEvent::KEY_ESCAPE:
+	case KeyEvent::KEY_q:
 		quit();
 		break;
 	case KeyEvent::KEY_f:
@@ -150,7 +150,7 @@ void ContoursApp::prepareSettings( Settings *settings )
 }
 
 // Handles window resize
-void ContoursApp::resize( ResizeEvent event )
+void ContoursApp::resize()
 {
 	gl::enable( GL_POINT_SMOOTH );
 	glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
@@ -173,7 +173,7 @@ void ContoursApp::setup()
 
 	// Start Kinect
 	mKinect = Kinect::create();
-	mKinect->start( DeviceOptions().enableVideo( false ).setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_80x60 ) );
+	mKinect->start( DeviceOptions().enableColor( false ).setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_80x60 ) );
 	mKinect->removeBackground();
 	mKinect->enableBinaryMode( true );
 
@@ -181,7 +181,7 @@ void ContoursApp::setup()
 	mCallbackId = mKinect->addDepthCallback( &ContoursApp::onDepthData, this );
 
 	// Run first window resize
-	resize( ResizeEvent( getWindowSize() ) );
+	resize();
 
 	// Set default properties
 	mFullScreen		= false;
@@ -279,7 +279,6 @@ void ContoursApp::update()
 			Vec2f centroid			= contour.getCentroid();
 			uint32_t count			= contour.getPoints().size();
 			uint32_t j				= count - 1;
-				
 			for ( uint32_t i = 0; i < count; i++ ) {
 					
 				ci::Vec2f a	= contour.getPoints().at( i );

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<cinder>
+<block
+	name="MSKinect"
+	id="mskinect.bantherewind.com"
+	author="Stephen Schieberl"
+	license="BSD"
+	summary="Kinect support using the official Microsoft SDK"
+	>
+	<supports os="msw" />
+	<header>src/Kinect.h</header>
+	<source>src/Kinect.cpp</source>
+	<includePath>src/</includePath>
+	<includePath absolute="true">$(KINECTSDK10_DIR)/inc</includePath>
+	<libraryPath absolute="true">$(KINECTSDK10_DIR)/lib/x86</libraryPath>
+	<staticLibrary absolute="true">comsuppw.lib</staticLibrary>
+	<staticLibrary absolute="true">Kinect10.lib</staticLibrary>
+	<buildCopy absolute="true">$(KINECTSDK10_DIR)/Assemblies/*.dll</buildCopy>
+</block>
+<template>templates/Basic/template.xml</template>
+</cinder>

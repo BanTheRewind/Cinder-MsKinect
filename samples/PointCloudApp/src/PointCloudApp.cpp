@@ -1,6 +1,6 @@
 /*
 * 
-* Copyright (c) 2012, Ban the Rewind
+* Copyright (c) 2013, Ban the Rewind
 * All rights reserved.
 * 
 * Redistribution and use in source and binary forms, with or 
@@ -52,7 +52,6 @@ class PointCloudApp : public ci::app::AppBasic
 {
 
 public:
-
 	// Cinder callbacks
 	void draw();
 	void keyDown( ci::app::KeyEvent event );
@@ -62,9 +61,7 @@ public:
 	void shutdown();
 	void setup();
 	void update();
-
 private:
-
 	// Kinect
 	KinectSdk::KinectRef	mKinect;
 
@@ -77,7 +74,6 @@ private:
 
 	// Save screen shot
 	void					screenShot();
-
 };
 
 // Imports
@@ -92,7 +88,6 @@ const Vec2i	kKinectSize( 640, 480 );
 // Render
 void PointCloudApp::draw()
 {
-
 	// Clear window
 	gl::setViewport( getWindowBounds() );
 	gl::clear( Colorf::black() );
@@ -100,23 +95,21 @@ void PointCloudApp::draw()
 	gl::rotate( mArcball.getQuat() );
 
 	// Draw point cloud
-	glBegin( GL_POINTS );
+	gl::begin( GL_POINTS );
 	for ( vector<Vec3f>::const_iterator pointIt = mPoints.cbegin(); pointIt != mPoints.cend(); ++pointIt ) {
 		float depth = 1.0f - pointIt->z / mCamera.getEyePoint().z * -1.5f;
 		gl::color( ColorAf( 1.0f, depth, 1.0f - depth, depth ) );
 		gl::vertex( *pointIt );
 	}
-	glEnd();
-
+	gl::end();
 }
 
 // Handles key press
 void PointCloudApp::keyDown( KeyEvent event )
 {
-
 	// Key on key...
 	switch ( event.getCode() ) {
-	case KeyEvent::KEY_ESCAPE:
+	case KeyEvent::KEY_q:
 		quit();
 		break;
 	case KeyEvent::KEY_f:
@@ -126,7 +119,6 @@ void PointCloudApp::keyDown( KeyEvent event )
 		screenShot();
 		break;
 	}
-
 }
 
 void PointCloudApp::mouseDown( ci::app::MouseEvent event )
@@ -155,7 +147,6 @@ void PointCloudApp::screenShot()
 // Set up
 void PointCloudApp::setup()
 {
-
 	// Set up OpenGL
 	gl::enable( GL_DEPTH_TEST );
 	glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
@@ -166,14 +157,13 @@ void PointCloudApp::setup()
 
 	// Start Kinect with isolated depth tracking only
 	mKinect = Kinect::create();
-	mKinect->start( DeviceOptions().enableSkeletonTracking( false ).enableVideo( false ).setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 ) );
+	mKinect->start( DeviceOptions().enableSkeletonTracking( false ).enableColor( false ).setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 ) );
 
 	// Set up camera
 	mArcball = Arcball( getWindowSize() );
 	mArcball.setRadius( (float)getWindowHeight() );
 	mCamera.lookAt( Vec3f( 0.0f, 0.0f, 670.0f ), Vec3f::zero() );
 	mCamera.setPerspective( 60.0f, getWindowAspectRatio(), 0.01f, 5000.0f );
-
 }
 
 // Called on exit
@@ -186,14 +176,13 @@ void PointCloudApp::shutdown()
 // Runs update logic
 void PointCloudApp::update()
 {
-
 	// Device is capturing
 	if ( mKinect->isCapturing() ) {
 		mKinect->update();
 
 		// Clear point list
 		Vec3f offset( Vec2f( kKinectSize ) * Vec2f( -0.5f, 0.5f ) );
-		offset.z = mCamera.getEyePoint().z * 1.0f;
+		offset.z = mCamera.getEyePoint().z;
 		Vec3f position = Vec3f::zero();
 		mPoints.clear();
 
@@ -227,7 +216,6 @@ void PointCloudApp::update()
 		}
 
 	}
-
 }
 
 // Run application

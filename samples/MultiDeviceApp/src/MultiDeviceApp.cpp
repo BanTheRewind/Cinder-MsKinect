@@ -1,6 +1,6 @@
 /*
 * 
-* Copyright (c) 2012, Ban the Rewind
+* Copyright (c) 2013, Ban the Rewind
 * All rights reserved.
 * 
 * Redistribution and use in source and binary forms, with or 
@@ -113,7 +113,7 @@ void MultiDeviceApp::draw()
 void MultiDeviceApp::keyDown( KeyEvent event )
 {
 	switch ( event.getCode() ) {
-	case KeyEvent::KEY_ESCAPE:
+	case KeyEvent::KEY_q:
 		quit();
 		break;
 	case KeyEvent::KEY_f:
@@ -162,7 +162,7 @@ void MultiDeviceApp::setup()
 	DeviceOptions deviceOptions;
 	deviceOptions.enableSkeletonTracking( false );
 	deviceOptions.enableUserTracking( false );
-	deviceOptions.enableVideo( false );
+	deviceOptions.enableColor( false );
 
 	// Start all available devices
 	int32_t count = Kinect::getDeviceCount();

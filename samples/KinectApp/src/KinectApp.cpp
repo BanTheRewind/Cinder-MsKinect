@@ -1,6 +1,6 @@
 /*
 * 
-* Copyright (c) 2012, Ban the Rewind
+* Copyright (c) 2013, Ban the Rewind
 * All rights reserved.
 * 
 * Redistribution and use in source and binary forms, with or 
@@ -36,7 +36,6 @@
 
 // Includes
 #include <algorithm>
-#include "AudioInput.h"
 #include "boost/algorithm/string.hpp"
 #include "cinder/app/AppBasic.h"
 #include "cinder/Camera.h"
@@ -51,33 +50,25 @@
 /*
 * This application explores the features of the Kinect SDK wrapper. It 
 * demonstrates how to start a device, query for devices, adjust tilt, 
-* and read and represent audio, depth, video, and skeleton data.  
+* and read and represent color, depth, and skeleton data.  
 * It's also useful as a device test and control panel.
 */
 class KinectApp : public ci::app::AppBasic 
 {
-
 public:
-
-	// Cinder callbacks
 	void								draw();
 	void								prepareSettings( ci::app::AppBasic::Settings *settings );
 	void								setup();
 	void								shutdown();
 	void								update();
-
-	// Audio callback
-	void 								onAudioData( float *data, int32_t size );
-
 private:
-
 	// Capturing flags
 	bool								mCapture;
 	bool								mCapturePrev;
 	bool								mBinaryMode;
 	bool								mBinaryModePrev;
-	bool								mEnabledAudio;
-	bool								mEnabledAudioPrev;
+	bool								mEnabledColor;
+	bool								mEnabledColorPrev;
 	bool								mEnabledDepth;
 	bool								mEnabledDepthPrev;
 	bool								mEnabledNearMode;
@@ -87,19 +78,13 @@ private:
 	bool								mEnabledSkeletons;
 	bool								mEnabledSkeletonsPrev;
 	bool								mEnabledStats;
-	bool								mEnabledVideo;
-	bool								mEnabledVideoPrev;
 	bool								mFlipped;
 	bool								mFlippedPrev;
 	bool								mInverted;
 	bool								mInvertedPrev;
 
-	// Audio input
-	int32_t								mCallbackId;
-	float *								mData;
-	AudioInputRef						mInput;
-
 	// Kinect
+	ci::Surface8u						mColorSurface;
 	ci::Surface16u						mDepthSurface;
 	int32_t								mDeviceCount;
 	KinectSdk::DeviceOptions			mDeviceOptions;
@@ -108,27 +93,24 @@ private:
 	int32_t								mTilt;
 	int32_t								mTiltPrev;
 	int32_t								mUserCount;
-	ci::Surface8u						mVideoSurface;
-	void								startAudio();
 	void								startKinect();
-	void								stopAudio();
 
 	// Kinect callbacks
 	int32_t								mCallbackDepthId;
 	int32_t								mCallbackSkeletonId;
-	int32_t								mCallbackVideoId;
-	void								onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions &deviceOptions );
-	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions );
-	void								onVideoData( ci::Surface8u surface, const KinectSdk::DeviceOptions &deviceOptions );
+	int32_t								mCallbackColorId;
+	void								onColorData( ci::Surface8u surface, const KinectSdk::DeviceOptions& deviceOptions );
+	void								onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions& deviceOptions );
+	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions& deviceOptions );
 
 	// Camera
 	ci::CameraPersp						mCamera;
 
 	// Params
 	float								mFrameRateApp;
+	float								mFrameRateColor;
 	float								mFrameRateDepth;
 	float								mFrameRateSkeletons;
-	float								mFrameRateVideo;
 	bool								mFullScreen;
 	ci::params::InterfaceGl				mParams;
 	bool								mRemoveBackground;
@@ -137,7 +119,6 @@ private:
 
 	// Save screen shot
 	void								screenShot();
-
 };
 
 // Imports
@@ -149,7 +130,6 @@ using namespace std;
 // Render
 void KinectApp::draw()
 {
-
 	// Clear window
 	gl::setViewport( getWindowBounds() );
 	gl::clear( Colorf::gray( 0.1f ) );
@@ -176,7 +156,7 @@ void KinectApp::draw()
 			for ( Skeleton::const_iterator boneIt = skeletonIt->cbegin(); boneIt != skeletonIt->cend(); ++boneIt ) {
 					
 				// Get positions of each joint in this bone to draw it
-				const Bone &bone	= boneIt->second;
+				const Bone& bone	= boneIt->second;
 				Vec3f position		= bone.getPosition();
 				Vec3f destination	= skeletonIt->at( bone.getStartJoint() ).getPosition();
 
@@ -194,74 +174,41 @@ void KinectApp::draw()
 		gl::popMatrices();
 		gl::setMatricesWindow( getWindowSize(), true );
 
-		// Draw depth and video textures
+		// Draw depth and color textures
 		gl::color( Colorf::white() );
 		if ( mDepthSurface ) {
 			Area srcArea( 0, 0, mDepthSurface.getWidth(), mDepthSurface.getHeight() );
 			Rectf destRect( 265.0f, 15.0f, 505.0f, 195.0f );
 			gl::draw( gl::Texture( mDepthSurface ), srcArea, destRect );
 		}
-		if ( mVideoSurface ) {
-			Area srcArea( 0, 0, mVideoSurface.getWidth(), mVideoSurface.getHeight() );
+		if ( mColorSurface ) {
+			Area srcArea( 0, 0, mColorSurface.getWidth(), mColorSurface.getHeight() );
 			Rectf destRect( 508.0f, 15.0f, 748.0f, 195.0f );
-			gl::draw( gl::Texture( mVideoSurface ), srcArea, destRect );
-		}
-
-	}
-
-	// Check audio data
-	if ( mData != 0 ) {
-
-		// Get dimensions
-		int32_t dataSize	= mInput->getDataSize();
-		float scale			= 240.0f / (float)dataSize;
-		float height		= 180.0f;
-		Vec2f position( 751.0f, 15.0f );
-
-		// Draw background
-		gl::color( ColorAf::black() );
-		Rectf background( position.x, position.y, position.x + 240.0f, position.y + 180.0f );
-		gl::drawSolidRect( background );
-
-		// Draw audio input
-		gl::color( ColorAf::white() );
-		PolyLine<Vec2f> mLine;
-		for ( int32_t i = 0; i < dataSize; i++ ) {
-			mLine.push_back( position + Vec2f( i * scale, math<float>::clamp( mData[ i ], -1.0f, 1.0f ) * height * 0.5f + height * 0.5f ) );
-		}
-		if ( mLine.size() > 0 ) {
-			gl::draw( mLine );
+			gl::draw( gl::Texture( mColorSurface ), srcArea, destRect );
 		}
 
 	}
 
 	// Draw the interface
 	params::InterfaceGl::draw();
-
 }
 
-// Called when audio buffer is full
-void KinectApp::onAudioData( float *data, int32_t size )
+// Receives color data
+void KinectApp::onColorData( Surface8u surface, const DeviceOptions& deviceOptions )
 {
-	mData = data;
+	mColorSurface = surface;
 }
 
 // Receives depth data
-void KinectApp::onDepthData( Surface16u surface, const DeviceOptions &deviceOptions )
+void KinectApp::onDepthData( Surface16u surface, const DeviceOptions& deviceOptions )
 {
 	mDepthSurface = surface;
 }
 
 // Receives skeleton data
-void KinectApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
+void KinectApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions& deviceOptions )
 {
 	mSkeletons = skeletons;
-}
-
-// Receives video data
-void KinectApp::onVideoData( Surface8u surface, const DeviceOptions &deviceOptions )
-{
-	mVideoSurface = surface;
 }
 
 // Prepare window
@@ -276,7 +223,7 @@ void KinectApp::resetStats()
 {
 	mFrameRateDepth		= 0.0f;
 	mFrameRateSkeletons	= 0.0f;
-	mFrameRateVideo		= 0.0f;
+	mFrameRateColor		= 0.0f;
 	mUserCount			= 0;
 }
 
@@ -289,7 +236,6 @@ void KinectApp::screenShot()
 // Set up
 void KinectApp::setup()
 {
-
 	// Set up OpenGL
 	glLineWidth( 2.0f );
 	gl::color( ColorAf::white() );
@@ -304,8 +250,8 @@ void KinectApp::setup()
 	mCapture				= true;
 	mCapturePrev			= mCapture;
 	mDeviceCount			= 0;
-	mEnabledAudio			= true;
-	mEnabledAudioPrev		= true;
+	mEnabledColor			= true;
+	mEnabledColorPrev		= mEnabledColor;
 	mEnabledDepth			= true;
 	mEnabledDepthPrev		= mEnabledDepth;
 	mEnabledNearMode		= false;
@@ -315,14 +261,12 @@ void KinectApp::setup()
 	mEnabledSkeletons		= true;
 	mEnabledSkeletonsPrev	= mEnabledSkeletons;
 	mEnabledStats			= true;
-	mEnabledVideo			= true;
-	mEnabledVideoPrev		= mEnabledVideo;
 	mFlipped				= false;
 	mFlippedPrev			= mFlipped;
 	mFrameRateApp			= 0.0f;
 	mFrameRateDepth			= 0.0f;
 	mFrameRateSkeletons		= 0.0f;
-	mFrameRateVideo			= 0.0f;
+	mFrameRateColor			= 0.0f;
 	mFullScreen				= isFullScreen();
 	mInverted				= false;
 	mInvertedPrev			= mInverted;
@@ -336,11 +280,8 @@ void KinectApp::setup()
 
 	// Add callbacks
 	mCallbackDepthId	= mKinect->addDepthCallback( &KinectApp::onDepthData, this );
-	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback( &KinectApp::onSkeletonAudioData, this );
-	mCallbackVideoId	= mKinect->addVideoCallback( &KinectApp::onVideoData, this );
-
-	// Start audio capture
-	startAudio();
+	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback( &KinectApp::onSkeletonData, this );
+	mCallbackColorId	= mKinect->addColorCallback( &KinectApp::onColorData, this );
 
 	// Setup the parameters
 	mParams = params::InterfaceGl( "Parameters", Vec2i( 245, 500 ) );
@@ -352,17 +293,16 @@ void KinectApp::setup()
 	mParams.addText( "STATISTICS");
 	mParams.addParam( "Collect statistics",		&mEnabledStats,							"key=t"					);
 	mParams.addParam( "App frame rate",			&mFrameRateApp,							"", true				);
+	mParams.addParam( "Color frame rate",		&mFrameRateColor,						"", true				);
 	mParams.addParam( "Depth frame rate",		&mFrameRateDepth,						"", true				);
 	mParams.addParam( "Skeleton frame rate",	&mFrameRateSkeletons,					"", true				);
-	mParams.addParam( "Video frame rate",		&mFrameRateVideo,						"", true				);
 	mParams.addParam( "User count",				&mUserCount,							"", true				);
 	mParams.addSeparator();
 	mParams.addText( "CAPTURE" );
 	mParams.addParam( "Capture",				&mCapture,								"key=c" 				);
-	mParams.addParam( "Audio",					&mEnabledAudio,							"key=a" 				);
 	mParams.addParam( "Depth",					&mEnabledDepth,							"key=d" 				);
 	mParams.addParam( "Skeletons",				&mEnabledSkeletons,						"key=k" 				);
-	mParams.addParam( "Video",					&mEnabledVideo,							"key=v" 				);
+	mParams.addParam( "Color",					&mEnabledColor,							"key=v" 				);
 	mParams.addSeparator();
 	mParams.addText( "INPUT");
 	mParams.addParam( "Remove background",		&mRemoveBackground,						"key=b" 				);
@@ -375,60 +315,23 @@ void KinectApp::setup()
 	mParams.addText( "APPLICATION" );
 	mParams.addParam( "Full screen",			&mFullScreen,							"key=f"					);
 	mParams.addButton( "Screen shot",			bind( &KinectApp::screenShot, this ),	"key=s"					);
-	mParams.addButton( "Quit",					bind( &KinectApp::quit, this ),			"key=esc"				);
-
+	mParams.addButton( "Quit",					bind( &KinectApp::quit, this ),			"key=q"				);
 }
 
 // Quit
 void KinectApp::shutdown()
 {
-
 	// Stop input
-	stopAudio();
 	mKinect->removeCallback( mCallbackDepthId );
 	mKinect->removeCallback( mCallbackSkeletonId );
-	mKinect->removeCallback( mCallbackVideoId );
+	mKinect->removeCallback( mCallbackColorId );
 	mKinect->stop();
-
-	// Clean up
-	if ( mData != 0 ) {
-		delete mData;
-	}
 	mSkeletons.clear();
-
-}
-
-// Starts audio input
-void KinectApp::startAudio()
-{
-
-	// Initialize audio device
-	if ( !mInput ) {
-		mInput = AudioInput::create();
-	}
-
-	// Find Kinect audio
-	int32_t deviceId = -1;
-	int32_t audioDeviceIndex = 0;
-	DeviceList devices = mInput->getDeviceList();
-	for ( DeviceList::const_iterator deviceIt = devices.cbegin(); deviceIt != devices.cend(); ++deviceIt, audioDeviceIndex ) {
-		if ( boost::contains( boost::to_lower_copy( deviceIt->second ), "kinect" ) ) {
-			deviceId = deviceIt->first;
-			audioDeviceIndex++;
-		}
-	}
-
-	// Start receiving audio
-	mInput->setDevice( deviceId );
-	mCallbackId = mInput->addCallback( & KinectApp::onAudioData, this );
-	mInput->start();
-
 }
 
 // Start Kinect input
 void KinectApp::startKinect()
 {
-
 	// Update device count
 	mDeviceCount = Kinect::getDeviceCount();
 	
@@ -436,7 +339,7 @@ void KinectApp::startKinect()
 	mDeviceOptions.enableDepth( mEnabledDepth );
 	mDeviceOptions.enableNearMode( mEnabledNearMode );
 	mDeviceOptions.enableSkeletonTracking( mEnabledSkeletons, mEnabledSeatedMode );
-	mDeviceOptions.enableVideo( mEnabledVideo );
+	mDeviceOptions.enableColor( mEnabledColor );
 	mKinect->enableBinaryMode( mBinaryMode );
 	mKinect->removeBackground( mRemoveBackground );
 	mKinect->setFlipped( mFlipped );
@@ -458,25 +361,11 @@ void KinectApp::startKinect()
 
 	// Clear stats
 	resetStats();
-
-}
-
-// Stops audio indput
-void KinectApp::stopAudio()
-{
-
-	// Stop input
-	mInput->stop();
-	mInput->removeCallback( mCallbackId );
-	while ( mInput->isReceiving() ) {
-	}
-
 }
 
 // Runs update logic
 void KinectApp::update()
 {
-
 	// Update frame rate
 	mFrameRateApp = getAverageFps();
 
@@ -501,32 +390,24 @@ void KinectApp::update()
 	if ( mCapture != mCapturePrev ) {
 		mCapturePrev = mCapture;
 		if ( mCapture ) {
-			mInput->start();
 			startKinect();
 		} else {
-			mInput->stop();
 			mKinect->stop();
 		}
 	}
 
-	// Toggle audio
-	if ( mEnabledAudio != mEnabledAudioPrev ) {
-		mEnabledAudio ? startAudio() : stopAudio();
-		mEnabledAudioPrev = mEnabledAudio;
-	}
-
 	// Toggle input tracking types (requires device restart)
-	if ( mEnabledDepth		!= mEnabledDepthPrev		|| 
+	if ( mEnabledColor		!= mEnabledColorPrev		|| 
+		mEnabledDepth		!= mEnabledDepthPrev		|| 
 		mEnabledNearMode	!= mEnabledNearModePrev		|| 
 		mEnabledSeatedMode	!= mEnabledSeatedModePrev	|| 
-		mEnabledSkeletons	!= mEnabledSkeletonsPrev	|| 
-		mEnabledVideo		!= mEnabledVideoPrev ) {
+		mEnabledSkeletons	!= mEnabledSkeletonsPrev	) {
 		startKinect();
+		mEnabledColorPrev		= mEnabledColor;
 		mEnabledDepthPrev		= mEnabledDepth;
 		mEnabledNearModePrev	= mEnabledNearMode;
 		mEnabledSeatedModePrev	= mEnabledSeatedMode;
 		mEnabledSkeletonsPrev	= mEnabledSkeletons;
-		mEnabledVideoPrev		= mEnabledVideo;
 	}
 
 	// Toggle binary mode
@@ -556,10 +437,10 @@ void KinectApp::update()
 			mUserCount			= mKinect->getUserCount();
 		
 			// Update frame rates
+			mFrameRateColor		= mKinect->getColorFrameRate();
 			mFrameRateDepth		= mKinect->getDepthFrameRate();
 			mFrameRateSkeletons	= mKinect->getSkeletonFrameRate();
-			mFrameRateVideo		= mKinect->getVideoFrameRate();
-
+			
 		} else {
 
 			// Clear stats
@@ -575,7 +456,6 @@ void KinectApp::update()
 		}
 
 	}
-
 }
 
 // Run application
