@@ -1,6 +1,6 @@
 /*
 * 
-* Copyright (c) 2012, Ban the Rewind
+* Copyright (c) 2013, Ban the Rewind
 * All rights reserved.
 * 
 * Redistribution and use in source and binary forms, with or 
@@ -149,7 +149,7 @@ void SkeletonApp::keyDown( KeyEvent event )
 
 	// Quit, toggle fullscreen
 	switch ( event.getCode() ) {
-	case KeyEvent::KEY_ESCAPE:
+	case KeyEvent::KEY_q:
 		quit();
 		break;
 	case KeyEvent::KEY_f:
@@ -187,7 +187,7 @@ void SkeletonApp::setup()
 
 	// Start Kinect
 	mKinect = Kinect::create();
-	mKinect->start( DeviceOptions().enableDepth( false ).enableVideo( false ) );
+	mKinect->start( DeviceOptions().enableDepth( false ).enableColor( false ) );
 	mKinect->removeBackground();
 
 	// Set the skeleton smoothing to remove jitters. Better smoothing means

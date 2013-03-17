@@ -1,6 +1,6 @@
 /*
 * 
-* Copyright (c) 2012, Ban the Rewind
+* Copyright (c) 2013, Ban the Rewind
 * All rights reserved.
 * 
 * Redistribution and use in source and binary forms, with or 
@@ -62,8 +62,8 @@ public:
 	// Cinder callbacks
 	void								draw();
 	void								keyDown( ci::app::KeyEvent event );
-	void								prepareSettings( ci::app::AppBasic::Settings *settings );
-	void								resize( ci::app::ResizeEvent event );
+	void								prepareSettings( ci::app::AppBasic::Settings* settings );
+	void								resize();
 	void								shutdown();
 	void								setup();
 	void								update();
@@ -76,8 +76,8 @@ private:
 	KinectSdk::KinectRef				mKinect;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
 	ci::gl::Texture						mTextureDepth;
-	void								onDepthData( ci::Surface16u  surface, const KinectSdk::DeviceOptions &deviceOptions );
-	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions );
+	void								onDepthData( ci::Surface16u  surface, const KinectSdk::DeviceOptions& deviceOptions );
+	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions& deviceOptions );
 
 	// VBO
 	ci::gl::GlslProg					mShader;
@@ -169,7 +169,7 @@ void PointCloudGpuApp::keyDown( KeyEvent event )
 
 	// Key on key...
 	switch ( event.getCode() ) {
-	case KeyEvent::KEY_ESCAPE:
+	case KeyEvent::KEY_q:
 		quit();
 		break;
 	case KeyEvent::KEY_f:
@@ -182,25 +182,25 @@ void PointCloudGpuApp::keyDown( KeyEvent event )
 
 }
 
-void PointCloudGpuApp::onDepthData( Surface16u surface, const DeviceOptions &deviceOptions )
+void PointCloudGpuApp::onDepthData( Surface16u surface, const DeviceOptions& deviceOptions )
 {
 	mTextureDepth = gl::Texture(  surface );
 }
 
-void PointCloudGpuApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
+void PointCloudGpuApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions& deviceOptions )
 {
 	mSkeletons = skeletons;
 }
 
 // Prepare window
-void PointCloudGpuApp::prepareSettings( Settings *settings )
+void PointCloudGpuApp::prepareSettings( Settings* settings )
 {
 	settings->setWindowSize( 800, 600 );
 	settings->setFrameRate( 60.0f );
 }
 
 // Handles window resizw
-void PointCloudGpuApp::resize(ResizeEvent event)
+void PointCloudGpuApp::resize()
 {
 
 	// Set up OpenGL
@@ -239,11 +239,11 @@ void PointCloudGpuApp::setup()
 	mKinect = Kinect::create();
 	mKinect->removeBackground();
 	mKinect->enableUserColor( false );
-	mKinect->start( DeviceOptions().enableVideo( false ) );
+	mKinect->start( DeviceOptions().enableColor( false ) );
 
 	// Add callbacks
-	mCallbackDepthId = mKinect->addDepthCallback( &PointCloudGpuApp::onDepthData, this );
-	mCallbackSkeletonId = mKinect->addSkeletonTrackingCallback( &PointCloudGpuApp::onSkeletonData, this );
+	mCallbackDepthId = mKinect->addDepthCallback(& PointCloudGpuApp::onDepthData, this );
+	mCallbackSkeletonId = mKinect->addSkeletonTrackingCallback(& PointCloudGpuApp::onSkeletonData, this );
 
 	// VBO data
 	vector<uint32_t> vboIndices;
@@ -294,7 +294,7 @@ void PointCloudGpuApp::setup()
 	vboTexCoords.clear();
 
 	// Run first window resize
-	resize( ResizeEvent( getWindowSize() ) );
+	resize();
 
 	// Set default properties
 	mDepth = 500.0f;
@@ -312,8 +312,8 @@ void PointCloudGpuApp::setup()
 	mParams.addText( "APPLICATION" );
 	mParams.addParam( "Frame rate",			&mFrameRate,									"", true												);
 	mParams.addParam( "Full screen",		&mFullScreen,									"key=f"													);
-	mParams.addButton( "Screen shot",		bind( &PointCloudGpuApp::screenShot, this ),	"key=s"													);
-	mParams.addButton( "Quit",				bind( &PointCloudGpuApp::quit, this ),			"key=esc"												);
+	mParams.addButton( "Screen shot",		bind(& PointCloudGpuApp::screenShot, this ),	"key=s"													);
+	mParams.addButton( "Quit",				bind(& PointCloudGpuApp::quit, this ),			"key=q"												);
 	mParams.addSeparator();
 	mParams.addText( "CAMERA" );
 	mParams.addParam( "Eye point",			&mEyePoint																								);

@@ -2,7 +2,7 @@
 <cinder>
 <block
 	name="MSKinect"
-	id="org.bantherewind.mskinect"
+	id="mskinect.bantherewind.com"
 	author="Stephen Schieberl"
 	license="BSD"
 	summary="Kinect support using the official Microsoft SDK"

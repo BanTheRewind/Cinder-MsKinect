@@ -22,6 +22,12 @@
     <ClCompile Include="..\src\KinectApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\Kinect.cpp">
+      <Filter>blocks\Cinder-KinectSdk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Cinder-AudioInputWin\src\AudioInput.cpp">
+      <Filter>blocks\Cinder-AudioInputWin</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources.rc">

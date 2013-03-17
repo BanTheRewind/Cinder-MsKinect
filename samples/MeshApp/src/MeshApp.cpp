@@ -1,6 +1,6 @@
 /*
 * 
-* Copyright (c) 2012, Ban the Rewind
+* Copyright (c) 2013, Ban the Rewind
 * All rights reserved.
 * 
 * Redistribution and use in source and binary forms, with or 
@@ -63,7 +63,7 @@ public:
 	void								draw();
 	void								keyDown( ci::app::KeyEvent event );
 	void								prepareSettings( ci::app::AppBasic::Settings *settings );
-	void								resize( ci::app::ResizeEvent event );
+	void								resize();
 	void								shutdown();
 	void								setup();
 	void								update();
@@ -77,21 +77,21 @@ private:
 	bool								mRemoveBackground;
 	bool								mRemoveBackgroundPrev;
 	ci::Vec3f							mScale;
-	bool								mShowVideo;
+	bool								mShowColor;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
 	ci::gl::Texture						mTextureDepth;
 	ci::gl::Texture::Format				mTextureFormat;
-	ci::gl::Texture						mTextureVideo;
-	float								mVideoOffsetX;
-	float								mVideoOffsetY;
+	ci::gl::Texture						mTextureColor;
+	float								mColorOffsetX;
+	float								mColorOffsetY;
 
 	// Kinect callbacks
 	int32_t								mCallbackDepthId;
 	int32_t								mCallbackSkeletonId;
-	int32_t								mCallbackVideoId;
-	void								onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions &deviceOptions );
-	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions &deviceOptions );
-	void								onVideoData( ci::Surface8u surface, const KinectSdk::DeviceOptions &deviceOptions );
+	int32_t								mCallbackColorId;
+	void								onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions& deviceOptions );
+	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions& deviceOptions );
+	void								onColorData( ci::Surface8u surface, const KinectSdk::DeviceOptions& deviceOptions );
 
 	// VBO
 	void								initMesh();
@@ -121,7 +121,7 @@ private:
 
 	// Debugging
 	void								screenShot();
-	void								trace( const std::string & message );
+	void								trace( const std::string&  message );
 
 };
 
@@ -145,7 +145,7 @@ void MeshApp::draw()
 	gl::color( ColorAf::white() );
 
 	// Check texture and VBO
-	if ( mTextureDepth && mTextureVideo && mVboMesh ) {
+	if ( mTextureDepth && mTextureColor && mVboMesh ) {
 
 		// Position world
 		gl::pushMatrices();
@@ -154,7 +154,7 @@ void MeshApp::draw()
 
 		// Bind textures
 		mTextureDepth.bind( 0 );
-		mTextureVideo.bind( 1 );
+		mTextureColor.bind( 1 );
 		
 		// Bind and configure shader
 		mShader.bind();
@@ -166,10 +166,10 @@ void MeshApp::draw()
 		mShader.uniform( "lightSpecular",	mLightSpecular 							);
 		mShader.uniform( "positions",		0 										);
 		mShader.uniform( "scale",			mScale 									);
-		mShader.uniform( "showVideo",		mShowVideo 								);
+		mShader.uniform( "showColor",		mShowColor 								);
 		mShader.uniform( "shininess",		mLightShininess 						);
-		mShader.uniform( "video",			1 										);
-		mShader.uniform( "videoOffset",		Vec2f( mVideoOffsetX, mVideoOffsetY )	);
+		mShader.uniform( "Color",			1 										);
+		mShader.uniform( "ColorOffset",		Vec2f( mColorOffsetX, mColorOffsetY )	);
 		mShader.uniform( "uvmix",			mMeshUvMix								);
 
 		// Draw VBO
@@ -178,7 +178,7 @@ void MeshApp::draw()
 		// Stop drawing
 		mShader.unbind();
 		mTextureDepth.unbind();
-		mTextureVideo.unbind();
+		mTextureColor.unbind();
 		gl::popMatrices();
 
 	}
@@ -283,7 +283,7 @@ void MeshApp::keyDown( KeyEvent event )
 
 	// Key on key...
 	switch ( event.getCode() ) {
-	case KeyEvent::KEY_ESCAPE:
+	case KeyEvent::KEY_q:
 		quit();
 		break;
 	case KeyEvent::KEY_f:
@@ -297,25 +297,25 @@ void MeshApp::keyDown( KeyEvent event )
 }
 
 // Receives depth data 
-void MeshApp::onDepthData( Surface16u surface, const DeviceOptions &deviceOptions )
+void MeshApp::onDepthData( Surface16u surface, const DeviceOptions& deviceOptions )
 {
 	mTextureDepth = gl::Texture( surface );
 }
 
 // Receives skeleton data
-void MeshApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
+void MeshApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions& deviceOptions )
 {
 	mSkeletons = skeletons;
 }
 
-// Receives video data
-void MeshApp::onVideoData( Surface8u surface, const DeviceOptions &deviceOptions )
+// Receives Color data
+void MeshApp::onColorData( Surface8u surface, const DeviceOptions& deviceOptions )
 {
-	if ( mTextureVideo ) {
-		mTextureVideo.update( surface, surface.getBounds() );
+	if ( mTextureColor ) {
+		mTextureColor.update( surface, surface.getBounds() );
 	} else {
-		mTextureVideo = gl::Texture( surface );
-		mTextureVideo.setWrap( GL_REPEAT, GL_REPEAT );
+		mTextureColor = gl::Texture( surface );
+		mTextureColor.setWrap( GL_REPEAT, GL_REPEAT );
 	}
 }
 
@@ -327,7 +327,7 @@ void MeshApp::prepareSettings( Settings *settings )
 }
 
 // Handles window resize
-void MeshApp::resize( ResizeEvent event )
+void MeshApp::resize()
 {
 
 	// Reset camera
@@ -366,9 +366,9 @@ void MeshApp::setup()
 	mKinect->start();
 
 	// Add callbacks
-	mCallbackDepthId	= mKinect->addDepthCallback( &MeshApp::onDepthData, this );
-	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback( &MeshApp::onSkeletonData, this );
-	mCallbackVideoId	= mKinect->addVideoCallback( &MeshApp::onVideoData, this );
+	mCallbackDepthId	= mKinect->addDepthCallback(& MeshApp::onDepthData, this );
+	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback(& MeshApp::onSkeletonData, this );
+	mCallbackColorId	= mKinect->addColorCallback(& MeshApp::onColorData, this );
 
 	// Set up the light. This application does not actually use OpenGL 
 	// lighting. Instead, it passes a light position and color 
@@ -388,9 +388,9 @@ void MeshApp::setup()
 	mRemoveBackground		= true;
 	mRemoveBackgroundPrev	= mRemoveBackground;
 	mScale					= Vec3f( 1.0f, 1.0f, 500.0f );
-	mShowVideo				= false;
-	mVideoOffsetX			= 0.0f;
-	mVideoOffsetY			= 0.0f;
+	mShowColor				= false;
+	mColorOffsetX			= 0.0f;
+	mColorOffsetY			= 0.0f;
 
 	// Create the parameters bar
 	mParams = params::InterfaceGl( "Parameters", Vec2i( 250, 500 ) );
@@ -403,17 +403,17 @@ void MeshApp::setup()
 	mParams.addParam( "Look at",			&mLookAt																						);
 	mParams.addParam( "Rotation",			&mRotation																						);
 	mParams.addSeparator();
-	mParams.addParam( "Show video",			&mShowVideo,						"key=d"														);
-	mParams.addParam( "Video offset X",		&mVideoOffsetX,						"min=0.000 max=1.000 step=0.001 keyDecr=e keyIncr=E"		);
-	mParams.addParam( "Video offset Y",		&mVideoOffsetY,						"min=0.000 max=1.000 step=0.001 keyDecr=f keyIncr=F"		);
+	mParams.addParam( "Show Color",			&mShowColor,						"key=d"														);
+	mParams.addParam( "Color offset X",		&mColorOffsetX,						"min=0.000 max=1.000 step=0.001 keyDecr=e keyIncr=E"		);
+	mParams.addParam( "Color offset Y",		&mColorOffsetY,						"min=0.000 max=1.000 step=0.001 keyDecr=f keyIncr=F"		);
 	mParams.addSeparator();
 	mParams.addParam( "Light position",		&mLightPosition																					);
 	mParams.addParam( "Light shininess",	&mLightShininess,					"min=0.000 max=10000.000 step=0.001 keyDecr=g keyIncr=G"	);
 	mParams.addSeparator();
 	mParams.addParam( "Frame rate",			&mFrameRate,						"", true													);
 	mParams.addParam( "Full screen",		&mFullScreen,						"key=h"														);
-	mParams.addButton( "Save screen shot",	bind( &MeshApp::screenShot, this ),	"key=space"													);
-	mParams.addButton( "Quit",				bind( &MeshApp::quit, this ),		"key=esc"													);
+	mParams.addButton( "Save screen shot",	bind(& MeshApp::screenShot, this ),	"key=space"													);
+	mParams.addButton( "Quit",				bind(& MeshApp::quit, this ),		"key=esc"													);
 
 	// Initialize texture
 	mTextureFormat.setInternalFormat( GL_RGBA_FLOAT32_ATI );
@@ -423,7 +423,7 @@ void MeshApp::setup()
 	initMesh();
 
 	// Run first window resize
-	resize( ResizeEvent( getWindowSize() ) );
+	resize();
 
 }
 
@@ -434,7 +434,7 @@ void MeshApp::shutdown()
 	// Stop input
 	mKinect->removeCallback( mCallbackDepthId );
 	mKinect->removeCallback( mCallbackSkeletonId );
-	mKinect->removeCallback( mCallbackVideoId );
+	mKinect->removeCallback( mCallbackColorId );
 	mKinect->stop();
 
 	// Clean up
@@ -443,7 +443,7 @@ void MeshApp::shutdown()
 }
 
 // Debug trace
-void MeshApp::trace( const string & message )
+void MeshApp::trace( const string& message )
 {
 
 	// Write to console and debug window

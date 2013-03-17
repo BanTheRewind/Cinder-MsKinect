@@ -1,6 +1,6 @@
 /*
 * 
-* Copyright (c) 2012, Ban the Rewind
+* Copyright (c) 2013, Ban the Rewind
 * All rights reserved.
 * 
 * Redistribution and use in source and binary forms, with or 
@@ -122,7 +122,7 @@ void ContoursApp::keyDown( KeyEvent event )
 
 	// Key on key...
 	switch ( event.getCode() ) {
-	case KeyEvent::KEY_ESCAPE:
+	case KeyEvent::KEY_q:
 		quit();
 		break;
 	case KeyEvent::KEY_f:
@@ -173,7 +173,7 @@ void ContoursApp::setup()
 
 	// Start Kinect
 	mKinect = Kinect::create();
-	mKinect->start( DeviceOptions().enableVideo( false ).setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_80x60 ) );
+	mKinect->start( DeviceOptions().enableColor( false ).setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_80x60 ) );
 	mKinect->removeBackground();
 	mKinect->enableBinaryMode( true );
 

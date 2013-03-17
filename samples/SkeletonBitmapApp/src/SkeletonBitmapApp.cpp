@@ -1,6 +1,6 @@
 /*
 * 
-* Copyright (c) 2012, Ban the Rewind
+* Copyright (c) 2013, Ban the Rewind
 * All rights reserved.
 * 
 * Redistribution and use in source and binary forms, with or 
@@ -68,10 +68,10 @@ private:
 
 	// Kinect callbacks
 	uint32_t							mCallbackSkeletonId;
-	uint32_t							mCallbackVideoId;
+	uint32_t							mCallbackColorId;
 	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, 
 		const KinectSdk::DeviceOptions &deviceOptions );
-	void								onVideoData( ci::Surface8u surface, 
+	void								onColorData( ci::Surface8u surface, 
 		const KinectSdk::DeviceOptions &deviceOptions );
 
 	void screenShot();
@@ -118,8 +118,8 @@ void SkeletonBitmapApp::draw()
 				const Bone& bone		= boneIt->second;
 				Vec3f position			= bone.getPosition();
 				Vec3f destination		= skeletonIt->at( bone.getStartJoint() ).getPosition();
-				Vec2f positionScreen	= Vec2f( mKinect->getSkeletonVideoPos( position ) );
-				Vec2f destinationSceen	= Vec2f( mKinect->getSkeletonVideoPos( destination ) );
+				Vec2f positionScreen	= Vec2f( mKinect->getSkeletonColorPos( position ) );
+				Vec2f destinationSceen	= Vec2f( mKinect->getSkeletonColorPos( destination ) );
 
 				// Draw bone
 				gl::drawLine( positionScreen, destinationSceen );
@@ -143,7 +143,7 @@ void SkeletonBitmapApp::keyDown( KeyEvent event )
 
 	// Quit, toggle fullscreen
 	switch ( event.getCode() ) {
-	case KeyEvent::KEY_ESCAPE:
+	case KeyEvent::KEY_q:
 		quit();
 		break;
 	case KeyEvent::KEY_f:
@@ -163,8 +163,8 @@ void SkeletonBitmapApp::onSkeletonData( vector<Skeleton> skeletons, const Device
 	mSkeletons = skeletons;
 }
 
-// Receives video data
-void SkeletonBitmapApp::onVideoData( Surface8u surface, const DeviceOptions &deviceOptions )
+// Receives Color data
+void SkeletonBitmapApp::onColorData( Surface8u surface, const DeviceOptions &deviceOptions )
 {
 	if ( mTexture ) {
 		mTexture.update( surface );
@@ -189,7 +189,6 @@ void SkeletonBitmapApp::screenShot()
 // Set up
 void SkeletonBitmapApp::setup()
 {
-
 	// Set up OpenGL
 	glLineWidth( 2.0f );
 	gl::color( ColorAf::white() );
@@ -200,40 +199,33 @@ void SkeletonBitmapApp::setup()
 
 	// Add callbacks
 	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback( &SkeletonBitmapApp::onSkeletonData, this );
-	mCallbackVideoId	= mKinect->addVideoCallback( &SkeletonBitmapApp::onVideoData, this );
-
+	mCallbackColorId	= mKinect->addColorCallback( &SkeletonBitmapApp::onColorData, this );
 }
 
 // Called on exit
 void SkeletonBitmapApp::shutdown()
 {
-
 	// Stop input
 	mKinect->removeCallback( mCallbackSkeletonId );
-	mKinect->removeCallback( mCallbackVideoId );
+	mKinect->removeCallback( mCallbackColorId );
 	mKinect->stop();
 
 	// Clean up
 	mSkeletons.clear();
-
 }
 
 // Runs update logic
 void SkeletonBitmapApp::update()
 {
-
 	// Kinect is capturing
 	if ( mKinect->isCapturing() ) {
 		mKinect->update();
 	} else {
-
 		// If Kinect initialization failed, try again every 90 frames
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mKinect->start();
 		}
-
 	}
-
 }
 
 // Run application
