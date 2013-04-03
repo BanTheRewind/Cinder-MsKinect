@@ -82,7 +82,7 @@ public:
 	const ci::Matrix44f&	getRotationMatrix() const;
 	//! Returns index of start joint.
 	JointName				getStartJoint() const;
-private:
+protected:
 	Bone( const Vector4& position, const _NUI_SKELETON_BONE_ORIENTATION& bone );
 	ci::Matrix44f	mAbsRotMat;
 	ci::Quatf		mAbsRotQuat;
@@ -277,7 +277,7 @@ public:
 	//! Sets skeleton transform type.
 	void							setTransform( int_fast8_t transform = TRANSFORM_DEFAULT );
 
-private:
+protected:
 	typedef boost::signals2::connection			Callback;
 	typedef std::shared_ptr<Callback>			CallbackRef;
 	typedef std::map<uint32_t, CallbackRef>		CallbackList;
