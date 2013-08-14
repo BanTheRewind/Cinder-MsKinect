@@ -4,15 +4,25 @@ device.
 The "ContoursApp" sample requires "Cinder-OpenCV":
 https://github.com/cinder/Cinder-OpenCV
 
-The "KinectApp" sample requires "Cinder-AudioInputWin":
-https://github.com/BanTheRewind/Cinder-AudioInputWin
-
 Installation instructions, changelog, and more information here:
 http://www.bantherewind.com/kinectsdk-for-cinder
 
 -----------------------------------------
 
-Version 1.6.0
+Version 1.7.0b
+
+TO DO
+
+* Add infrared stream
+* Add extended depth data
+* Implement new depth API
+* Color camera settings (white balance, contrast, hue, saturation, etc)
+* Add accelerometer reading
+* Implement sensor chooser
+* Fusion sample
+* Interaction sample
+* Optional: FaceTracker sample (review improved API)
+* Optional: Beam sample
 
 -----------------------------------------
 

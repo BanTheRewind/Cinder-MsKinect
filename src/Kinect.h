@@ -35,7 +35,6 @@
 */
 
 #pragma once
-
 #if defined( _DEBUG )
 #pragma comment( lib, "comsuppwd.lib" )
 #else
