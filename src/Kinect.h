@@ -373,3 +373,4 @@ private:
 	friend void CALLBACK			deviceStatus( long hr, const WCHAR* instanceName, const WCHAR* deviceId, void* data );
 };
 }
+ 
