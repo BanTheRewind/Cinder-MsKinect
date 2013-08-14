@@ -172,8 +172,8 @@ class Kinect
 {
 public:
 
-	/*! Skeleton smoothing enumeration. Smoother transform improve skeleton accuracy, 
-		but increase latency. */
+	/*! Skeleton smoothing enumeration. Smoother transform improves skeleton accuracy, 
+		but increases latency. */
 	enum : uint_fast8_t
 	{
 		TRANSFORM_NONE, TRANSFORM_DEFAULT, TRANSFORM_SMOOTH, TRANSFORM_VERY_SMOOTH, TRANSFORM_MAX
