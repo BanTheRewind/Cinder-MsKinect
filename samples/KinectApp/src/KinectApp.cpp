@@ -112,7 +112,7 @@ private:
 	float								mFrameRateDepth;
 	float								mFrameRateSkeletons;
 	bool								mFullScreen;
-	ci::params::InterfaceGl				mParams;
+	ci::params::InterfaceGlRef			mParams;
 	bool								mRemoveBackground;
 	bool								mRemoveBackgroundPrev;
 	void								resetStats();
@@ -190,7 +190,7 @@ void KinectApp::draw()
 	}
 
 	// Draw the interface
-	params::InterfaceGl::draw();
+	mParams->draw();
 }
 
 // Receives color data
@@ -284,38 +284,38 @@ void KinectApp::setup()
 	mCallbackColorId	= mKinect->addColorCallback( &KinectApp::onColorData, this );
 
 	// Setup the parameters
-	mParams = params::InterfaceGl( "Parameters", Vec2i( 245, 500 ) );
-	mParams.addText( "DEVICE" );
-	mParams.addParam( "Device count",			&mDeviceCount,							"", true				);
-	mParams.addParam( "Device angle",			&mTilt,									"min=-" + 
+	mParams = params::InterfaceGl::create( "Parameters", Vec2i( 245, 500 ) );
+	mParams->addText( "DEVICE" );
+	mParams->addParam( "Device count",			&mDeviceCount,							"", true				);
+	mParams->addParam( "Device angle",			&mTilt,									"min=-" + 
 		toString( Kinect::MAXIMUM_TILT_ANGLE ) + " max=" + toString( Kinect::MAXIMUM_TILT_ANGLE ) + " step=1"	);
-	mParams.addSeparator();
-	mParams.addText( "STATISTICS");
-	mParams.addParam( "Collect statistics",		&mEnabledStats,							"key=t"					);
-	mParams.addParam( "App frame rate",			&mFrameRateApp,							"", true				);
-	mParams.addParam( "Color frame rate",		&mFrameRateColor,						"", true				);
-	mParams.addParam( "Depth frame rate",		&mFrameRateDepth,						"", true				);
-	mParams.addParam( "Skeleton frame rate",	&mFrameRateSkeletons,					"", true				);
-	mParams.addParam( "User count",				&mUserCount,							"", true				);
-	mParams.addSeparator();
-	mParams.addText( "CAPTURE" );
-	mParams.addParam( "Capture",				&mCapture,								"key=c" 				);
-	mParams.addParam( "Depth",					&mEnabledDepth,							"key=d" 				);
-	mParams.addParam( "Skeletons",				&mEnabledSkeletons,						"key=k" 				);
-	mParams.addParam( "Color",					&mEnabledColor,							"key=v" 				);
-	mParams.addSeparator();
-	mParams.addText( "INPUT");
-	mParams.addParam( "Remove background",		&mRemoveBackground,						"key=b" 				);
-	mParams.addParam( "Binary depth mode",		&mBinaryMode,							"key=w" 				);
-	mParams.addParam( "Invert binary image",	&mInverted,								"key=i" 				);
-	mParams.addParam( "Flip input",				&mFlipped,								"key=m" 				);
-	mParams.addParam( "Near mode",				&mEnabledNearMode,						"key=n" 				);
-	mParams.addParam( "Seated mode",			&mEnabledSeatedMode,					"key=e" 				);
-	mParams.addSeparator();
-	mParams.addText( "APPLICATION" );
-	mParams.addParam( "Full screen",			&mFullScreen,							"key=f"					);
-	mParams.addButton( "Screen shot",			bind( &KinectApp::screenShot, this ),	"key=s"					);
-	mParams.addButton( "Quit",					bind( &KinectApp::quit, this ),			"key=q"				);
+	mParams->addSeparator();
+	mParams->addText( "STATISTICS");
+	mParams->addParam( "Collect statistics",		&mEnabledStats,							"key=t"					);
+	mParams->addParam( "App frame rate",			&mFrameRateApp,							"", true				);
+	mParams->addParam( "Color frame rate",		&mFrameRateColor,						"", true				);
+	mParams->addParam( "Depth frame rate",		&mFrameRateDepth,						"", true				);
+	mParams->addParam( "Skeleton frame rate",	&mFrameRateSkeletons,					"", true				);
+	mParams->addParam( "User count",				&mUserCount,							"", true				);
+	mParams->addSeparator();
+	mParams->addText( "CAPTURE" );
+	mParams->addParam( "Capture",				&mCapture,								"key=c" 				);
+	mParams->addParam( "Depth",					&mEnabledDepth,							"key=d" 				);
+	mParams->addParam( "Skeletons",				&mEnabledSkeletons,						"key=k" 				);
+	mParams->addParam( "Color",					&mEnabledColor,							"key=v" 				);
+	mParams->addSeparator();
+	mParams->addText( "INPUT");
+	mParams->addParam( "Remove background",		&mRemoveBackground,						"key=b" 				);
+	mParams->addParam( "Binary depth mode",		&mBinaryMode,							"key=w" 				);
+	mParams->addParam( "Invert binary image",	&mInverted,								"key=i" 				);
+	mParams->addParam( "Flip input",				&mFlipped,								"key=m" 				);
+	mParams->addParam( "Near mode",				&mEnabledNearMode,						"key=n" 				);
+	mParams->addParam( "Seated mode",			&mEnabledSeatedMode,					"key=e" 				);
+	mParams->addSeparator();
+	mParams->addText( "APPLICATION" );
+	mParams->addParam( "Full screen",			&mFullScreen,							"key=f"					);
+	mParams->addButton( "Screen shot",			bind( &KinectApp::screenShot, this ),	"key=s"					);
+	mParams->addButton( "Quit",					bind( &KinectApp::quit, this ),			"key=q"				);
 }
 
 // Quit

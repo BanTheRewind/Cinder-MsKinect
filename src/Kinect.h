@@ -329,10 +329,10 @@ private:
 	volatile bool					mNewDepthSurface;
 	volatile bool					mNewSkeletons;
 	volatile bool					mNewColorSurface;
-
+	
+	ci::Surface8u					mColorSurface;
 	ci::Surface16u					mDepthSurface;
 	std::vector<Skeleton>			mSkeletons;
-	ci::Surface8u					mColorSurface;
 
 	INuiSensor*						mSensor;
 	double							mTiltRequestTime;
