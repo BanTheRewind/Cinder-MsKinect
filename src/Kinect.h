@@ -103,65 +103,70 @@ public:
 	//! Default settings
 	DeviceOptions();
 
+	//! Returns resolution of color image.
+	ImageResolution			getColorResolution() const; 
+	//! Returns size of color image.
+	const ci::Vec2i&		getColorSize() const; 
+	//! Returns surface channel order for color image.
+	ci::SurfaceChannelOrder	getColorSurfaceChannelOrder() const;
 	//! Returns resolution of depth image.
-	ImageResolution		getDepthResolution() const; 
+	ImageResolution			getDepthResolution() const; 
 	//! Returns size of depth image.
-	const ci::Vec2i&	getDepthSize() const; 
+	const ci::Vec2i&		getDepthSize() const; 
 	//! Returns unique ID for this device.
-	const std::string&	getDeviceId() const;
+	const std::string&		getDeviceId() const;
 	//! Returns 0-index for this device.
-	int32_t				getDeviceIndex() const;
-	//! Returns resolution of video image.
-	ImageResolution		getColorResolution() const; 
-	//! Returns size of video image.
-	const ci::Vec2i&	getColorSize() const; 
+	int32_t					getDeviceIndex() const;
 	//! Returns true if depth tracking is enabled.
-	bool				isDepthEnabled() const;
+	bool					isDepthEnabled() const;
 	//! Returns true if background remove is enabled.
-	bool				isNearModeEnabled() const; 
+	bool					isNearModeEnabled() const; 
 	//! Returns true if seated mode is enabled.
-	bool				isSeatedModeEnabled() const;
+	bool					isSeatedModeEnabled() const;
 	//! Returns true if skeleton tracking is enabled.
-	bool				isSkeletonTrackingEnabled() const;
+	bool					isSkeletonTrackingEnabled() const;
 	//! Returns true if color video stream is enabled.
-	bool				isColorEnabled() const;
+	bool					isColorEnabled() const;
 	//! Returns true if user tracking is enabled.
-	bool				isUserTrackingEnabled() const;
+	bool					isUserTrackingEnabled() const;
 
+	//! Enables color stream.
+	DeviceOptions&			enableColor( bool enable = true );
 	//! Enables depth tracking.
-	DeviceOptions&		enableDepth( bool enable = true );
+	DeviceOptions&			enableDepth( bool enable = true );
 	//! Enables near mode (Kinect for Windows only).
-	DeviceOptions&		enableNearMode( bool enable = true ); 
+	DeviceOptions&			enableNearMode( bool enable = true ); 
 	/*! Enables skeleton tracking. Set \a seatedMode to true to support seated skeletons.
 		Only available on first device running at 320x240. */
-	DeviceOptions&		enableSkeletonTracking( bool enable = true, bool seatedMode = false );
-	//! Enables color video stream.
-	DeviceOptions&		enableColor( bool enable = true );
+	DeviceOptions&			enableSkeletonTracking( bool enable = true, bool seatedMode = false );
 	/*! Enables user tracking. Only available on first device running at 320x240. */
-	DeviceOptions&		enableUserTracking( bool enable = true );
+	DeviceOptions&			enableUserTracking( bool enable = true );
+	//! Sets resolution of color image.
+	DeviceOptions&			setColorResolution( const ImageResolution& resolution = ImageResolution::NUI_IMAGE_RESOLUTION_640x480 );
+	//! Sets surface channel order of color image. Only RGBA abd BGRA are supported. Default is RGBA.
+	DeviceOptions&			setColorSurfaceChannelOrder( ci::SurfaceChannelOrder surfaceChannelOrder = ci::SurfaceChannelOrder::RGBA );
 	//! Sets resolution of depth image.
-	DeviceOptions&		setDepthResolution( const ImageResolution& resolution = ImageResolution::NUI_IMAGE_RESOLUTION_320x240 ); 
+	DeviceOptions&			setDepthResolution( const ImageResolution& resolution = ImageResolution::NUI_IMAGE_RESOLUTION_320x240 ); 
 	//! Starts device with this unique ID.
-	DeviceOptions&		setDeviceId( const std::string& id = "" ); 
+	DeviceOptions&			setDeviceId( const std::string& id = "" ); 
 	//! Starts device with this 0-index.
-	DeviceOptions&		setDeviceIndex( int32_t index = 0 ); 
-	//! Sets resolution of video image.
-	DeviceOptions&		setColorResolution( const ImageResolution& resolution = ImageResolution::NUI_IMAGE_RESOLUTION_640x480 ); 
+	DeviceOptions&			setDeviceIndex( int32_t index = 0 ); 
 private:
-	bool				mEnabledDepth;
-	bool				mEnabledSeatedMode;
-	bool				mEnabledSkeletonTracking;
-	bool				mEnabledUserTracking;
-	bool				mEnabledColor;
+	bool					mEnabledColor;
+	bool					mEnabledDepth;
+	bool					mEnabledSeatedMode;
+	bool					mEnabledSkeletonTracking;
+	bool					mEnabledUserTracking;
+	
+	ImageResolution			mColorResolution;
+	ci::Vec2i				mColorSize;
+	ci::SurfaceChannelOrder	mColorSurfaceChannelOrder;
+	ImageResolution			mDepthResolution;
+	ci::Vec2i				mDepthSize;
 
-	ImageResolution		mDepthResolution;
-	ci::Vec2i			mDepthSize;
-	ImageResolution		mColorResolution;
-	ci::Vec2i			mColorSize;
-
-	std::string			mDeviceId;
-	int32_t				mDeviceIndex;
-	bool				mEnabledNearMode;
+	std::string				mDeviceId;
+	int32_t					mDeviceIndex;
+	bool					mEnabledNearMode;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////

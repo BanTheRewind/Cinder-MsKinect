@@ -55,6 +55,7 @@ public:
 	void update();
 private:
 	ci::CameraPersp						mCamera;
+	FaceTracker::Face					mFace;
 	KinectSdk::KinectRef				mKinect;
 	ci::Surface8u						mSurfaceColor;
 	ci::Surface16u						mSurfaceDepth;
@@ -62,6 +63,7 @@ private:
 
 	void					onColor( ci::Surface8u surface, const KinectSdk::DeviceOptions& deviceOptions );
 	void					onDepth( ci::Surface16u surface, const KinectSdk::DeviceOptions& deviceOptions );
+	void					onFace( FaceTracker::Face face );
 	void					onSkeleton( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions& deviceOptions );
 
 	FaceTrackerRef			mFaceTracker;
@@ -82,7 +84,13 @@ void FaceTrackingApp::draw()
 {
 	gl::setViewport( getWindowBounds() );
 	gl::clear( Colorf::black() );
-	gl::setMatrices( mCamera );
+	gl::setMatricesWindow( getWindowSize() );
+	//gl::setMatrices( mCamera );
+
+	gl::color( ColorAf::white() );
+	if ( mFace.getMesh().getNumIndices() > 0 ) {
+		gl::draw( mFace.getMesh() );
+	}
 }
 
 void FaceTrackingApp::keyDown( KeyEvent event )
@@ -110,6 +118,12 @@ void FaceTrackingApp::onDepth( Surface16u surface, const DeviceOptions& deviceOp
 	mSurfaceDepth = surface;
 }
 
+void FaceTrackingApp::onFace( FaceTracker::Face face )
+{
+	mFace = face;
+	console() << mFace.getBounds() << endl;
+}
+
 void FaceTrackingApp::onSkeleton( vector<Skeleton> skeletons, const DeviceOptions& deviceOptions )
 {
 	mSkeletons = skeletons;
@@ -131,14 +145,33 @@ void FaceTrackingApp::setup()
 	mCamera.setPerspective( 60.0f, getWindowAspectRatio(), 1.0f, 1000.0f );
 	mCamera.lookAt( Vec3f( 0.0f, 0.0f, 670.0f ), Vec3f::zero() );
 
+	// Face tracker expects 640x480 BGRA color image. Depth image
+	// must match.
+	DeviceOptions deviceOptions;
+	deviceOptions.setColorSurfaceChannelOrder( SurfaceChannelOrder::BGRA );
+	deviceOptions.setColorResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 );
+	deviceOptions.setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 );
+
 	mKinect = Kinect::create();
 	mKinect->addColorCallback( &FaceTrackingApp::onColor, this );
 	mKinect->addDepthCallback( &FaceTrackingApp::onDepth, this );
 	mKinect->addSkeletonTrackingCallback( &FaceTrackingApp::onSkeleton, this );
-	mKinect->start();
+	mKinect->start( deviceOptions );
 
 	mFaceTracker = FaceTracker::create();
-	mFaceTracker->start( mKinect->getDeviceOptions() );
+	mFaceTracker->connectEventHander( &FaceTrackingApp::onFace, this );
+	try {
+		mFaceTracker->start( mKinect->getDeviceOptions() );
+	} catch ( FaceTracker::ExcFaceTrackerCreate ex ) {
+		console() << ex.what() << endl;
+		quit();
+	} catch ( FaceTracker::ExcFaceTrackerCreateResult ex ) {
+		console() << ex.what() << endl;
+		quit();
+	} catch ( FaceTracker::ExcFaceTrackerInit ex ) {
+		console() << ex.what() << endl;
+		quit();
+	}
 }
 
 void FaceTrackingApp::shutdown()
@@ -150,8 +183,10 @@ void FaceTrackingApp::update()
 {
 	if ( mKinect->isCapturing() ) {
 		mKinect->update();
-		mFaceTracker->update( mSurfaceColor, mSurfaceDepth, mSkeletons );
-
+		if ( mFaceTracker->isTracking() ) {
+			mFaceTracker->findFace( mSurfaceColor, mSurfaceDepth );
+			mFaceTracker->update();
+		}
 	} else {
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mKinect->start();

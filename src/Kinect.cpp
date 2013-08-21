@@ -135,14 +135,15 @@ DeviceOptions::DeviceOptions()
 {
 	mDeviceId					= "";
 	mDeviceIndex				= 0;
+	mEnabledColor				= true;
 	mEnabledDepth				= true;
 	mEnabledNearMode			= false;
 	mEnabledSeatedMode			= false;
 	mEnabledSkeletonTracking	= true;
 	mEnabledUserTracking		= true;
-	mEnabledColor				= true;
-	setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_320x240 );
 	setColorResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 );
+	setColorSurfaceChannelOrder( SurfaceChannelOrder::RGBA );
+	setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_320x240 );
 }
 
 DeviceOptions& DeviceOptions::enableDepth( bool enable )
@@ -175,6 +176,21 @@ DeviceOptions& DeviceOptions::enableColor( bool enable )
 	mEnabledColor = enable;
 	return *this;
 }
+	
+ImageResolution DeviceOptions::getColorResolution() const
+{
+	return mColorResolution;
+}
+
+const Vec2i& DeviceOptions::getColorSize() const 
+{
+	return mColorSize;
+}
+
+SurfaceChannelOrder DeviceOptions::getColorSurfaceChannelOrder() const
+{
+	return mColorSurfaceChannelOrder;
+}
 
 ImageResolution DeviceOptions::getDepthResolution() const
 {
@@ -194,16 +210,6 @@ const string& DeviceOptions::getDeviceId() const
 int32_t DeviceOptions::getDeviceIndex() const
 {
 	return mDeviceIndex;
-}
-	
-ImageResolution DeviceOptions::getColorResolution() const
-{
-	return mColorResolution;
-}
-
-const Vec2i& DeviceOptions::getColorSize() const 
-{
-	return mColorSize;
 }
 
 bool DeviceOptions::isDepthEnabled() const
@@ -234,6 +240,34 @@ bool DeviceOptions::isUserTrackingEnabled() const
 bool DeviceOptions::isColorEnabled() const
 {
 	return mEnabledColor;
+}
+
+DeviceOptions& DeviceOptions::setColorResolution( const ImageResolution& resolution )
+{
+	mColorResolution = resolution;
+	switch ( mColorResolution ) {
+	case ImageResolution::NUI_IMAGE_RESOLUTION_1280x960:
+		mColorSize = Vec2i( 1280, 960 );
+		break;
+	case ImageResolution::NUI_IMAGE_RESOLUTION_640x480:
+		mColorSize = Vec2i( 640, 480 );
+		break;
+	default:
+		mColorResolution = NUI_IMAGE_RESOLUTION_INVALID;
+		mColorSize = Vec2i::zero();
+		mEnabledColor = false;
+		break;
+	}
+	return *this;
+}
+
+DeviceOptions& DeviceOptions::setColorSurfaceChannelOrder( SurfaceChannelOrder surfaceChannelOrder )
+{
+	mColorSurfaceChannelOrder = surfaceChannelOrder;
+	if ( !( mColorSurfaceChannelOrder == SurfaceChannelOrder::BGRA ) ) {
+		mColorSurfaceChannelOrder = SurfaceChannelOrder::RGBA;
+	}
+	return *this;
 }
 
 DeviceOptions& DeviceOptions::setDepthResolution( const ImageResolution& resolution )
@@ -270,25 +304,6 @@ DeviceOptions& DeviceOptions::setDeviceId( const std::string& id )
 DeviceOptions& DeviceOptions::setDeviceIndex( int32_t index )
 {
 	mDeviceIndex = index;
-	return *this;
-}
-	
-DeviceOptions& DeviceOptions::setColorResolution( const ImageResolution& resolution )
-{
-	mColorResolution = resolution;
-	switch ( mColorResolution ) {
-	case ImageResolution::NUI_IMAGE_RESOLUTION_1280x960:
-		mColorSize = Vec2i( 1280, 960 );
-		break;
-	case ImageResolution::NUI_IMAGE_RESOLUTION_640x480:
-		mColorSize = Vec2i( 640, 480 );
-		break;
-	default:
-		mColorResolution = NUI_IMAGE_RESOLUTION_INVALID;
-		mColorSize = Vec2i::zero();
-		mEnabledColor = false;
-		break;
-	}
 	return *this;
 }
 
@@ -604,8 +619,8 @@ void Kinect::pixelToDepthSurface( uint16_t *buffer )
 	uint16_t* bufferRun	= buffer;
 
 	if ( mFlipped ) {
-		for ( int32_t y = 0; y < height; y++ ) {
-			for ( int32_t x = 0; x < width; x++ ) {
+		for ( int32_t y = 0; y < height; ++y ) {
+			for ( int32_t x = 0; x < width; ++x ) {
 				bufferRun		= buffer + ( y * width + ( ( width - x ) - 1 ) );
 				rgbRun			= mRgbDepth + ( y * width + x );
 				*rgbRun			= shortToPixel( *bufferRun );
@@ -614,9 +629,9 @@ void Kinect::pixelToDepthSurface( uint16_t *buffer )
 	} else {
 		for ( int32_t i = 0; i < width * height; ++i ) {
 			Pixel16u pixel = shortToPixel( *bufferRun );
-			bufferRun++;
+			++bufferRun;
 			*rgbRun = pixel;
-			rgbRun++;
+			+rgbRun;
 		}
 	}
 
@@ -629,16 +644,20 @@ void Kinect::pixelToColorSurface( uint8_t *buffer )
 	int32_t width	= mColorSurface.getWidth();
 	int32_t size	= width * height * 4;
 
+	bool rgb		= mDeviceOptions.getColorSurfaceChannelOrder() == SurfaceChannelOrder::RGBA;
+
 	if ( mFlipped ) {
 		uint8_t *flipped = new uint8_t[ size ];
-		for ( int32_t y = 0; y < height; y++ ) {
-			for ( int32_t x = 0; x < width; x++ ) {
+		for ( int32_t y = 0; y < height; ++y ) {
+			for ( int32_t x = 0; x < width; ++x ) {
 				int32_t dest	= ( y * width + x ) * 4;
 				int32_t src		= ( y * width + ( ( width - x ) - 1 ) ) * 4;
 				for ( int32_t i = 0; i < 4; ++i ) {
 					flipped[ dest + i ] = buffer[ src + i ];
 				}
-				swap( flipped[ dest ], flipped[ dest + 2 ] );
+				if ( rgb ) {
+					swap( flipped[ dest ], flipped[ dest + 2 ] );
+				}
 				flipped[ dest + 3 ] = 255;
 			}
 		}
@@ -646,7 +665,9 @@ void Kinect::pixelToColorSurface( uint8_t *buffer )
 		delete [] flipped;
 	} else {
 		for ( int32_t i = 0; i < size; i += 4 ) {
-			swap( buffer[ i ], buffer[ i + 2 ] );
+			if ( rgb ) {
+				swap( buffer[ i ], buffer[ i + 2 ] );
+			}
 			buffer[ i + 3 ] = 255;
 		}
 		memcpy( mColorSurface.getData(), buffer, size );
@@ -668,8 +689,6 @@ void Kinect::run()
 {
 	while ( mCapture ) {
 		if ( mSensor != 0 ) {
-
-			// Get elapsed time to calculate frame rate
 			double time = getElapsedSeconds();
 
 			//////////////////////////////////////////////////////////////////////////////////////////////
@@ -681,7 +700,6 @@ void Kinect::run()
 				if ( FAILED( hr ) ) {
 					error( hr );
 				} else {
-
 					INuiFrameTexture * texture = imageFrame.pFrameTexture;
 					_NUI_LOCKED_RECT lockedRect;
 					hr = texture->LockRect( 0, &lockedRect, 0, 0 );
@@ -699,16 +717,15 @@ void Kinect::run()
 						error( hr ); 
 					}
 						
-					mFrameRateDepth = (float)( 1.0 / ( time - mReadTimeDepth ) );
-					mReadTimeDepth = time;
+					mFrameRateDepth	= (float)( 1.0 / ( time - mReadTimeDepth ) );
+					mReadTimeDepth	= time;
 
 					mUserCount = 0;
 					for ( uint32_t i = 0; i < NUI_SKELETON_COUNT; ++i ) {
 						if ( mActiveUsers[ i ] ) {
-							mUserCount++;
+							++mUserCount;
 						}
 					}
-
 					mNewDepthSurface = true;
 				}
 
@@ -723,7 +740,6 @@ void Kinect::run()
 				if ( FAILED( hr ) ) {
 					error( hr );
 				} else {
-
 					bool foundSkeleton = false;
 					for ( int32_t i = 0; i < NUI_SKELETON_COUNT; ++i ) {
 
@@ -741,7 +757,6 @@ void Kinect::run()
 								foundSkeleton = true;
 							}
 
-							// Flip X when flipping the image.
 							if ( mFlipped ) {
 								( skeletonFrame.SkeletonData + i )->Position.x *= -1.0f;
 								for ( int32_t j = 0; j < (int32_t)NUI_SKELETON_POSITION_COUNT; ++j ) {
@@ -769,13 +784,11 @@ void Kinect::run()
 
 					mNewSkeletons = true;
 				}
-
 			}
 
 			//////////////////////////////////////////////////////////////////////////////////////////////
 
 			if ( mDeviceOptions.isColorEnabled() && mColorStreamHandle != 0 && !mNewColorSurface ) {
-
 				_NUI_IMAGE_FRAME imageFrame;
 				long hr = mSensor->NuiImageStreamGetNextFrame( mColorStreamHandle, WAIT_TIME, &imageFrame );
 				if ( FAILED( hr ) ) {
@@ -804,16 +817,10 @@ void Kinect::run()
 
 					mNewColorSurface = true;
 				}
-
 			}
-
 		}
-
 		Sleep( 8 );
-
 	}
-
-	// Return to join thread
 	return;
 }
 
@@ -824,7 +831,6 @@ void Kinect::setFlipped( bool flipped )
 
 void Kinect::setTilt( int32_t degrees )
 {
-	// Tilt requests should be spaced apart to prevent wear on the motor
 	double elapsedSeconds = getElapsedSeconds();
 	if ( mCapture && mSensor != 0 && elapsedSeconds - mTiltRequestTime > kTiltRequestInterval ) {
 		long hr = mSensor->NuiCameraElevationSetAngle( (long)math<int32_t>::clamp( degrees, -MAXIMUM_TILT_ANGLE, MAXIMUM_TILT_ANGLE ) );
@@ -843,7 +849,6 @@ void Kinect::setTransform( int_fast8_t transform )
 
 Kinect::Pixel16u Kinect::shortToPixel( uint16_t value )
 {
-	// Extract depth and user values
 	uint16_t depth = 0xFFFF - 0x10000 * ( ( value&  0xFFF8 ) >> 3 ) / 0x0FFF;
 	uint16_t user = value&  7;
 
@@ -852,28 +857,20 @@ Kinect::Pixel16u Kinect::shortToPixel( uint16_t value )
 	pixel.g = 0;
 	pixel.r = 0;
 
-	// Mark user active
 	if ( user > 0 && user < 7 ) {
 		mActiveUsers[ user - 1 ] = true;
 	}
 
-	// Binary mode
 	if ( mBinary ) {
+		uint16_t backgroundColor	= mInverted ? 0xFFFF : 0;
+		uint16_t userColor			= mInverted ? 0 : 0xFFFF;
 
-		// Set black and white values
-		uint16_t backgroundColor = mInverted ? 0xFFFF : 0;
-		uint16_t userColor = mInverted ? 0 : 0xFFFF;
-
-		// Set color
 		if ( user == 0 || user == 7 ) {
 			pixel.r = pixel.g = pixel.b = mRemoveBackground ? backgroundColor : userColor;
 		} else {
 			pixel.r = pixel.g = pixel.b = userColor;
 		}
-
 	} else if ( mGreyScale ) {
-
-		// Set greyscale value
 		if ( user == 0 || user == 7 ) {
 			pixel.r = mRemoveBackground ? 0 : depth;
 		} else {
@@ -881,10 +878,7 @@ Kinect::Pixel16u Kinect::shortToPixel( uint16_t value )
 		}
 		pixel.g = pixel.r;
 		pixel.b = pixel.g;
-
 	} else {
-
-		// Colorize each user
 		switch ( user ) {
 		case 0:
 			if ( !mRemoveBackground ) {
@@ -927,7 +921,6 @@ Kinect::Pixel16u Kinect::shortToPixel( uint16_t value )
 
 	}
 
-	// Invert image
 	pixel.r = 0xFFFF - pixel.r;
 	pixel.g = 0xFFFF - pixel.g;
 	pixel.b = 0xFFFF - pixel.b;
@@ -938,18 +931,14 @@ Kinect::Pixel16u Kinect::shortToPixel( uint16_t value )
 void Kinect::start( const DeviceOptions& deviceOptions ) 
 {
 	if ( !mCapture ) {
-
-		// Copy device options
 		mDeviceOptions	= deviceOptions;
 		string deviceId	= mDeviceOptions.getDeviceId();
 		int32_t index	= mDeviceOptions.getDeviceIndex();
 
-		// Clamp device index
 		if ( index >= 0 ) {
 			index = math<int32_t>::clamp( index, 0, math<int32_t>::max( getDeviceCount() - 1, 0 ) );
 		}
 
-		// Initialize device instance
 		long hr = S_OK;
 		if ( index >= 0 ) {
 			hr = NuiCreateSensorByIndex( index, &mSensor );
@@ -971,14 +960,12 @@ void Kinect::start( const DeviceOptions& deviceOptions )
 			return;
 		}
 
-		// Check device
 		hr = mSensor != 0 ? mSensor->NuiStatus() : E_NUI_NOTCONNECTED;
 		if ( hr == E_NUI_NOTCONNECTED ) {
 			error( hr );
 			return;
 		}
 
-		// Get device name and index
 		if ( mSensor != 0 ) {
 			mDeviceOptions.setDeviceIndex( mSensor->NuiInstanceIndex() );
 			BSTR id = ::SysAllocString( mSensor->NuiDeviceConnectionId() ); 
@@ -993,11 +980,9 @@ void Kinect::start( const DeviceOptions& deviceOptions )
 			deviceId = "";
 		}
 
-		// Update device index and ID
 		mDeviceOptions.setDeviceIndex( index );
 		mDeviceOptions.setDeviceId( "" );
 
-		// Initialize sensor image streams
 		unsigned long flags;
 		if ( !mDeviceOptions.isUserTrackingEnabled() ) {
 			flags = NUI_INITIALIZE_FLAG_USES_DEPTH;
@@ -1020,7 +1005,6 @@ void Kinect::start( const DeviceOptions& deviceOptions )
 			return;
 		}
 
-		// Skeletons are only supported on the first device
 		if ( mDeviceOptions.isSkeletonTrackingEnabled() && HasSkeletalEngine( mSensor ) ) {
 			flags = NUI_SKELETON_TRACKING_FLAG_ENABLE_IN_NEAR_RANGE;
 			if ( mDeviceOptions.isSeatedModeEnabled() ) {
@@ -1035,7 +1019,6 @@ void Kinect::start( const DeviceOptions& deviceOptions )
 			mIsSkeletonDevice = true;
 		}
 
-		// Initialize depth image
 		if ( mDeviceOptions.getDepthResolution() != ImageResolution::NUI_IMAGE_RESOLUTION_INVALID ) {
 			const Vec2i& depthSize = mDeviceOptions.getDepthSize();
 			if ( mDeviceOptions.isDepthEnabled() && !openDepthStream() ) {
@@ -1045,17 +1028,15 @@ void Kinect::start( const DeviceOptions& deviceOptions )
 			mRgbDepth		= new Pixel16u[ depthSize.x * depthSize.y * 3 ];
 		}
 
-		// Initialize video image
 		if ( mDeviceOptions.getColorResolution() != ImageResolution::NUI_IMAGE_RESOLUTION_INVALID ) {
 			const Vec2i& videoSize = mDeviceOptions.getColorSize();
 			if ( mDeviceOptions.isColorEnabled() && !openColorStream() ) {
 				return;
 			}
-			mColorSurface	= Surface8u( videoSize.x, videoSize.y, false, SurfaceChannelOrder::RGBA );
+			mColorSurface	= Surface8u( videoSize.x, videoSize.y, false, mDeviceOptions.getColorSurfaceChannelOrder() );
 			mRgbColor		= new Pixel[ videoSize.x * videoSize.y * 4 ];
 		}
 
-		// Set image stream flags
 		flags = NUI_IMAGE_STREAM_FRAME_LIMIT_MAXIMUM;
 		if ( mDeviceOptions.isNearModeEnabled() ) {
 			flags |= NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE | NUI_IMAGE_STREAM_FLAG_DISTINCT_OVERFLOW_DEPTH_VALUES;
@@ -1066,7 +1047,6 @@ void Kinect::start( const DeviceOptions& deviceOptions )
 			error( hr );
 		}
 
-		// Initialize skeletons
 		mSkeletons.clear();
 		for ( int32_t i = 0; i < NUI_SKELETON_COUNT; ++i ) {
 			mSkeletons.push_back( Skeleton() );
@@ -1075,9 +1055,7 @@ void Kinect::start( const DeviceOptions& deviceOptions )
 		// Start thread
 		mCapture = true;
 		mThread = std::shared_ptr<std::thread>( new std::thread( boost::bind( &Kinect::run, this ) ) );
-
 	}
-
 }
 
 void Kinect::stop()
