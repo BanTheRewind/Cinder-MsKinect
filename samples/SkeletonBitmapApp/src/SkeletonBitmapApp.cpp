@@ -34,7 +34,6 @@
 * 
 */
 
-// Includes
 #include "cinder/app/AppBasic.h"
 #include "cinder/gl/Texture.h"
 #include "cinder/ImageIo.h"
@@ -48,55 +47,40 @@
 */ 
 class SkeletonBitmapApp : public ci::app::AppBasic 
 {
-
 public:
-
-	// Cinder callbacks
 	void draw();
 	void keyDown( ci::app::KeyEvent event );
-	void prepareSettings( ci::app::AppBasic::Settings *settings );
+	void prepareSettings( ci::app::AppBasic::Settings* settings );
 	void setup();
 	void shutdown();
 	void update();
-
 private:
-
-	// Kinect device, data
 	KinectSdk::KinectRef				mKinect;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
 	ci::gl::Texture						mTexture;
 
-	// Kinect callbacks
 	uint32_t							mCallbackSkeletonId;
 	uint32_t							mCallbackColorId;
-	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, 
+	void								onSkeleton( std::vector<KinectSdk::Skeleton> skeletons, 
 		const KinectSdk::DeviceOptions &deviceOptions );
 	void								onColorData( ci::Surface8u surface, 
 		const KinectSdk::DeviceOptions &deviceOptions );
 
 	void screenShot();
-
 };
 
-// Imports
 using namespace ci;
 using namespace ci::app;
 using namespace KinectSdk;
 using namespace std;
 
-// Render
 void SkeletonBitmapApp::draw()
 {
-
-	// Clear window
 	gl::setViewport( getWindowBounds() );
 	gl::clear();
 	gl::setMatricesWindow( getWindowSize() );
 
-	// We're capturing
 	if ( mKinect->isCapturing() && mTexture ) {
-		
-		// Draw color image
 		gl::color( ColorAf::white() );
 		gl::draw( mTexture, getWindowBounds() );
 		
@@ -104,44 +88,27 @@ void SkeletonBitmapApp::draw()
 		gl::pushMatrices();
 		gl::scale( Vec2f( getWindowSize() ) / Vec2f( mTexture.getSize() ) );
 
-		// Iterate through skeletons
+		// Draw skeletons
 		uint32_t i = 0;
 		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt, i++ ) {
-
-			// Set color
 			gl::color( mKinect->getUserColor( i ) );
-
-			// Draw bones and joints
 			for ( Skeleton::const_iterator boneIt = skeletonIt->cbegin(); boneIt != skeletonIt->cend(); ++boneIt ) {
-				
-				// Get joint positions 
 				const Bone& bone		= boneIt->second;
 				Vec3f position			= bone.getPosition();
 				Vec3f destination		= skeletonIt->at( bone.getStartJoint() ).getPosition();
 				Vec2f positionScreen	= Vec2f( mKinect->getSkeletonColorPos( position ) );
 				Vec2f destinationSceen	= Vec2f( mKinect->getSkeletonColorPos( destination ) );
-
-				// Draw bone
 				gl::drawLine( positionScreen, destinationSceen );
-
-				// Draw joint
 				gl::drawSolidCircle( positionScreen, 10.0f, 16 );
-
 			}
-
 		}
 
 		gl::popMatrices();
-
 	}
-
 }
 
-// Handles key press
 void SkeletonBitmapApp::keyDown( KeyEvent event )
 {
-
-	// Quit, toggle fullscreen
 	switch ( event.getCode() ) {
 	case KeyEvent::KEY_q:
 		quit();
@@ -152,13 +119,10 @@ void SkeletonBitmapApp::keyDown( KeyEvent event )
 	case KeyEvent::KEY_SPACE:
 		screenShot();
 		break;
-
 	}
-
 }
 
-// Receives skeleton data
-void SkeletonBitmapApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
+void SkeletonBitmapApp::onSkeleton( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
 {
 	mSkeletons = skeletons;
 }
@@ -173,60 +137,47 @@ void SkeletonBitmapApp::onColorData( Surface8u surface, const DeviceOptions &dev
 	}
 }
 
-// Prepare window
-void SkeletonBitmapApp::prepareSettings( Settings *settings )
+void SkeletonBitmapApp::prepareSettings( Settings* settings )
 {
 	settings->setWindowSize( 800, 600 );
 	settings->setFrameRate( 60.0f );
 }
 
-// Take screen shot
 void SkeletonBitmapApp::screenShot()
 {
 	writeImage( getAppPath() / ( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 }
 
-// Set up
 void SkeletonBitmapApp::setup()
 {
-	// Set up OpenGL
 	glLineWidth( 2.0f );
 	gl::color( ColorAf::white() );
 
-	// Start Kinect
 	mKinect = Kinect::create();
 	mKinect->start( DeviceOptions().enableDepth( false ) );
 
-	// Add callbacks
-	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback( &SkeletonBitmapApp::onSkeletonData, this );
+	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback( &SkeletonBitmapApp::onSkeleton, this );
 	mCallbackColorId	= mKinect->addColorCallback( &SkeletonBitmapApp::onColorData, this );
 }
 
-// Called on exit
 void SkeletonBitmapApp::shutdown()
 {
-	// Stop input
 	mKinect->removeCallback( mCallbackSkeletonId );
 	mKinect->removeCallback( mCallbackColorId );
 	mKinect->stop();
 
-	// Clean up
 	mSkeletons.clear();
 }
 
-// Runs update logic
 void SkeletonBitmapApp::update()
 {
-	// Kinect is capturing
 	if ( mKinect->isCapturing() ) {
 		mKinect->update();
 	} else {
-		// If Kinect initialization failed, try again every 90 frames
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mKinect->start();
 		}
 	}
 }
 
-// Run application
 CINDER_APP_BASIC( SkeletonBitmapApp, RendererGl )

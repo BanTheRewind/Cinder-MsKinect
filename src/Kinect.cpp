@@ -631,7 +631,7 @@ void Kinect::pixelToDepthSurface( uint16_t *buffer )
 			Pixel16u pixel = shortToPixel( *bufferRun );
 			++bufferRun;
 			*rgbRun = pixel;
-			+rgbRun;
+			++rgbRun;
 		}
 	}
 
