@@ -35,7 +35,6 @@
 */
 
 #include "cinder/app/AppBasic.h"
-#include "cinder/Camera.h"
 #include "cinder/Vector.h"
 #include "FaceTracker.h"
 
@@ -54,7 +53,6 @@ public:
 	void setup();
 	void update();
 private:
-	ci::CameraPersp						mCamera;
 	FaceTracker::Face					mFace;
 	KinectSdk::KinectRef				mKinect;
 	ci::Surface8u						mSurfaceColor;
@@ -66,6 +64,7 @@ private:
 	void					onFace( FaceTracker::Face face );
 	void					onSkeleton( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions& deviceOptions );
 
+	double					mFaceTrackedTime;
 	FaceTrackerRef			mFaceTracker;
 
 	void					screenShot();
@@ -85,11 +84,18 @@ void FaceTrackingApp::draw()
 	gl::setViewport( getWindowBounds() );
 	gl::clear( Colorf::black() );
 	gl::setMatricesWindow( getWindowSize() );
-	//gl::setMatrices( mCamera );
 
 	gl::color( ColorAf::white() );
-	if ( mFace.getMesh().getNumIndices() > 0 ) {
-		gl::draw( mFace.getMesh() );
+	if ( mSurfaceColor ) {
+		gl::draw( gl::Texture::create( mSurfaceColor ) );
+	}
+	if ( getElapsedSeconds() - mFaceTrackedTime < 0.5 ) {
+		if ( mFace.getMesh2d().getNumIndices() > 0 ) {
+			gl::enableWireframe();
+			gl::draw( mFace.getMesh2d() );
+			gl::disableWireframe();
+		}
+		gl::drawStrokedRect( mFace.getBounds() );
 	}
 }
 
@@ -120,8 +126,14 @@ void FaceTrackingApp::onDepth( Surface16u surface, const DeviceOptions& deviceOp
 
 void FaceTrackingApp::onFace( FaceTracker::Face face )
 {
-	mFace = face;
-	console() << mFace.getBounds() << endl;
+	if ( mFaceTracker->getResult()->GetStatus() == S_OK ) {
+		mFace				= face;
+		mFaceTrackedTime	= getElapsedSeconds();
+
+		FaceTracker::ShapeUnitMap su = mFace.getShapeUnits();
+
+		console() << "Head scale: " << mFace.getHeadScale() << endl;
+	}
 }
 
 void FaceTrackingApp::onSkeleton( vector<Skeleton> skeletons, const DeviceOptions& deviceOptions )
@@ -131,7 +143,7 @@ void FaceTrackingApp::onSkeleton( vector<Skeleton> skeletons, const DeviceOption
 
 void FaceTrackingApp::prepareSettings( Settings* settings )
 {
-	settings->setWindowSize( 1024, 768 );
+	settings->setWindowSize( 640, 480 );
 	settings->setFrameRate( 60.0f );
 }
 
@@ -142,9 +154,6 @@ void FaceTrackingApp::screenShot()
 
 void FaceTrackingApp::setup()
 {
-	mCamera.setPerspective( 60.0f, getWindowAspectRatio(), 1.0f, 1000.0f );
-	mCamera.lookAt( Vec3f( 0.0f, 0.0f, 670.0f ), Vec3f::zero() );
-
 	// Face tracker expects 640x480 BGRA color image. Depth image
 	// must match.
 	DeviceOptions deviceOptions;
@@ -158,7 +167,10 @@ void FaceTrackingApp::setup()
 	mKinect->addSkeletonTrackingCallback( &FaceTrackingApp::onSkeleton, this );
 	mKinect->start( deviceOptions );
 
+	mFaceTrackedTime = 0.0;
+
 	mFaceTracker = FaceTracker::create();
+	mFaceTracker->enableCalcMesh( false );
 	mFaceTracker->connectEventHander( &FaceTrackingApp::onFace, this );
 	try {
 		mFaceTracker->start( mKinect->getDeviceOptions() );

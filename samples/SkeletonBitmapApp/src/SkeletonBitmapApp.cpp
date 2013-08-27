@@ -36,9 +36,6 @@
 
 #include "cinder/app/AppBasic.h"
 #include "cinder/gl/Texture.h"
-#include "cinder/ImageIo.h"
-#include "cinder/params/Params.h"
-#include "cinder/Utilities.h"
 #include "Kinect.h"
 
 /* 
@@ -68,6 +65,9 @@ private:
 
 	void screenShot();
 };
+
+#include "cinder/ImageIo.h"
+#include "cinder/Utilities.h"
 
 using namespace ci;
 using namespace ci::app;

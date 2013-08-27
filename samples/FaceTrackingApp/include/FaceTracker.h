@@ -14,6 +14,12 @@ typedef std::shared_ptr<class FaceTracker> FaceTrackerRef;
 class FaceTracker
 {
 public:
+	enum : size_t
+	{
+		AU0_UPPER_LIP_RAISER, AU1_JAW_LOWERER, AU2_LIP_STRETCHER, 
+		AU3_BROW_LOWERER, AU4_LIP_CORNER_DEPRESSOR, AU5_OUTER_BROW_RAISER	
+	} typedef AnimationUnit;
+	typedef std::map<AnimationUnit, float>	AnimationUnitMap;
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -22,19 +28,23 @@ public:
 	public:
 		Face();
 
-		const ci::Rectf&			getBounds() const;
-		const ci::TriMesh2d&		getMesh() const;
-		const ci::Matrix44f&		getTransformMatrix() const;
-		size_t						getUserId() const;
+		const AnimationUnitMap&			getAnimationUnits() const;
+		const ci::Rectf&				getBounds() const;
+		const ci::TriMesh&				getMesh() const;
+		const ci::TriMesh2d&			getMesh2d() const;
+		const ci::Matrix44f&			getTransformMatrix() const;
+		size_t							getUserId() const;
 	protected:
-		Face( size_t userId, const ci::Rectf& bounds, const ci::TriMesh2d& mesh, const ci::Matrix44f& matrix );
+		Face( size_t userId, const ci::Rectf& bounds, const ci::TriMesh& mesh, const ci::Matrix44f& matrix );
 
-		ci::Rectf					mBounds;
-		ci::Matrix44f				mMatrix;
-		ci::TriMesh2d				mMesh;
-		size_t						mUserId;
+		AnimationUnitMap				mAnimationUnits;
+		ci::Rectf						mBounds;
+		ci::Matrix44f					mMatrix;
+		ci::TriMesh						mMesh;
+		ci::TriMesh2d					mMesh2d;
+		size_t							mUserId;
 
-		friend class				FaceTracker;
+		friend class					FaceTracker;
 	};
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
@@ -50,14 +60,19 @@ public:
 	IFTModel*						getModel() const;
 	IFTResult*						getResult() const;
 
+	void							enableCalcMesh( bool enabled = true );
+	void							enableCalcMesh2d( bool enabled = true );
+	bool							isCalcMeshEnabled() const;
+	bool							isCalcMesh2dEnabled() const;
+
 	bool							isTracking() const;
 
-	void							start( const KinectSdk::DeviceOptions& deviceOptions = KinectSdk::DeviceOptions() );
-	void							stop();
+	virtual void					start( const KinectSdk::DeviceOptions& deviceOptions = KinectSdk::DeviceOptions() );
+	virtual void					stop();
 	
-	void							findFace( const ci::Surface8u& color, const ci::Surface16u& depth, 
-		const KinectSdk::Skeleton& skeleton = KinectSdk::Skeleton(), size_t userId = 0 );
-	void							update();
+	virtual void					findFace( const ci::Surface8u& color, const ci::Surface16u& depth, 
+		const ci::Vec3f headPoints[ 2 ] = 0, size_t userId = 0 );
+	virtual void					update();
 
 	template<typename T, typename Y> 
 	inline void						connectEventHander( T eventHandler, Y* obj )
@@ -73,21 +88,21 @@ protected:
 	volatile bool					mNewFace;
 	volatile bool					mRunning;
 	ThreadRef						mThread;
-	void							run();
+	virtual void					run();
 
+	bool							mCalcMesh;
+	bool							mCalcMesh2d;
 	FT_CAMERA_CONFIG				mConfigColor;
 	FT_CAMERA_CONFIG				mConfigDepth;
-
 	Face							mFace;
-	KinectSdk::Skeleton				mSkeleton;
-	ci::Surface8u					mSurfaceColor;
-	ci::Surface16u					mSurfaceDepth;
-	size_t							mUserId;
-
 	IFTFaceTracker*					mFaceTracker;
+	std::vector<ci::Vec3f>			mHeadPoints;
+	IFTImage*						mImageColor;
+	IFTImage*						mImageDepth;
 	IFTModel*						mModel;
 	IFTResult*						mResult;
 	bool							mSuccess;
+	size_t							mUserId;
 public:
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
@@ -103,8 +118,14 @@ public:
 
 	class ExcFaceTrackerCreate : public Exception 
 	{
-	  public:
+	public:
 		ExcFaceTrackerCreate() throw();
+	};
+
+	class ExcFaceTrackerCreateImage : public Exception 
+	{
+	public:
+		ExcFaceTrackerCreateImage( long hr ) throw();
 	};
 	
 	class ExcFaceTrackerCreateResult : public Exception 
@@ -119,3 +140,4 @@ public:
 		ExcFaceTrackerInit( long hr ) throw();
 	};
 };
+ 
