@@ -129,10 +129,6 @@ void FaceTrackingApp::onFace( FaceTracker::Face face )
 	if ( mFaceTracker->getResult()->GetStatus() == S_OK ) {
 		mFace				= face;
 		mFaceTrackedTime	= getElapsedSeconds();
-
-		FaceTracker::ShapeUnitMap su = mFace.getShapeUnits();
-
-		console() << "Head scale: " << mFace.getHeadScale() << endl;
 	}
 }
 
