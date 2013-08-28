@@ -53,7 +53,7 @@
 #include "NuiApi.h"
 #include <vector>
 
-// Kinect SDK wrapper for Cinder
+//! Kinect SDK wrapper for Cinder
 namespace KinectSdk
 {
 class Kinect;

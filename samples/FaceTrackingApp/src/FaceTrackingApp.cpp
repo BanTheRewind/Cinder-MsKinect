@@ -53,10 +53,10 @@ public:
 	void setup();
 	void update();
 private:
+	ci::Channel16u						mChannelDepth;
 	FaceTracker::Face					mFace;
 	KinectSdk::KinectRef				mKinect;
 	ci::Surface8u						mSurfaceColor;
-	ci::Surface16u						mSurfaceDepth;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
 
 	void					onColor( ci::Surface8u surface, const KinectSdk::DeviceOptions& deviceOptions );
@@ -89,7 +89,7 @@ void FaceTrackingApp::draw()
 	if ( mSurfaceColor ) {
 		gl::draw( gl::Texture::create( mSurfaceColor ) );
 	}
-	if ( getElapsedSeconds() - mFaceTrackedTime < 0.5 ) {
+	if ( getElapsedSeconds() - mFaceTrackedTime < 1.0 ) {
 		if ( mFace.getMesh2d().getNumIndices() > 0 ) {
 			gl::enableWireframe();
 			gl::draw( mFace.getMesh2d() );
@@ -121,7 +121,7 @@ void FaceTrackingApp::onColor( Surface8u surface, const DeviceOptions& deviceOpt
 
 void FaceTrackingApp::onDepth( Surface16u surface, const DeviceOptions& deviceOptions )
 {
-	mSurfaceDepth = surface;
+	mChannelDepth = surface.getChannelRed();
 }
 
 void FaceTrackingApp::onFace( FaceTracker::Face face )
@@ -150,20 +150,15 @@ void FaceTrackingApp::screenShot()
 
 void FaceTrackingApp::setup()
 {
-	// Face tracker expects 640x480 BGRA color image. Depth image
-	// must match.
+	// Face tracker expects BGRA color image.
 	DeviceOptions deviceOptions;
 	deviceOptions.setColorSurfaceChannelOrder( SurfaceChannelOrder::BGRA );
-	deviceOptions.setColorResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 );
-	deviceOptions.setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 );
 
 	mKinect = Kinect::create();
 	mKinect->addColorCallback( &FaceTrackingApp::onColor, this );
 	mKinect->addDepthCallback( &FaceTrackingApp::onDepth, this );
 	mKinect->addSkeletonTrackingCallback( &FaceTrackingApp::onSkeleton, this );
 	mKinect->start( deviceOptions );
-
-	mFaceTrackedTime = 0.0;
 
 	mFaceTracker = FaceTracker::create();
 	mFaceTracker->enableCalcMesh( false );
@@ -192,7 +187,7 @@ void FaceTrackingApp::update()
 	if ( mKinect->isCapturing() ) {
 		mKinect->update();
 		if ( mFaceTracker->isTracking() ) {
-			mFaceTracker->findFace( mSurfaceColor, mSurfaceDepth );
+			mFaceTracker->findFace( mSurfaceColor, mChannelDepth );
 			mFaceTracker->update();
 		}
 	} else {
