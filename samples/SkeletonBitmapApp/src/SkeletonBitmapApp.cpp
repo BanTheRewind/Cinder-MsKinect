@@ -54,14 +54,9 @@ public:
 private:
 	KinectSdk::KinectRef				mKinect;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
-	ci::gl::Texture						mTexture;
+	ci::gl::TextureRef					mTexture;
 
-	uint32_t							mCallbackSkeletonId;
-	uint32_t							mCallbackColorId;
-	void								onSkeleton( std::vector<KinectSdk::Skeleton> skeletons, 
-		const KinectSdk::DeviceOptions &deviceOptions );
-	void								onColorData( ci::Surface8u surface, 
-		const KinectSdk::DeviceOptions &deviceOptions );
+	void								onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions &deviceOptions );
 
 	void screenShot();
 };
@@ -86,13 +81,13 @@ void SkeletonBitmapApp::draw()
 		
 		// Scale skeleton to fit
 		gl::pushMatrices();
-		gl::scale( Vec2f( getWindowSize() ) / Vec2f( mTexture.getSize() ) );
+		gl::scale( Vec2f( getWindowSize() ) / Vec2f( mTexture->getSize() ) );
 
 		// Draw skeletons
 		uint32_t i = 0;
-		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt, i++ ) {
+		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.begin(); skeletonIt != mSkeletons.end(); ++skeletonIt, i++ ) {
 			gl::color( mKinect->getUserColor( i ) );
-			for ( Skeleton::const_iterator boneIt = skeletonIt->cbegin(); boneIt != skeletonIt->cend(); ++boneIt ) {
+			for ( Skeleton::const_iterator boneIt = skeletonIt->begin(); boneIt != skeletonIt->end(); ++boneIt ) {
 				const Bone& bone		= boneIt->second;
 				Vec3f position			= bone.getPosition();
 				Vec3f destination		= skeletonIt->at( bone.getStartJoint() ).getPosition();
@@ -122,18 +117,13 @@ void SkeletonBitmapApp::keyDown( KeyEvent event )
 	}
 }
 
-void SkeletonBitmapApp::onSkeleton( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
+void SkeletonBitmapApp::onFrame( Frame frame, const DeviceOptions &deviceOptions )
 {
-	mSkeletons = skeletons;
-}
-
-// Receives Color data
-void SkeletonBitmapApp::onColorData( Surface8u surface, const DeviceOptions &deviceOptions )
-{
+	mSkeletons = frame.getSkeletons();
 	if ( mTexture ) {
-		mTexture.update( surface );
+		mTexture->update( frame.getColorSurface() );
 	} else {
-		mTexture = gl::Texture( surface );
+		mTexture = gl::Texture::create( frame.getColorSurface() );
 	}
 }
 
@@ -154,19 +144,13 @@ void SkeletonBitmapApp::setup()
 	gl::color( ColorAf::white() );
 
 	mKinect = Kinect::create();
+	mKinect->connectEventHandler( &SkeletonBitmapApp::onFrame, this );
 	mKinect->start( DeviceOptions().enableDepth( false ) );
-
-	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback( &SkeletonBitmapApp::onSkeleton, this );
-	mCallbackColorId	= mKinect->addColorCallback( &SkeletonBitmapApp::onColorData, this );
 }
 
 void SkeletonBitmapApp::shutdown()
 {
-	mKinect->removeCallback( mCallbackSkeletonId );
-	mKinect->removeCallback( mCallbackColorId );
 	mKinect->stop();
-
-	mSkeletons.clear();
 }
 
 void SkeletonBitmapApp::update()

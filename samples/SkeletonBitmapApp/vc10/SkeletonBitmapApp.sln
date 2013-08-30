@@ -1,7 +1,7 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SkeletonBitmapApp", "SkeletonBitmapApp.vcxproj", "{2B1B447D-A2DD-49DE-B755-C282CD00BF9B}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Express 2012 for Windows Desktop
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SkeletonBitmapApp", "SkeletonBitmapApp.vcxproj", "{B8E59EFD-2CAC-4E88-9B5D-EC62F3E13533}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -9,10 +9,10 @@ Global
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{2B1B447D-A2DD-49DE-B755-C282CD00BF9B}.Debug|Win32.ActiveCfg = Debug|Win32
-		{2B1B447D-A2DD-49DE-B755-C282CD00BF9B}.Debug|Win32.Build.0 = Debug|Win32
-		{2B1B447D-A2DD-49DE-B755-C282CD00BF9B}.Release|Win32.ActiveCfg = Release|Win32
-		{2B1B447D-A2DD-49DE-B755-C282CD00BF9B}.Release|Win32.Build.0 = Release|Win32
+		{B8E59EFD-2CAC-4E88-9B5D-EC62F3E13533}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B8E59EFD-2CAC-4E88-9B5D-EC62F3E13533}.Debug|Win32.Build.0 = Debug|Win32
+		{B8E59EFD-2CAC-4E88-9B5D-EC62F3E13533}.Release|Win32.ActiveCfg = Release|Win32
+		{B8E59EFD-2CAC-4E88-9B5D-EC62F3E13533}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
