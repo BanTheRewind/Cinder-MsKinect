@@ -42,7 +42,6 @@
 #endif
 #pragma comment( lib, "wbemuuid.lib" )
 
-#include "boost/signals2.hpp"
 #include "cinder/Cinder.h"
 #include "cinder/Matrix.h"
 #include "cinder/Quaternion.h"
@@ -151,7 +150,7 @@ public:
 	DeviceOptions&			setDeviceId( const std::string& id = "" ); 
 	//! Starts device with this 0-index.
 	DeviceOptions&			setDeviceIndex( int32_t index = 0 ); 
-private:
+protected:
 	bool					mEnabledColor;
 	bool					mEnabledDepth;
 	bool					mEnabledSeatedMode;
@@ -171,11 +170,39 @@ private:
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
+/*! Class representing Kinect frame data. A frame only contains data 
+	for enabled features (e.g., skeletons are empty if skeleton tracking 
+	is disabled). */
+class Frame
+{
+public:
+	Frame();
+
+	//! Returns color surface for this frame.
+	const ci::Surface8u&			getColorSurface() const;
+	//! Returns depth surface for this frame.
+	const ci::Surface16u&			getDepthSurface() const;
+	//! Returns unique, sequential frame ID.
+	long							getId() const;
+	//! Returns skeletons for this frame.
+	const std::vector<Skeleton>&	getSkeletons() const;
+protected:
+	Frame( long id, const ci::Surface8u& color, const ci::Surface16u& depth, const std::vector<Skeleton>& skeletons );
+
+	ci::Surface8u					mColorSurface;
+	ci::Surface16u					mDepthSurface;
+	long							mId;
+	std::vector<Skeleton>			mSkeletons;
+
+	friend class					Kinect;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
 // Kinect sensor interface
 class Kinect
 {
 public:
-
 	/*! Skeleton smoothing enumeration. Smoother transform improves skeleton accuracy, 
 		but increases latency. */
 	enum : uint_fast8_t
@@ -189,33 +216,16 @@ public:
 	static const int32_t			MAXIMUM_TILT_ANGLE		= 28;
 
 	~Kinect();
+	
+	//! Sets frame event handler. Signature is void( Frame, const DeviceOptions& ).
+	template<typename T, typename Y> 
+	inline void					connectEventHandler( T eventHandler, Y *obj )
+	{
+		connectEventHandler( std::bind( eventHandler, obj, std::_1, std::_2 ) );
+	}
 
-	//! Adds depth image callback
-	template<typename T, typename Y> 
-	inline uint32_t					addDepthCallback( T callback, Y *callbackObject )
-	{
-		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
-		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalDepth.connect( std::bind( callback, callbackObject, std::_1, std::_2 ) ) ) ) ) );
-		return id;
-	}
-	//! Adds skeleton tracking callback.
-	template<typename T, typename Y> 
-	inline uint32_t					addSkeletonTrackingCallback( T callback, Y *callbackObject )
-	{
-		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
-		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalSkeleton.connect( std::bind( callback, callbackObject, std::_1, std::_2 ) ) ) ) ) );
-		return id;
-	}
-	//! Adds video tracking callback.
-	template<typename T, typename Y> 
-	inline uint32_t					addColorCallback( T callback, Y *callbackObject )
-	{
-		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
-		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalColor.connect( std::bind( callback, callbackObject, std::_1, std::_2 ) ) ) ) ) );
-		return id;
-	}
-	//! Removes callback.
-	void							removeCallback( uint32_t id );
+	//! Sets frame event handler. Signature is void( Frame, const DeviceOptions& ).
+	void connectEventHandler( const std::function<void ( Frame, const DeviceOptions& )>& eventHandler );
 
 	//! Creates pointer to instance of Kinect
 	static KinectRef				create();		
@@ -228,8 +238,8 @@ public:
 	void							start( const DeviceOptions& deviceOptions = DeviceOptions() );
 	//! Stop capture.
 	void							stop();
-	//! Sends any new data to callbacks.
-	void							update();
+	//! Triggers frame event handler if new data is available.
+	virtual void					update();
 
 	//! Convert depth image to binary. \a invertImage to flip black and white. Default is false.
 	void							enableBinaryMode( bool enable = true, bool invertImage = false );
@@ -243,20 +253,15 @@ public:
 
 	//! Returns depth value as 0.0 - 1.0 float for pixel at \a pos.
 	float							getDepthAt( const ci::Vec2i& v ) const;
-	//! Returns frame rate of depth image processing.
-	float							getDepthFrameRate() const;
 	//! Returns options object for this device.
 	const DeviceOptions&			getDeviceOptions() const;
-	/*! Returns skeleton data. Call Kinect::checkNewSkeletons() before this to improve performance and avoid
-		threading collisions. Sets flag to false. */
-	float							getSkeletonFrameRate() const;
+	//! Returns device frame rate.
+	float							getFrameRate() const;
 	//! Returns current device angle in degrees between -28 and 28.
 	int32_t							getTilt();
 	//! Returns number of tracked users. Depth resolution must be no more than 320x240 with user tracking enabled.
 	int32_t							getUserCount();
-	//! Returns frame rate of color image processing.
-	float							getColorFrameRate() const;
-		
+
 	//! Returns true is actively capturing.
 	bool							isCapturing() const;
 
@@ -280,12 +285,7 @@ public:
 	int_fast8_t						getTransform() const;
 	//! Sets skeleton transform type.
 	void							setTransform( int_fast8_t transform = TRANSFORM_DEFAULT );
-
-private:
-	typedef boost::signals2::connection			Callback;
-	typedef std::shared_ptr<Callback>			CallbackRef;
-	typedef std::map<uint32_t, CallbackRef>		CallbackList;
-
+protected:
 	static const int32_t			WAIT_TIME = 250;
 
 	Kinect();
@@ -312,17 +312,13 @@ private:
 	void							init( bool reset = false );
 		
 	bool							mCapture;
-
-	boost::signals2::signal<void ( ci::Surface16u, const DeviceOptions& )>			mSignalDepth;
-	boost::signals2::signal<void ( std::vector<Skeleton>, const DeviceOptions& )>	mSignalSkeleton;
-	boost::signals2::signal<void ( ci::Surface8u, const DeviceOptions& )>			mSignalColor;
-	CallbackList					mCallbacks;
+	
+	std::function<void ( Frame frame, const DeviceOptions& )> mEventHandler;
 
 	DeviceOptions					mDeviceOptions;
 
-	float							mFrameRateDepth;
-	float							mFrameRateSkeletons;
-	float							mFrameRateColor;
+	float							mFrameRate;
+	double							mReadTime;
 
 	bool							mBinary;
 	bool							mFlipped;
@@ -331,6 +327,7 @@ private:
 
 	uint_fast8_t					mTransform;
 
+	long							mFrameId;
 	volatile bool					mNewDepthSurface;
 	volatile bool					mNewSkeletons;
 	volatile bool					mNewColorSurface;
@@ -362,10 +359,6 @@ private:
 	void							pixelToColorSurface( uint8_t* buffer );
 	Pixel16u						shortToPixel( uint16_t value );
 
-	double							mReadTimeDepth;
-	double							mReadTimeSkeletons;
-	double							mReadTimeColor;
-
 	void							deactivateUsers();
 	volatile int32_t				mUserCount;
 	bool							mActiveUsers[ NUI_SKELETON_COUNT ];
@@ -374,7 +367,7 @@ private:
 	bool							mVerbose;
 	static void						trace( const std::string& message );
 
-	friend void CALLBACK			deviceStatus( long hr, const WCHAR* instanceName, const WCHAR* deviceId, void* data );
+	friend void __stdcall			deviceStatus( long hr, const WCHAR* instanceName, const WCHAR* deviceId, void* data );
 };
 }
  

@@ -34,7 +34,6 @@
 * 
 */
 
-// Includes
 #include "cinder/app/AppBasic.h"
 #include "cinder/Camera.h"
 #include "cinder/gl/Texture.h"
@@ -49,68 +48,46 @@
 */ 
 class SkeletonApp : public ci::app::AppBasic 
 {
-
 public:
-
-	// Cinder callbacks
 	void	draw();
 	void	keyDown( ci::app::KeyEvent event );
-	void	prepareSettings( ci::app::AppBasic::Settings *settings );
+	void	prepareSettings( ci::app::AppBasic::Settings*settings );
 	void	setup();
 	void	shutdown();
 	void	update();
 
 private:
-
-	// Kinect
 	uint32_t							mCallbackId;
 	KinectSdk::KinectRef				mKinect;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
-	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, 
-		const KinectSdk::DeviceOptions &deviceOptions );
+	void								onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions &deviceOptions );
 
-	// Camera
 	ci::CameraPersp						mCamera;
 
-	// Save screenshot
 	void								screenShot();
-
 };
 
-// Imports
 using namespace ci;
 using namespace ci::app;
 using namespace KinectSdk;
 using namespace std;
 
-// Render
 void SkeletonApp::draw()
 {
-
-	// Clear window
 	gl::setViewport( getWindowBounds() );
 	gl::clear( Colorf::gray( 0.1f ) );
 
-	// We're capturing
 	if ( mKinect->isCapturing() ) {
-
-		// Set up 3D view
 		gl::setMatrices( mCamera );
 
-		// Iterate through skeletons
 		uint32_t i = 0;
-		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt, i++ ) {
+		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.begin(); skeletonIt != mSkeletons.end(); ++skeletonIt, ++i ) {
 
-			// Set color
 			Colorf color = mKinect->getUserColor( i );
 
-			// Iterate through joints
-			for ( Skeleton::const_iterator boneIt = skeletonIt->cbegin(); boneIt != skeletonIt->cend(); ++boneIt ) {
-
-				// Set user color
+			for ( Skeleton::const_iterator boneIt = skeletonIt->begin(); boneIt != skeletonIt->end(); ++boneIt ) {
 				gl::color( color );
 
-				// Get position and rotation
 				const Bone& bone	= boneIt->second;
 				Vec3f position		= bone.getPosition();
 				Matrix44f transform	= bone.getAbsoluteRotationMatrix();
@@ -118,7 +95,6 @@ void SkeletonApp::draw()
 				direction			*= 0.05f;
 				position.z			*= -1.0f;
 
-				// Draw bone
 				glLineWidth( 2.0f );
 				JointName startJoint = bone.getStartJoint();
 				if ( skeletonIt->find( startJoint ) != skeletonIt->end() ) {
@@ -127,27 +103,18 @@ void SkeletonApp::draw()
 					gl::drawLine( position, destination );
 				}
 
-				// Draw joint
 				gl::drawSphere( position, 0.025f, 16 );
 
-				// Draw joint orientation
 				glLineWidth( 0.5f );
 				gl::color( ColorAf::white() );
 				gl::drawVector( position, position + direction, 0.05f, 0.01f );
-
 			}
-
 		}
-
 	}
-
 }
 
-// Handles key press
 void SkeletonApp::keyDown( KeyEvent event )
 {
-
-	// Quit, toggle fullscreen
 	switch ( event.getCode() ) {
 	case KeyEvent::KEY_q:
 		quit();
@@ -162,71 +129,49 @@ void SkeletonApp::keyDown( KeyEvent event )
 
 }
 
-// Receives skeleton data
-void SkeletonApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions &deviceOptions )
+void SkeletonApp::onFrame( Frame frame, const DeviceOptions &deviceOptions )
 {
-	mSkeletons = skeletons;
+	mSkeletons = frame.getSkeletons();
 }
 
-// Prepare window
-void SkeletonApp::prepareSettings( Settings *settings )
+void SkeletonApp::prepareSettings( Settings* settings )
 {
 	settings->setWindowSize( 800, 600 );
 	settings->setFrameRate( 60.0f );
 }
 
-// Take screen shot
 void SkeletonApp::screenShot()
 {
 	writeImage( getAppPath() / ( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 }
 
-// Set up
 void SkeletonApp::setup()
 {
-
-	// Start Kinect
 	mKinect = Kinect::create();
+	mKinect->connectEventHandler( &SkeletonApp::onFrame, this );
 	mKinect->start( DeviceOptions().enableDepth( false ).enableColor( false ) );
 	mKinect->removeBackground();
-
-	// Set the skeleton smoothing to remove jitters. Better smoothing means
-	// less jitters, but a slower response time.
 	mKinect->setTransform( Kinect::TRANSFORM_SMOOTH );
-
-	// Add callback to receive skeleton data
-	mCallbackId = mKinect->addSkeletonTrackingCallback( &SkeletonApp::onSkeletonData, this );
-
-	// Set up camera
+	
 	mCamera.lookAt( Vec3f( 0.0f, 0.0f, 2.0f ), Vec3f::zero() );
 	mCamera.setPerspective( 45.0f, getWindowAspectRatio(), 0.01f, 1000.0f );
-
 }
 
-// Called on exit
 void SkeletonApp::shutdown()
 {
-
-	// Stop input
-	mKinect->removeCallback( mCallbackId );
 	mKinect->stop();
-
 }
 
-// Runs update logic
 void SkeletonApp::update()
 {
 
 	if ( mKinect->isCapturing() ) {
 		mKinect->update();
 	} else {
-		// If Kinect initialization failed, try again every 90 frames
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mKinect->start();
 		}
 	}
-
 }
 
-// Run application
 CINDER_APP_BASIC( SkeletonApp, RendererGl )

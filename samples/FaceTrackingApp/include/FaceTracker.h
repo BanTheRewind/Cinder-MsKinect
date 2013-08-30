@@ -51,6 +51,9 @@ typedef std::shared_ptr<class FaceTracker> FaceTrackerRef;
 class FaceTracker
 {
 public:
+	int32_t mContinueCount;
+	int32_t mStartCount;
+
 	/*! Animation units representing a subset of Candide3 model's 
 		action units.
 		http://msdn.microsoft.com/en-us/library/jj130970.aspx 
@@ -139,15 +142,13 @@ public:
 	//! Stop face tracking
 	virtual void					stop();
 	
-	/*! Find face using \a color and \a depth images from Kinect. Pass head and 
+	/*! Update \a color and \a depth images from Kinect. Pass head and 
 		neck points together, in order, through \a headPoints to target a user. 
 		The value passed to \a userId will be returned from Face::getUserId() in 
 		the event handler's face argument. */
-	virtual void					findFace( const ci::Surface8u& color, const ci::Channel16u& depth, 
+	virtual void					update( const ci::Surface8u& color, const ci::Channel16u& depth, 
 		const ci::Vec3f headPoints[ 2 ] = 0, size_t userId = 0 );
-	//! Triggers event handler if new data is available.
-	virtual void					update();
-
+	
 	//! Set event handler to method with signature void( FaceTracker::Face ).
 	template<typename T, typename Y> 
 	inline void						connectEventHander( T eventHandler, Y* obj )
@@ -161,10 +162,11 @@ protected:
 	FaceTracker();
 
 	EventHandler					mEventHandler;
-	volatile bool					mNewFace;
+	volatile bool					mNewFrame;
 	volatile bool					mRunning;
 	ThreadRef						mThread;
 	virtual void					run();
+
 
 	bool							mCalcMesh;
 	bool							mCalcMesh2d;

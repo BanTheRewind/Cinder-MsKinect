@@ -34,7 +34,6 @@
 * 
 */
 
-// Includes
 #include "cinder/app/AppBasic.h"
 #include "cinder/gl/gl.h"
 #include "cinder/gl/Texture.h"
@@ -52,51 +51,36 @@
 */
 class MultiDeviceApp : public ci::app::AppBasic 
 {
-
 public:
-
-	// Cinder callbacks
-	void								draw();
-	void								keyDown( ci::app::KeyEvent event );
-	void								prepareSettings( ci::app::AppBasic::Settings *settings );
-	void								shutdown();
-	void								setup();
-	void								update();
-
+	void						draw();
+	void						keyDown( ci::app::KeyEvent event );
+	void						prepareSettings( ci::app::AppBasic::Settings* settings );
+	void						shutdown();
+	void						setup();
+	void						update();
 private:
-
-	// Device info
 	struct Device
 	{
-		int32_t					mCallbackId;
 		KinectSdk::KinectRef	mKinect;
-		ci::gl::Texture			mTexture;
+		ci::gl::TextureRef		mTexture;
 	};
 	std::vector<Device>			mDevices;
 
-	// Callback
-	void						onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions &deviceOptions );
+	void						onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions &deviceOptions );
 
-	// Save screen shot
 	void						screenShot();
-
 };
 
-// Imports
 using namespace ci;
 using namespace ci::app;
 using namespace KinectSdk;
 using namespace std;
 
-// Render
 void MultiDeviceApp::draw()
 {
-
-	// Clear window
 	gl::setViewport( getWindowBounds() );
 	gl::clear( Colorf::black() );
 	
-	// Draw images
 	gl::color( ColorAf::white() );
 	int32_t width	= getWindowWidth() / mDevices.size();
 	int32_t height	= ( width * 3 ) / 4;
@@ -109,7 +93,6 @@ void MultiDeviceApp::draw()
 
 }
 
-// Handles key press
 void MultiDeviceApp::keyDown( KeyEvent event )
 {
 	switch ( event.getCode() ) {
@@ -125,35 +108,30 @@ void MultiDeviceApp::keyDown( KeyEvent event )
 	}
 }
 
-void MultiDeviceApp::onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions &deviceOptions )
+void MultiDeviceApp::onFrame( Frame frame, const KinectSdk::DeviceOptions &deviceOptions )
 {
 	int32_t index = deviceOptions.getDeviceIndex();
 	for ( size_t i = 0; i < mDevices.size(); ++i ) {
 		if ( index == mDevices.at( i ).mKinect->getDeviceOptions().getDeviceIndex() ) {
-			mDevices.at( i ).mTexture = gl::Texture( surface );
+			mDevices.at( i ).mTexture = gl::Texture::create( frame.getDepthSurface() );
 			break;
 		}
 	}
 }
 
-// Prepare window
 void MultiDeviceApp::prepareSettings( Settings *settings )
 {
 	settings->setWindowSize( 1024, 768 );
 	settings->setFrameRate( 60.0f );
 }
 
-// Take screen shot
 void MultiDeviceApp::screenShot()
 {
 	writeImage( getAppPath() / fs::path( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 }
 
-// Set up
 void MultiDeviceApp::setup()
 {
-
-	// Set up OpenGL
 	gl::enable( GL_DEPTH_TEST );
 	gl::enableAlphaBlending();
 	gl::enableAdditiveBlending();
@@ -164,7 +142,6 @@ void MultiDeviceApp::setup()
 	deviceOptions.enableUserTracking( false );
 	deviceOptions.enableColor( false );
 
-	// Start all available devices
 	int32_t count = Kinect::getDeviceCount();
 	for ( int32_t i = 0; i < count; i++ ) {
 		deviceOptions.setDeviceIndex( i );
@@ -172,8 +149,8 @@ void MultiDeviceApp::setup()
 		Device device;
 		device.mKinect = Kinect::create();
 		device.mKinect->start( deviceOptions );
-		device.mCallbackId = device.mKinect->addDepthCallback( &MultiDeviceApp::onDepthData, this );
-		device.mTexture = gl::Texture( 320, 240 );
+		device.mKinect->connectEventHandler( &MultiDeviceApp::onFrame, this );
+		device.mTexture = gl::Texture::create( 320, 240 );
 		
 		mDevices.push_back( device );
 
@@ -182,23 +159,18 @@ void MultiDeviceApp::setup()
 
 }
 
-// Called on exit
 void MultiDeviceApp::shutdown()
 {
-	for ( uint32_t i = 0; i < mDevices.size(); i++ ) {
+	for ( uint32_t i = 0; i < mDevices.size(); ++i ) {
 		Device& device = mDevices.at( i );
-		device.mKinect->removeCallback( device.mCallbackId );
 		device.mKinect->stop();
 	}
 	mDevices.clear();
 }
 
-// Runs update logic
 void MultiDeviceApp::update()
 {
-
-	// Update Kinect
-	for ( uint32_t i = 0; i < mDevices.size(); i++ ) {
+	for ( uint32_t i = 0; i < mDevices.size(); ++i ) {
 		Device& device = mDevices.at( i );
 		if ( device.mKinect->isCapturing() ) {
 			device.mKinect->update();
@@ -207,5 +179,4 @@ void MultiDeviceApp::update()
 
 }
 
-// Run application
 CINDER_APP_BASIC( MultiDeviceApp, RendererGl )

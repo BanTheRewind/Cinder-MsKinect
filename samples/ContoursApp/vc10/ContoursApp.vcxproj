@@ -65,7 +65,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>cinder_d.lib;comsuppw.lib;Kinect10.lib;opencv_core243d.lib;opencv_imgproc243d.lib;opencv_video243d.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\..\..\..\lib;..\..\..\..\..\lib\msw;..\..\..\lib;..\..\..\..\Cinder-OpenCV\lib\vc10;$(KINECTSDK10_DIR)\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\..\lib;..\..\..\..\..\lib\msw;..\..\..\..\Cinder-OpenCV\lib\vc10;$(KINECTSDK10_DIR)\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -75,7 +75,8 @@
       <IgnoreSpecificDefaultLibraries>LIBCMT</IgnoreSpecificDefaultLibraries>
     </Link>
     <PreBuildEvent>
-      <Command>xcopy "$(KINECTSDK10_DIR)\Assemblies\*.dll" "$(ProjectDir)bin\" /Y /C</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\include;..\..\..\..\..\include</AdditionalIncludeDirectories>
@@ -96,7 +97,7 @@
     </ProjectReference>
     <Link>
       <AdditionalDependencies>cinder.lib;Kinect10.lib;opencv_core243.lib;opencv_imgproc243.lib;opencv_video243.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\..\..\..\lib;..\..\..\..\..\lib\msw;..\..\..\lib;..\..\..\..\Cinder-OpenCV\lib\vc10;$(KINECTSDK10_DIR)\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\..\lib;..\..\..\..\..\lib\msw;..\..\..\..\Cinder-OpenCV\lib\vc10;$(KINECTSDK10_DIR)\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <GenerateMapFile>true</GenerateMapFile>
       <SubSystem>Windows</SubSystem>
@@ -109,7 +110,8 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PreBuildEvent>
-      <Command>xcopy "$(KINECTSDK10_DIR)\Assemblies\*.dll" "$(ProjectDir)bin\" /Y /C</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\include;..\..\..\..\..\include</AdditionalIncludeDirectories>

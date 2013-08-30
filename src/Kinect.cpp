@@ -339,6 +339,38 @@ KinectRef Kinect::create()
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
+Frame::Frame()
+	: mId( 0 )
+{
+}
+
+Frame::Frame( long id, const Surface8u& color, const Surface16u& depth, const vector<Skeleton>& skeletons )
+	: mColorSurface( color ), mDepthSurface( depth ), mId( id ), mSkeletons( skeletons )
+{
+}
+
+const Surface8u& Frame::getColorSurface() const
+{
+	return mColorSurface;
+}
+
+const Surface16u& Frame::getDepthSurface() const
+{
+	return mDepthSurface;
+}
+
+long Frame::getId() const
+{
+	return mId;
+}
+
+const vector<Skeleton>&	Frame::getSkeletons() const
+{
+	return mSkeletons;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
 Kinect::Kinect()
 {
 	NuiSetDeviceStatusCallback( &KinectSdk::deviceStatus, this );
@@ -350,15 +382,9 @@ Kinect::Kinect()
 
 Kinect::~Kinect()
 {
+	mEventHandler = nullptr;
+
 	stop();
-
-	for ( CallbackList::iterator callbackIt = mCallbacks.begin(); callbackIt != mCallbacks.end(); ++callbackIt ) {
-		if ( callbackIt->second->connected() ) {
-			callbackIt->second->disconnect();
-		}
-	}
-	mCallbacks.clear();
-
 	if ( mSensor != 0 ) {
 		mSensor->NuiShutdown();
 		if ( mSensor ) {
@@ -368,6 +394,11 @@ Kinect::~Kinect()
 			mColorStreamHandle = 0;
 		}
 	}
+}
+
+void Kinect::connectEventHandler( const function<void ( Frame, const DeviceOptions& )>& eventHandler )
+{
+	mEventHandler = eventHandler;
 }
 
 void Kinect::deactivateUsers()
@@ -450,11 +481,6 @@ float Kinect::getDepthAt( const ci::Vec2i& pos ) const
 	}
 	return depthNorm;
 }
-
-float Kinect::getDepthFrameRate() const 
-{
-	return mFrameRateDepth;
-}
 	
 int32_t Kinect::getDeviceCount()
 {
@@ -468,9 +494,9 @@ const DeviceOptions& Kinect::getDeviceOptions() const
 	return mDeviceOptions;
 }
 
-float Kinect::getSkeletonFrameRate() const 
+float Kinect::getFrameRate() const 
 {
-	return mFrameRateSkeletons; 
+	return mFrameRate;
 }
 
 int32_t Kinect::getTilt()
@@ -494,11 +520,6 @@ int_fast8_t Kinect::getTransform() const
 int32_t Kinect::getUserCount()
 {
 	return mDeviceOptions.isDepthEnabled() ? mUserCount : 0;
-}
-
-float Kinect::getColorFrameRate() const
-{
-	return mFrameRateColor; 
 }
 
 Vec2i Kinect::getSkeletonDepthPos( const ci::Vec3f& position )
@@ -550,16 +571,14 @@ void Kinect::init( bool reset )
 
 	mCapture			= false;
 	mDepthStreamHandle	= 0;
-	mFrameRateDepth		= 0.0f;
-	mFrameRateSkeletons = 0.0f;
-	mFrameRateColor		= 0.0f;
+	mEventHandler		= nullptr;
+	mFrameId			= 0;
+	mFrameRate		= 0.0f;
 	mNewDepthSurface	= false;
 	mNewSkeletons		= false;
 	mNewColorSurface	= false;
 	mIsSkeletonDevice	= false;
-	mReadTimeDepth		= 0.0;
-	mReadTimeSkeletons	= 0.0;
-	mReadTimeColor		= 0.0;
+	mReadTime			= 0.0;
 	mRgbDepth			= 0;
 	mRgbColor			= 0;
 	mSensor				= 0;
@@ -679,12 +698,6 @@ void Kinect::removeBackground( bool remove )
 	mRemoveBackground = remove;
 }
 
-void Kinect::removeCallback( uint32_t id )
-{
-	mCallbacks.find( id )->second->disconnect();
-	mCallbacks.erase( id ); 
-}
-
 void Kinect::run()
 {
 	while ( mCapture ) {
@@ -716,10 +729,7 @@ void Kinect::run()
 					if ( FAILED( hr ) ) {
 						error( hr ); 
 					}
-						
-					mFrameRateDepth	= (float)( 1.0 / ( time - mReadTimeDepth ) );
-					mReadTimeDepth	= time;
-
+					
 					mUserCount = 0;
 					for ( uint32_t i = 0; i < NUI_SKELETON_COUNT; ++i ) {
 						if ( mActiveUsers[ i ] ) {
@@ -779,9 +789,6 @@ void Kinect::run()
 
 					}
 
-					mFrameRateSkeletons = (float)( 1.0 / ( time - mReadTimeSkeletons ) );
-					mReadTimeSkeletons = time;
-
 					mNewSkeletons = true;
 				}
 			}
@@ -812,12 +819,12 @@ void Kinect::run()
 						error( hr );
 					}
 
-					mFrameRateColor = (float)( 1.0 / ( time - mReadTimeColor ) );
-					mReadTimeColor = time;
-
 					mNewColorSurface = true;
 				}
 			}
+
+			mFrameRate	= (float)( 1.0 / ( time - mReadTime ) );
+			mReadTime	= time;
 		}
 		Sleep( 8 );
 	}
@@ -972,7 +979,7 @@ void Kinect::start( const DeviceOptions& deviceOptions )
 			_bstr_t idStr( id );
 			if ( idStr.length() > 0 ) {
 				std::string str( idStr );
-				mDeviceOptions.setDeviceId( str );
+				deviceId = str;
 			}
 			::SysFreeString( id );
 		} else {
@@ -981,7 +988,7 @@ void Kinect::start( const DeviceOptions& deviceOptions )
 		}
 
 		mDeviceOptions.setDeviceIndex( index );
-		mDeviceOptions.setDeviceId( "" );
+		mDeviceOptions.setDeviceId( deviceId );
 
 		unsigned long flags;
 		if ( !mDeviceOptions.isUserTrackingEnabled() ) {
@@ -1082,17 +1089,26 @@ void Kinect::trace( const string& message )
 
 void Kinect::update()
 {
-	if ( mNewDepthSurface ) {
-		mSignalDepth( mDepthSurface, mDeviceOptions );
-		mNewDepthSurface = false;
+	bool newFrame = true;
+	if ( mDeviceOptions.isColorEnabled() ) {
+		newFrame = newFrame && mNewColorSurface;
 	}
-	if ( mNewSkeletons ) {
-		mSignalSkeleton( mSkeletons, mDeviceOptions );
-		mNewSkeletons = false;
+	if ( mDeviceOptions.isDepthEnabled() ) {
+		newFrame = newFrame && mNewDepthSurface;
 	}
-	if ( mNewColorSurface ) {
-		mSignalColor( mColorSurface, mDeviceOptions );
-		mNewColorSurface = false;
+	if ( mDeviceOptions.isSkeletonTrackingEnabled() ) {
+		newFrame = newFrame && mNewSkeletons;
+	}
+	if ( newFrame ) {
+		if ( mEventHandler != nullptr ) {
+			Frame frame( mFrameId, mColorSurface, mDepthSurface, mSkeletons );
+			mEventHandler( frame, mDeviceOptions );
+			++mFrameId;
+		}
+
+		mNewColorSurface	= false;
+		mNewDepthSurface	= false;
+		mNewSkeletons		= false;
 	}
 }
 

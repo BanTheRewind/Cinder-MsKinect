@@ -48,7 +48,6 @@ FaceTracker::Face::Face()
 	mUserId = 0;
 }
 
-
 const FaceTracker::AnimationUnitMap& FaceTracker::Face::getAnimationUnits() const
 {
 	return mAnimationUnits;
@@ -88,6 +87,9 @@ FaceTrackerRef FaceTracker::create()
 
 FaceTracker::FaceTracker()
 {
+	mContinueCount	= 0;
+	mStartCount		= 0;
+
 	mCalcMesh		= true;
 	mCalcMesh2d		= true;
 	mEventHandler	= nullptr;
@@ -95,7 +97,7 @@ FaceTracker::FaceTracker()
 	mImageColor		= 0;
 	mImageDepth		= 0;
 	mModel			= 0;
-	mNewFace		= false;
+	mNewFrame		= false;
 	mResult			= 0;
 	mRunning		= false;
 	mSuccess		= false;
@@ -246,9 +248,9 @@ void FaceTracker::stop()
 	}
 }
 
-void FaceTracker::findFace( const Surface8u& color, const Channel16u& depth, const Vec3f headPoints[ 2 ], size_t userId )
+void FaceTracker::update( const Surface8u& color, const Channel16u& depth, const Vec3f headPoints[ 2 ], size_t userId )
 {
-	if ( !mNewFace && color && depth ) {
+	if ( !mNewFrame && color && depth ) {
 		bool attach	= !mSurfaceColor || !mChannelDepth;
 
 		mHeadPoints.clear();
@@ -266,13 +268,14 @@ void FaceTracker::findFace( const Surface8u& color, const Channel16u& depth, con
 			mImageDepth->Attach( mChannelDepth.getWidth(), mChannelDepth.getHeight(), 
 				(void*)mChannelDepth.getData(), FTIMAGEFORMAT_UINT16_D13P3,	mChannelDepth.getWidth() * 2 );
 		}
+		mNewFrame = true;
 	}
 }
 
 void FaceTracker::run()
 {
 	while ( mRunning ) {
-		if ( !mNewFace && mEventHandler != nullptr ) {
+		if ( mNewFrame && mEventHandler != nullptr ) {
 			mFace.mAnimationUnits.clear();
 			mFace.mBounds = Rectf( 0.0f, 0.0f, 0.0f, 0.0f );
 			mFace.mMesh.clear();
@@ -303,15 +306,17 @@ void FaceTracker::run()
 
 				if ( mSuccess ) {
 					hr = mFaceTracker->ContinueTracking( &data, hint ? headPoints : 0, mResult );
+					++mContinueCount;
 				} else {
 					hr = mFaceTracker->StartTracking( &data, 0, hint ? headPoints : 0, mResult );
+					++mStartCount;
 				}
-
+				
 				if ( SUCCEEDED( hr ) ) {
 					hr			= mResult->GetStatus();
-					mSuccess	= hr == S_OK;
+					mSuccess	= SUCCEEDED( hr );
 				}
-					
+
 				if ( mSuccess ) {
 					hr = mFaceTracker->GetFaceModel( &mModel );
 					if ( SUCCEEDED( hr ) ) {
@@ -403,17 +408,10 @@ void FaceTracker::run()
 				}
 			}
 
-			mNewFace				= true;
+			mEventHandler( mFace );
+			mNewFrame = false;
 		}
 		Sleep( 16 );
-	}
-}
-
-void FaceTracker::update()
-{
-	if ( mNewFace ) {
-		mEventHandler( mFace );
-		mNewFace = false;
 	}
 }
 

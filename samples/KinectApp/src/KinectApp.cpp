@@ -34,7 +34,6 @@
 * 
 */
 
-// Includes
 #include <algorithm>
 #include "boost/algorithm/string.hpp"
 #include "cinder/app/AppBasic.h"
@@ -57,12 +56,11 @@ class KinectApp : public ci::app::AppBasic
 {
 public:
 	void								draw();
-	void								prepareSettings( ci::app::AppBasic::Settings *settings );
+	void								prepareSettings( ci::app::AppBasic::Settings* settings );
 	void								setup();
 	void								shutdown();
 	void								update();
 private:
-	// Capturing flags
 	bool								mCapture;
 	bool								mCapturePrev;
 	bool								mBinaryMode;
@@ -93,88 +91,57 @@ private:
 	int32_t								mTilt;
 	int32_t								mTiltPrev;
 	int32_t								mUserCount;
+	void								onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions& deviceOptions );
 	void								startKinect();
 
-	// Kinect callbacks
-	int32_t								mCallbackDepthId;
-	int32_t								mCallbackSkeletonId;
-	int32_t								mCallbackColorId;
-	void								onColorData( ci::Surface8u surface, const KinectSdk::DeviceOptions& deviceOptions );
-	void								onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions& deviceOptions );
-	void								onSkeletonData( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions& deviceOptions );
-
-	// Camera
 	ci::CameraPersp						mCamera;
 
-	// Params
 	float								mFrameRateApp;
-	float								mFrameRateColor;
-	float								mFrameRateDepth;
-	float								mFrameRateSkeletons;
+	float								mFrameRateDevice;
 	bool								mFullScreen;
 	ci::params::InterfaceGlRef			mParams;
 	bool								mRemoveBackground;
 	bool								mRemoveBackgroundPrev;
 	void								resetStats();
 
-	// Save screen shot
 	void								screenShot();
 };
 
-// Imports
 using namespace ci;
 using namespace ci::app;
 using namespace KinectSdk;
 using namespace std;
 
-// Render
 void KinectApp::draw()
 {
-	// Clear window
 	gl::setViewport( getWindowBounds() );
 	gl::clear( Colorf::gray( 0.1f ) );
 
-	// We're capturing
 	if ( mKinect->isCapturing() ) {
-
-		// Set up camera for 3D
 		gl::setMatrices( mCamera );
 
-		// Move skeletons down below the rest of the interface
+		// Draw skeletons
 		gl::pushMatrices();
 		gl::scale( Vec2f::one() * 0.5f );
 		gl::translate( 0.0f, -0.62f, 0.0f );
 
-		// Iterate through skeletons
 		uint32_t i = 0;
-		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.cbegin(); skeletonIt != mSkeletons.cend(); ++skeletonIt, i++ ) {
-
-			// Set color
+		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.begin(); skeletonIt != mSkeletons.end(); ++skeletonIt, i++ ) {
 			gl::color( mKinect->getUserColor( i ) );
-
-			// Draw bones and joints
-			for ( Skeleton::const_iterator boneIt = skeletonIt->cbegin(); boneIt != skeletonIt->cend(); ++boneIt ) {
-					
-				// Get positions of each joint in this bone to draw it
+			for ( Skeleton::const_iterator boneIt = skeletonIt->begin(); boneIt != skeletonIt->end(); ++boneIt ) {
 				const Bone& bone	= boneIt->second;
 				Vec3f position		= bone.getPosition();
 				Vec3f destination	= skeletonIt->at( bone.getStartJoint() ).getPosition();
 
-				// Draw bone
 				gl::drawLine( position, destination );
-
-				// Draw joint
 				gl::drawSphere( position, 0.025f, 16 );
-
 			}
-
 		}
 
-		// Switch to 2D
+		// Draw depth and color textures
 		gl::popMatrices();
 		gl::setMatricesWindow( getWindowSize(), true );
 
-		// Draw depth and color textures
 		gl::color( Colorf::white() );
 		if ( mDepthSurface ) {
 			Area srcArea( 0, 0, mDepthSurface.getWidth(), mDepthSurface.getHeight() );
@@ -186,65 +153,43 @@ void KinectApp::draw()
 			Rectf destRect( 508.0f, 15.0f, 748.0f, 195.0f );
 			gl::draw( gl::Texture( mColorSurface ), srcArea, destRect );
 		}
-
 	}
 
-	// Draw the interface
 	mParams->draw();
 }
 
-// Receives color data
-void KinectApp::onColorData( Surface8u surface, const DeviceOptions& deviceOptions )
+void KinectApp::onFrame( Frame frame, const DeviceOptions& deviceOptions )
 {
-	mColorSurface = surface;
+	mColorSurface	= frame.getColorSurface();
+	mDepthSurface	= frame.getDepthSurface();
+	mSkeletons		= frame.getSkeletons();
 }
 
-// Receives depth data
-void KinectApp::onDepthData( Surface16u surface, const DeviceOptions& deviceOptions )
-{
-	mDepthSurface = surface;
-}
-
-// Receives skeleton data
-void KinectApp::onSkeletonData( vector<Skeleton> skeletons, const DeviceOptions& deviceOptions )
-{
-	mSkeletons = skeletons;
-}
-
-// Prepare window
 void KinectApp::prepareSettings( Settings *settings )
 {
 	settings->setWindowSize( 1005, 570 );
 	settings->setFrameRate( 60.0f );
 }
 
-// Reset statistics
 void KinectApp::resetStats()
 {
-	mFrameRateDepth		= 0.0f;
-	mFrameRateSkeletons	= 0.0f;
-	mFrameRateColor		= 0.0f;
+	mFrameRateDevice	= 0.0f;
 	mUserCount			= 0;
 }
 
-// Take screen shot
 void KinectApp::screenShot()
 {
 	writeImage( getAppPath() / fs::path( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 }
 
-// Set up
 void KinectApp::setup()
 {
-	// Set up OpenGL
 	glLineWidth( 2.0f );
 	gl::color( ColorAf::white() );
 
-	// Set up camera
 	mCamera.lookAt( Vec3f( 0.0f, 0.0f, 3.0f ), Vec3f::zero() );
 	mCamera.setPerspective( 45.0f, getWindowAspectRatio(), 1.0f, 1000.0f );
 
-	// Initialize parameters
 	mBinaryMode				= false;
 	mBinaryModePrev			= mBinaryMode;
 	mCapture				= true;
@@ -264,9 +209,7 @@ void KinectApp::setup()
 	mFlipped				= false;
 	mFlippedPrev			= mFlipped;
 	mFrameRateApp			= 0.0f;
-	mFrameRateDepth			= 0.0f;
-	mFrameRateSkeletons		= 0.0f;
-	mFrameRateColor			= 0.0f;
+	mFrameRateDevice		= 0.0f;
 	mFullScreen				= isFullScreen();
 	mInverted				= false;
 	mInvertedPrev			= mInverted;
@@ -274,16 +217,10 @@ void KinectApp::setup()
 	mRemoveBackgroundPrev	= mRemoveBackground;
 	mUserCount				= 0;
 
-	// Start image capture
 	mKinect = Kinect::create();
+	mKinect->connectEventHandler( &KinectApp::onFrame, this );
 	startKinect();
-
-	// Add callbacks
-	mCallbackDepthId	= mKinect->addDepthCallback( &KinectApp::onDepthData, this );
-	mCallbackSkeletonId	= mKinect->addSkeletonTrackingCallback( &KinectApp::onSkeletonData, this );
-	mCallbackColorId	= mKinect->addColorCallback( &KinectApp::onColorData, this );
-
-	// Setup the parameters
+	
 	mParams = params::InterfaceGl::create( "Parameters", Vec2i( 245, 500 ) );
 	mParams->addText( "DEVICE" );
 	mParams->addParam( "Device count",			&mDeviceCount,							"", true				);
@@ -291,12 +228,10 @@ void KinectApp::setup()
 		toString( Kinect::MAXIMUM_TILT_ANGLE ) + " max=" + toString( Kinect::MAXIMUM_TILT_ANGLE ) + " step=1"	);
 	mParams->addSeparator();
 	mParams->addText( "STATISTICS");
-	mParams->addParam( "Collect statistics",		&mEnabledStats,							"key=t"					);
-	mParams->addParam( "App frame rate",			&mFrameRateApp,							"", true				);
-	mParams->addParam( "Color frame rate",		&mFrameRateColor,						"", true				);
-	mParams->addParam( "Depth frame rate",		&mFrameRateDepth,						"", true				);
-	mParams->addParam( "Skeleton frame rate",	&mFrameRateSkeletons,					"", true				);
-	mParams->addParam( "User count",				&mUserCount,							"", true				);
+	mParams->addParam( "Collect statistics",	&mEnabledStats,							"key=t"					);
+	mParams->addParam( "App frame rate",		&mFrameRateApp,							"", true				);
+	mParams->addParam( "Device frame rate",		&mFrameRateDevice,						"", true				);
+	mParams->addParam( "User count",			&mUserCount,							"", true				);
 	mParams->addSeparator();
 	mParams->addText( "CAPTURE" );
 	mParams->addParam( "Capture",				&mCapture,								"key=c" 				);
@@ -308,7 +243,7 @@ void KinectApp::setup()
 	mParams->addParam( "Remove background",		&mRemoveBackground,						"key=b" 				);
 	mParams->addParam( "Binary depth mode",		&mBinaryMode,							"key=w" 				);
 	mParams->addParam( "Invert binary image",	&mInverted,								"key=i" 				);
-	mParams->addParam( "Flip input",				&mFlipped,								"key=m" 				);
+	mParams->addParam( "Flip input",			&mFlipped,								"key=m" 				);
 	mParams->addParam( "Near mode",				&mEnabledNearMode,						"key=n" 				);
 	mParams->addParam( "Seated mode",			&mEnabledSeatedMode,					"key=e" 				);
 	mParams->addSeparator();
@@ -318,24 +253,15 @@ void KinectApp::setup()
 	mParams->addButton( "Quit",					bind( &KinectApp::quit, this ),			"key=q"				);
 }
 
-// Quit
 void KinectApp::shutdown()
 {
-	// Stop input
-	mKinect->removeCallback( mCallbackDepthId );
-	mKinect->removeCallback( mCallbackSkeletonId );
-	mKinect->removeCallback( mCallbackColorId );
 	mKinect->stop();
-	mSkeletons.clear();
 }
 
-// Start Kinect input
 void KinectApp::startKinect()
 {
-	// Update device count
 	mDeviceCount = Kinect::getDeviceCount();
 	
-	// Configure device
 	mDeviceOptions.enableDepth( mEnabledDepth );
 	mDeviceOptions.enableNearMode( mEnabledNearMode );
 	mDeviceOptions.enableSkeletonTracking( mEnabledSkeletons, mEnabledSeatedMode );
@@ -344,49 +270,38 @@ void KinectApp::startKinect()
 	mKinect->removeBackground( mRemoveBackground );
 	mKinect->setFlipped( mFlipped );
 
-	// Stop, if capturing
 	if ( mKinect->isCapturing() ) {
 		mKinect->stop();
 	}
 
-	// Start Kinect
 	mKinect->start( mDeviceOptions );
 	
-	// Trace out the unique device ID
 	console() << "Device ID: " << mKinect->getDeviceOptions().getDeviceId() << endl;
 
-	// Get device angle angle
 	mTilt = mKinect->getTilt();
 	mTiltPrev = mTilt;
 
-	// Clear stats
 	resetStats();
 }
 
-// Runs update logic
 void KinectApp::update()
 {
-	// Update frame rate
 	mFrameRateApp = getAverageFps();
 
-	// Toggle fullscreen
 	if ( mFullScreen != isFullScreen() ) {
 		setFullScreen( mFullScreen );
 	}
 
-	// Toggle background remove
 	if ( mRemoveBackground != mRemoveBackgroundPrev ) {
 		mKinect->removeBackground( mRemoveBackground );
 		mRemoveBackgroundPrev = mRemoveBackground;
 	}
 
-	// Toggle mirror image
 	if ( mFlipped != mFlippedPrev ) {
 		mKinect->setFlipped( mFlipped );
 		mFlippedPrev = mFlipped;
 	}
 
-	// Toggle capture
 	if ( mCapture != mCapturePrev ) {
 		mCapturePrev = mCapture;
 		if ( mCapture ) {
@@ -396,7 +311,6 @@ void KinectApp::update()
 		}
 	}
 
-	// Toggle input tracking types (requires device restart)
 	if ( mEnabledColor		!= mEnabledColorPrev		|| 
 		mEnabledDepth		!= mEnabledDepthPrev		|| 
 		mEnabledNearMode	!= mEnabledNearModePrev		|| 
@@ -410,7 +324,6 @@ void KinectApp::update()
 		mEnabledSkeletonsPrev	= mEnabledSkeletons;
 	}
 
-	// Toggle binary mode
 	if ( mBinaryMode	!= mBinaryModePrev	|| 
 		mInverted		!= mInvertedPrev ) {
 		mKinect->enableBinaryMode( mBinaryMode, mInverted );
@@ -418,45 +331,27 @@ void KinectApp::update()
 		mInvertedPrev	= mInverted;
 	}
 
-	// Check if device is capturing
 	if ( mKinect->isCapturing() ) {
-
-		// Update device
 		mKinect->update();
 
-		// Adjust Kinect camera angle, as needed
 		if ( mTilt != mTiltPrev ) {
 			mKinect->setTilt( mTilt );
 			mTiltPrev = mTilt;
 		}
 
-		// Statistics enabled (turn off to improve performance)
 		if ( mEnabledStats ) {
-
-			// Update user count
 			mUserCount			= mKinect->getUserCount();
-		
-			// Update frame rates
-			mFrameRateColor		= mKinect->getColorFrameRate();
-			mFrameRateDepth		= mKinect->getDepthFrameRate();
-			mFrameRateSkeletons	= mKinect->getSkeletonFrameRate();
+			mFrameRateDevice	= mKinect->getFrameRate();
 			
 		} else {
-
-			// Clear stats
 			resetStats();
-
 		}
 
 	} else {
-
-		// If Kinect initialization failed, try again every 90 frames
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mKinect->start();
 		}
-
 	}
 }
 
-// Run application
 CINDER_APP_BASIC( KinectApp, RendererGl )

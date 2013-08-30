@@ -34,11 +34,9 @@
 * 
 */
 
-// Includes
 #include "cinder/app/AppBasic.h"
 #include "cinder/Camera.h"
 #include "cinder/gl/gl.h"
-
 #include "cinder/gl/Texture.h"
 #include "cinder/Vector.h"
 #include "cinder/Utilities.h"
@@ -52,43 +50,30 @@
 */
 class ContoursApp : public ci::app::AppBasic 
 {
-
 public:
-
-	// Cinder callbacks
 	void					draw();
 	void					keyDown( ci::app::KeyEvent event );
-	void					prepareSettings( ci::app::AppBasic::Settings *settings );
+	void					prepareSettings( ci::app::AppBasic::Settings* settings );
 	void					resize();
 	void					shutdown();
 	void					setup();
 	void					update();
-
 private:
-
-	// Kinect
-	int32_t					mCallbackId;
 	KinectSdk::KinectRef	mKinect;
-	void					onDepthData( ci::Surface16u surface, const KinectSdk::DeviceOptions &deviceOptions );
+	void					onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions& deviceOptions );
 
-	// Particle grid
 	std::vector<Particle>	mParticles;
 
-	// Contours
 	ci::Channel16u			mChannel;
 	ContourFinderRef		mContourFinder;
 	std::vector<Contour>	mContours;
 
-	// Parameters
 	bool					mFullScreen;
 	bool					mFullScreenPrev;
 	
-	// Save screen shot
 	void					screenShot();
-
 };
 
-// Imports
 using namespace ci;
 using namespace ci::app;
 using namespace KinectSdk;
@@ -99,28 +84,21 @@ const float kInteractiveForce	= 0.4f;
 const float kInteractiveRadius	= 80.0f;
 const float kFloatMax			= numeric_limits<float>::max();
 
-// Render
 void ContoursApp::draw()
 {
-
-	// Clear screen
 	gl::clear( ColorAf::black() );
 
-	// Draw grid
 	gl::begin( GL_POINTS );
-	for ( vector<Particle>::const_iterator partIt = mParticles.cbegin(); partIt != mParticles.cend(); ++partIt ) {
-		gl::color( partIt->getColor() );
-		gl::vertex( partIt->getPosition() );
+	for ( vector<Particle>::const_iterator iter = mParticles.cbegin(); iter != mParticles.cend(); ++iter ) {
+		gl::color( iter->getColor() );
+		gl::vertex( iter->getPosition() );
 	}
 	gl::end();
 	
 }
 
-// Handles key press
 void ContoursApp::keyDown( KeyEvent event )
 {
-
-	// Key on key...
 	switch ( event.getCode() ) {
 	case KeyEvent::KEY_q:
 		quit();
@@ -132,24 +110,20 @@ void ContoursApp::keyDown( KeyEvent event )
 		screenShot();
 		break;
 	}
-
 }
 
-// Handles depth data
-void ContoursApp::onDepthData( Surface16u surface, const DeviceOptions &deviceOptions )
+void ContoursApp::onFrame( Frame frame, const DeviceOptions& deviceOptions )
 {
-	mChannel = surface.getChannelRed();
+	mChannel = frame.getDepthSurface().getChannelRed();
 }
 
-// Prepare window
-void ContoursApp::prepareSettings( Settings *settings )
+void ContoursApp::prepareSettings( Settings* settings )
 {
 	settings->setWindowSize( 800, 600 );
 	settings->setFrameRate( 60.0f );
 	settings->setFullScreen( true );
 }
 
-// Handles window resize
 void ContoursApp::resize()
 {
 	gl::enable( GL_POINT_SMOOTH );
@@ -161,33 +135,24 @@ void ContoursApp::resize()
 	gl::setMatricesWindow( getWindowSize() );
 }
 
-// Take screen shot
 void ContoursApp::screenShot()
 {
 	writeImage( getAppPath() / fs::path( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 }
 
-// Set up
 void ContoursApp::setup()
 {
-
-	// Start Kinect
 	mKinect = Kinect::create();
+	mKinect->connectEventHandler( &ContoursApp::onFrame, this );
 	mKinect->start( DeviceOptions().enableColor( false ).setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_80x60 ) );
 	mKinect->removeBackground();
 	mKinect->enableBinaryMode( true );
 
-	// Add callbacks
-	mCallbackId = mKinect->addDepthCallback( &ContoursApp::onDepthData, this );
-
-	// Run first window resize
 	resize();
 
-	// Set default properties
 	mFullScreen		= false;
 	mFullScreenPrev = mFullScreen;
 
-	// Layout particle grid
 	float height	= (float)getWindowHeight();
 	float width		= (float)getWindowWidth();
 	Colorf color	= Colorf::white();
@@ -205,34 +170,23 @@ void ContoursApp::setup()
 		position.y += kPointSpacing * 1.5f;
 	}
 
-	// Initialize contour finder
 	mContourFinder = ContourFinder::create();
-	
 }
 
-// Quit
 void ContoursApp::shutdown()
 {
-
-	// Stop Kinect input
-	mKinect->removeCallback( mCallbackId );
 	mKinect->stop();
-
 }
 
-// Runs update logic
 void ContoursApp::update()
 {
-	// Toggle fullscreen
 	if ( mFullScreen != mFullScreenPrev ) {
 		setFullScreen( mFullScreen );
 		mFullScreenPrev = mFullScreen;
 	}
 
-	// Update Kinect
 	if ( mKinect->isCapturing() ) {
 		mKinect->update();
-
 		if ( mChannel ) {
 			
 			// Find contours
@@ -246,27 +200,20 @@ void ContoursApp::update()
 				}
 				contourIt->calcCentroid();
 			}
-
 		}
-
 	} else {
-
-		// If Kinect initialization failed, try again every 90 frames
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mKinect->start();
 		}
 
 	}
 
-	// Iterate through particles
 	for ( vector<Particle>::iterator partIt = mParticles.begin(); partIt != mParticles.end(); ++partIt ) {
 		Particle& particle = *partIt;
 
-		// Get particle position components
 		float x = particle.getPosition().x;
 		float y = particle.getPosition().y;
 
-		// Iterate through contours
 		for ( vector<Contour>::const_iterator contourIt = mContours.cbegin(); contourIt != mContours.cend(); ++contourIt ) {
 			const Contour& contour = *contourIt;
 
@@ -328,12 +275,8 @@ void ContoursApp::update()
 			}
 		}
 
-		// Update particle
 		partIt->update();
-
 	}
-
 }
 
-// Run application
 CINDER_APP_BASIC( ContoursApp, RendererGl )

@@ -59,10 +59,8 @@ private:
 	ci::Surface8u						mSurfaceColor;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
 
-	void					onColor( ci::Surface8u surface, const KinectSdk::DeviceOptions& deviceOptions );
-	void					onDepth( ci::Surface16u surface, const KinectSdk::DeviceOptions& deviceOptions );
 	void					onFace( FaceTracker::Face face );
-	void					onSkeleton( std::vector<KinectSdk::Skeleton> skeletons, const KinectSdk::DeviceOptions& deviceOptions );
+	void					onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions& deviceOptions );
 
 	double					mFaceTrackedTime;
 	FaceTrackerRef			mFaceTracker;
@@ -114,27 +112,22 @@ void FaceTrackingApp::keyDown( KeyEvent event )
 	}
 }
 
-void FaceTrackingApp::onColor( Surface8u surface, const DeviceOptions& deviceOptions )
+void FaceTrackingApp::onFrame( Frame frame, const DeviceOptions& deviceOptions )
 {
-	mSurfaceColor = surface;
-}
-
-void FaceTrackingApp::onDepth( Surface16u surface, const DeviceOptions& deviceOptions )
-{
-	mChannelDepth = surface.getChannelRed();
+	mChannelDepth	= frame.getDepthSurface().getChannelRed();
+	mSkeletons		= frame.getSkeletons();
+	mSurfaceColor	= frame.getColorSurface();
 }
 
 void FaceTrackingApp::onFace( FaceTracker::Face face )
 {
-	if ( mFaceTracker->getResult()->GetStatus() == S_OK ) {
+	long hr = mFaceTracker->getResult()->GetStatus();
+	if ( hr == S_OK ) {
 		mFace				= face;
 		mFaceTrackedTime	= getElapsedSeconds();
-	}
-}
 
-void FaceTrackingApp::onSkeleton( vector<Skeleton> skeletons, const DeviceOptions& deviceOptions )
-{
-	mSkeletons = skeletons;
+		console() << "Start: " << mFaceTracker->mStartCount << " / Continue: " << mFaceTracker->mContinueCount << endl;
+	}
 }
 
 void FaceTrackingApp::prepareSettings( Settings* settings )
@@ -155,9 +148,7 @@ void FaceTrackingApp::setup()
 	deviceOptions.setColorSurfaceChannelOrder( SurfaceChannelOrder::BGRA );
 
 	mKinect = Kinect::create();
-	mKinect->addColorCallback( &FaceTrackingApp::onColor, this );
-	mKinect->addDepthCallback( &FaceTrackingApp::onDepth, this );
-	mKinect->addSkeletonTrackingCallback( &FaceTrackingApp::onSkeleton, this );
+	mKinect->connectEventHandler( &FaceTrackingApp::onFrame, this );
 	mKinect->start( deviceOptions );
 
 	mFaceTracker = FaceTracker::create();
@@ -187,8 +178,7 @@ void FaceTrackingApp::update()
 	if ( mKinect->isCapturing() ) {
 		mKinect->update();
 		if ( mFaceTracker->isTracking() ) {
-			mFaceTracker->findFace( mSurfaceColor, mChannelDepth );
-			mFaceTracker->update();
+			mFaceTracker->update( mSurfaceColor, mChannelDepth );
 		}
 	} else {
 		if ( getElapsedFrames() % 90 == 0 ) {

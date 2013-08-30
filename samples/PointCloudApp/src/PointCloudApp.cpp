@@ -34,7 +34,6 @@
 * 
 */
 
-// Includes
 #include "cinder/app/AppBasic.h"
 #include "cinder/Arcball.h"
 #include "cinder/Camera.h"
@@ -50,64 +49,51 @@
 */
 class PointCloudApp : public ci::app::AppBasic 
 {
-
 public:
-	// Cinder callbacks
-	void draw();
-	void keyDown( ci::app::KeyEvent event );
-	void mouseDown( ci::app::MouseEvent event );
-	void mouseDrag( ci::app::MouseEvent event );
-	void prepareSettings( ci::app::AppBasic::Settings *settings );
-	void shutdown();
-	void setup();
-	void update();
+	void 					draw();
+	void 					keyDown( ci::app::KeyEvent event );
+	void 					mouseDown( ci::app::MouseEvent event );
+	void 					mouseDrag( ci::app::MouseEvent event );
+	void 					prepareSettings( ci::app::AppBasic::Settings* settings );
+	void 					shutdown();
+	void 					setup();
+	void					update();
 private:
-	// Kinect
 	KinectSdk::KinectRef	mKinect;
 
-	// Depth points
 	std::vector<ci::Vec3f>	mPoints;
 
-	// Camera
 	ci::Arcball				mArcball;
 	ci::CameraPersp			mCamera;
 
-	// Save screen shot
 	void					screenShot();
 };
 
-// Imports
 using namespace ci;
 using namespace ci::app;
 using namespace KinectSdk;
 using namespace std;
 
-// Kinect image size
 const Vec2i	kKinectSize( 640, 480 );
 
-// Render
 void PointCloudApp::draw()
 {
-	// Clear window
 	gl::setViewport( getWindowBounds() );
 	gl::clear( Colorf::black() );
 	gl::setMatrices( mCamera );
 	gl::rotate( mArcball.getQuat() );
 
-	// Draw point cloud
 	gl::begin( GL_POINTS );
-	for ( vector<Vec3f>::const_iterator pointIt = mPoints.cbegin(); pointIt != mPoints.cend(); ++pointIt ) {
-		float depth = 1.0f - pointIt->z / mCamera.getEyePoint().z * -1.5f;
+	for ( vector<Vec3f>::const_iterator iter = mPoints.begin(); iter != mPoints.end(); ++iter ) {
+		float depth = 1.0f - iter->z / mCamera.getEyePoint().z * -1.5f;
 		gl::color( ColorAf( 1.0f, depth, 1.0f - depth, depth ) );
-		gl::vertex( *pointIt );
+		gl::vertex( *iter );
 	}
 	gl::end();
 }
 
-// Handles key press
 void PointCloudApp::keyDown( KeyEvent event )
 {
-	// Key on key...
 	switch ( event.getCode() ) {
 	case KeyEvent::KEY_q:
 		quit();
@@ -131,23 +117,19 @@ void PointCloudApp::mouseDrag( ci::app::MouseEvent event )
 	mArcball.mouseDrag( event.getPos() );
 }
 
-// Prepare window
-void PointCloudApp::prepareSettings( Settings *settings )
+void PointCloudApp::prepareSettings( Settings* settings )
 {
 	settings->setWindowSize( 1024, 768 );
 	settings->setFrameRate( 60.0f );
 }
 
-// Take screen shot
 void PointCloudApp::screenShot()
 {
 	writeImage( getAppPath() / fs::path( "frame" + toString( getElapsedFrames() ) + ".png" ), copyWindowSurface() );
 }
 
-// Set up
 void PointCloudApp::setup()
 {
-	// Set up OpenGL
 	gl::enable( GL_DEPTH_TEST );
 	glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
 	glEnable( GL_POINT_SMOOTH );
@@ -155,68 +137,48 @@ void PointCloudApp::setup()
 	gl::enableAlphaBlending();
 	gl::enableAdditiveBlending();
 
-	// Start Kinect with isolated depth tracking only
 	mKinect = Kinect::create();
 	mKinect->start( DeviceOptions().enableSkeletonTracking( false ).enableColor( false ).setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 ) );
 
-	// Set up camera
 	mArcball = Arcball( getWindowSize() );
 	mArcball.setRadius( (float)getWindowHeight() );
 	mCamera.lookAt( Vec3f( 0.0f, 0.0f, 670.0f ), Vec3f::zero() );
 	mCamera.setPerspective( 60.0f, getWindowAspectRatio(), 0.01f, 5000.0f );
 }
 
-// Called on exit
 void PointCloudApp::shutdown()
 {
 	mKinect->stop();
 	mPoints.clear();
 }
 
-// Runs update logic
 void PointCloudApp::update()
 {
-	// Device is capturing
 	if ( mKinect->isCapturing() ) {
 		mKinect->update();
 
-		// Clear point list
 		Vec3f offset( Vec2f( kKinectSize ) * Vec2f( -0.5f, 0.5f ) );
 		offset.z = mCamera.getEyePoint().z;
 		Vec3f position = Vec3f::zero();
 		mPoints.clear();
 
-		// Iterate image rows
-		for ( int32_t y = 0; y < kKinectSize.y; y++ ) {
-			for ( int32_t x = 0; x < kKinectSize.x; x++ ) {
-
-				// Read depth as 0.0 - 1.0 float
+		for ( int32_t y = 0; y < kKinectSize.y; ++y ) {
+			for ( int32_t x = 0; x < kKinectSize.x; ++x ) {
 				float depth = mKinect->getDepthAt( Vec2i( x, y ) );
-
-				// Add position to point list
-				position.z = depth * mCamera.getEyePoint().z * -3.0f;
+				position.z	= depth * mCamera.getEyePoint().z * -3.0f;
 				mPoints.push_back( position * Vec3f( 1.1f, -1.1f, 1.0f ) + offset );
-
-				// Shift point
-				position.x++;
-
+				++position.x;
 			}
 
-			// Update position
 			position.x = 0.0f;
-			position.y++;
-
+			++position.y;
 		}
 
 	} else {
-
-		// If Kinect initialization failed, try again every 90 frames
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mKinect->start();
 		}
-
 	}
 }
 
-// Run application
 CINDER_APP_BASIC( PointCloudApp, RendererGl )

@@ -81,7 +81,8 @@
       <IgnoreSpecificDefaultLibraries>LIBCMT</IgnoreSpecificDefaultLibraries>
     </Link>
     <PreBuildEvent>
-      <Command>xcopy "$(KINECTSDK10_DIR)\Assemblies\*.dll" "$(ProjectDir)bin\" /Y /C</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
     <ResourceCompile>
       <IgnoreStandardIncludePath>
@@ -104,7 +105,7 @@
     </ProjectReference>
     <Link>
       <AdditionalDependencies>cinder.lib;Kinect10.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\..\..\..\lib;..\..\..\..\..\lib\msw;..\..\..\lib;..\..\..\lib\msw\msw;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\..\lib;..\..\..\..\..\lib\msw;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <GenerateMapFile>true</GenerateMapFile>
       <SubSystem>Windows</SubSystem>
@@ -117,7 +118,8 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PreBuildEvent>
-      <Command>xcopy "$(KINECTSDK10_DIR)\Assemblies\*.dll" "$(ProjectDir)bin\" /Y /C</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\..\..\..\include;..\include;</AdditionalIncludeDirectories>
