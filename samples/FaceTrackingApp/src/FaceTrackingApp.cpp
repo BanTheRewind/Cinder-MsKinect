@@ -177,7 +177,7 @@ void FaceTrackingApp::update()
 {
 	if ( mKinect->isCapturing() ) {
 		mKinect->update();
-		if ( mFaceTracker->isTracking() ) {
+		if ( mSurfaceColor && mChannelDepth ) {
 			mFaceTracker->update( mSurfaceColor, mChannelDepth );
 		}
 	} else {

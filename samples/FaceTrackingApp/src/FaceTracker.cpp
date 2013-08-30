@@ -275,7 +275,9 @@ void FaceTracker::update( const Surface8u& color, const Channel16u& depth, const
 void FaceTracker::run()
 {
 	while ( mRunning ) {
-		if ( mNewFrame && mEventHandler != nullptr ) {
+		if ( mNewFrame && mEventHandler != nullptr && mImageColor != 0 && mImageDepth != 0 ) {
+			long hr = S_OK;
+
 			mFace.mAnimationUnits.clear();
 			mFace.mBounds = Rectf( 0.0f, 0.0f, 0.0f, 0.0f );
 			mFace.mMesh.clear();
@@ -283,135 +285,126 @@ void FaceTracker::run()
 			mFace.mPoseMatrix.setToIdentity();
 			mFace.mUserId = mUserId;
 
-			long hr = E_FAIL;
-
-			if ( mImageColor != 0 && mImageDepth != 0 ) {
-				FT_SENSOR_DATA data;
-				tagPOINT offset;
-				offset.x			= 0;
-				offset.y			= 0;
-				data.pDepthFrame	= mImageDepth;
-				data.pVideoFrame	= mImageColor;
-				data.ViewOffset		= offset;
-				data.ZoomFactor		= 1.0f;
-
-				FT_VECTOR3D h0( 0.0f, 0.0f, 0.0f );
-				FT_VECTOR3D h1( 0.0f, 0.0f, 0.0f );					
-				bool hint = mHeadPoints.size() == 2;
-				if ( hint ) {
-					h0 = FT_VECTOR3D( mHeadPoints[ 0 ].x, mHeadPoints[ 0 ].y, mHeadPoints[ 0 ].z );
-					h1 = FT_VECTOR3D( mHeadPoints[ 1 ].x, mHeadPoints[ 1 ].y, mHeadPoints[ 1 ].z );
-				}
-				FT_VECTOR3D headPoints[ 2 ] = { h0, h1 };
-
-				if ( mSuccess ) {
-					hr = mFaceTracker->ContinueTracking( &data, hint ? headPoints : 0, mResult );
-					++mContinueCount;
-				} else {
-					hr = mFaceTracker->StartTracking( &data, 0, hint ? headPoints : 0, mResult );
-					++mStartCount;
-				}
-				
-				if ( SUCCEEDED( hr ) ) {
-					hr			= mResult->GetStatus();
-					mSuccess	= SUCCEEDED( hr );
-				}
-
-				if ( mSuccess ) {
-					hr = mFaceTracker->GetFaceModel( &mModel );
-					if ( SUCCEEDED( hr ) ) {
-						float* shapeUnits		= 0;
-						size_t numShapeUnits	= 0;
-						int32_t haveConverged	= false;
-						mFaceTracker->GetShapeUnits( 0, &shapeUnits, &numShapeUnits, &haveConverged );
-							
-						float* animationUnits;
-						size_t numAnimationUnits;
-						hr = mResult->GetAUCoefficients( &animationUnits, &numAnimationUnits );
-						if ( SUCCEEDED( hr ) ) {
-							for ( size_t i = 0; i < numAnimationUnits; ++i ) {
-								mFace.mAnimationUnits[ (AnimationUnit)i ] = animationUnits[ i ];
-							}
-						}
-
-						float scale;
-						float rotation[ 3 ];
-						float translation[ 3 ];
-						hr = mResult->Get3DPose( &scale, rotation, translation );
-						if ( SUCCEEDED( hr ) ) {
-							Vec3f r( rotation[ 0 ], rotation[ 1 ], rotation[ 2 ] );
-							Vec3f t( translation[ 0 ], translation[ 1 ], translation[ 2 ] );
-
-							mFace.mPoseMatrix.translate( t );
-							mFace.mPoseMatrix.rotate( r );
-							mFace.mPoseMatrix.translate( -t );
-							mFace.mPoseMatrix.translate( t );
-							mFace.mPoseMatrix.scale( Vec3f::one() * scale );
-						}
-
-						size_t numVertices	= mModel->GetVertexCount();
-							
-						if ( numAnimationUnits > 0 && numShapeUnits > 0 && numVertices > 0 ) {
-							if ( mCalcMesh ) {
-								FT_VECTOR3D* pts = reinterpret_cast<FT_VECTOR3D*>( _malloca( sizeof( FT_VECTOR3D ) * numVertices ) );
-								hr = mModel->Get3DShape( shapeUnits, numShapeUnits, animationUnits, numAnimationUnits, scale, rotation, translation, pts, numVertices );
-								if ( SUCCEEDED( hr ) ) {
-									for ( size_t i = 0; i < numVertices; ++i ) {
-										Vec3f v( pts[ i ].x, pts[ i ].y, pts[ i ].z );
-										mFace.mMesh.appendVertex( v );
-									}
-
-									FT_TRIANGLE* triangles;
-									size_t triangleCount;
-									hr = mModel->GetTriangles( &triangles, &triangleCount );
-									if ( SUCCEEDED( hr ) ) {
-										for ( size_t i = 0; i < triangleCount; ++i ) {
-											mFace.mMesh.appendTriangle( triangles[ i ].i, triangles[ i ].j, triangles[ i ].k );
-										}
-									}
-								}
-								_freea( pts );
-							}
-
-							if ( mCalcMesh2d ) {
-								tagPOINT viewOffset	= { 0, 0 };
-								FT_VECTOR2D* pts	= reinterpret_cast<FT_VECTOR2D*>( _malloca( sizeof( FT_VECTOR2D ) * numVertices ) );
-								hr = mModel->GetProjectedShape( &mConfigColor, data.ZoomFactor, viewOffset, shapeUnits, numShapeUnits, animationUnits, 
-									numAnimationUnits, scale, rotation, translation, pts, numVertices );
-								if ( SUCCEEDED( hr ) ) {
-									for ( size_t i = 0; i < numVertices; ++i ) {
-										Vec2f v( pts[ i ].x + 0.5f, pts[ i ].y + 0.5f );
-										mFace.mMesh2d.appendVertex( v );
-									}
-
-									FT_TRIANGLE* triangles;
-									size_t triangleCount;
-									hr = mModel->GetTriangles( &triangles, &triangleCount );
-									if ( SUCCEEDED( hr ) ) {
-										for ( size_t i = 0; i < triangleCount; ++i ) {
-											mFace.mMesh2d.appendTriangle( triangles[ i ].i, triangles[ i ].j, triangles[ i ].k );
-										}
-									}
-								}
-								_freea( pts );
-							}
-						}
-
-						tagRECT rect;
-						hr = mResult->GetFaceRect( &rect );
-						if ( SUCCEEDED( hr ) ) {
-							mFace.mBounds = Rectf( (float)rect.left, (float)rect.top, (float)rect.right, (float)rect.bottom );
-						}
-					}
-				} else {
-					mResult->Reset();
+			FT_SENSOR_DATA data;
+			tagPOINT offset;
+			offset.x			= 0;
+			offset.y			= 0;
+			data.pDepthFrame	= mImageDepth;
+			data.pVideoFrame	= mImageColor;
+			data.ViewOffset		= offset;
+			data.ZoomFactor		= 1.0f;
+					
+			bool hint = mHeadPoints.size() == 2;
+			FT_VECTOR3D headPoints[ 2 ];
+			if ( hint ) {
+				for ( size_t i = 0; i < 2; ++i ) {
+					headPoints[ i ] = FT_VECTOR3D( mHeadPoints[ i ].x, mHeadPoints[ i ].y, mHeadPoints[ i ].z );
 				}
 			}
 
+			if ( mSuccess ) {
+				hr = mFaceTracker->ContinueTracking( &data, hint ? headPoints : 0, mResult );
+				++mContinueCount;
+			} else {
+				hr = mFaceTracker->StartTracking( &data, 0, hint ? headPoints : 0, mResult );
+				++mStartCount;
+			}
+			
+			mSuccess = SUCCEEDED( hr ) && SUCCEEDED( mResult->GetStatus() );
+
+			if ( mSuccess ) {
+				hr = mFaceTracker->GetFaceModel( &mModel );
+				if ( SUCCEEDED( hr ) ) {
+					float* shapeUnits		= 0;
+					size_t numShapeUnits	= 0;
+					int32_t haveConverged	= false;
+					mFaceTracker->GetShapeUnits( 0, &shapeUnits, &numShapeUnits, &haveConverged );
+							
+					float* animationUnits;
+					size_t numAnimationUnits;
+					hr = mResult->GetAUCoefficients( &animationUnits, &numAnimationUnits );
+					if ( SUCCEEDED( hr ) ) {
+						for ( size_t i = 0; i < numAnimationUnits; ++i ) {
+							mFace.mAnimationUnits[ (AnimationUnit)i ] = animationUnits[ i ];
+						}
+					}
+
+					float scale;
+					float rotation[ 3 ];
+					float translation[ 3 ];
+					hr = mResult->Get3DPose( &scale, rotation, translation );
+					if ( SUCCEEDED( hr ) ) {
+						Vec3f r( rotation[ 0 ], rotation[ 1 ], rotation[ 2 ] );
+						Vec3f t( translation[ 0 ], translation[ 1 ], translation[ 2 ] );
+
+						mFace.mPoseMatrix.translate( t );
+						mFace.mPoseMatrix.rotate( r );
+						mFace.mPoseMatrix.translate( -t );
+						mFace.mPoseMatrix.translate( t );
+						mFace.mPoseMatrix.scale( Vec3f::one() * scale );
+					}
+
+					size_t numVertices	= mModel->GetVertexCount();
+							
+					if ( numAnimationUnits > 0 && numShapeUnits > 0 && numVertices > 0 ) {
+						if ( mCalcMesh ) {
+							FT_VECTOR3D* pts = reinterpret_cast<FT_VECTOR3D*>( _malloca( sizeof( FT_VECTOR3D ) * numVertices ) );
+							hr = mModel->Get3DShape( shapeUnits, numShapeUnits, animationUnits, numAnimationUnits, scale, rotation, translation, pts, numVertices );
+							if ( SUCCEEDED( hr ) ) {
+								for ( size_t i = 0; i < numVertices; ++i ) {
+									Vec3f v( pts[ i ].x, pts[ i ].y, pts[ i ].z );
+									mFace.mMesh.appendVertex( v );
+								}
+
+								FT_TRIANGLE* triangles;
+								size_t triangleCount;
+								hr = mModel->GetTriangles( &triangles, &triangleCount );
+								if ( SUCCEEDED( hr ) ) {
+									for ( size_t i = 0; i < triangleCount; ++i ) {
+										mFace.mMesh.appendTriangle( triangles[ i ].i, triangles[ i ].j, triangles[ i ].k );
+									}
+								}
+							}
+							_freea( pts );
+						}
+
+						if ( mCalcMesh2d ) {
+							tagPOINT viewOffset	= { 0, 0 };
+							FT_VECTOR2D* pts	= reinterpret_cast<FT_VECTOR2D*>( _malloca( sizeof( FT_VECTOR2D ) * numVertices ) );
+							hr = mModel->GetProjectedShape( &mConfigColor, data.ZoomFactor, viewOffset, shapeUnits, numShapeUnits, animationUnits, 
+								numAnimationUnits, scale, rotation, translation, pts, numVertices );
+							if ( SUCCEEDED( hr ) ) {
+								for ( size_t i = 0; i < numVertices; ++i ) {
+									Vec2f v( pts[ i ].x + 0.5f, pts[ i ].y + 0.5f );
+									mFace.mMesh2d.appendVertex( v );
+								}
+
+								FT_TRIANGLE* triangles;
+								size_t triangleCount;
+								hr = mModel->GetTriangles( &triangles, &triangleCount );
+								if ( SUCCEEDED( hr ) ) {
+									for ( size_t i = 0; i < triangleCount; ++i ) {
+										mFace.mMesh2d.appendTriangle( triangles[ i ].i, triangles[ i ].j, triangles[ i ].k );
+									}
+								}
+							}
+							_freea( pts );
+						}
+					}
+
+					tagRECT rect;
+					hr = mResult->GetFaceRect( &rect );
+					if ( SUCCEEDED( hr ) ) {
+						mFace.mBounds = Rectf( (float)rect.left, (float)rect.top, (float)rect.right, (float)rect.bottom );
+					}
+				}
+			} else {
+				mResult->Reset();
+			}
 			mEventHandler( mFace );
 			mNewFrame = false;
 		}
-		Sleep( 16 );
+		Sleep( 8 );
 	}
 }
 

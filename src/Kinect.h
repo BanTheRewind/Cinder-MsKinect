@@ -286,7 +286,7 @@ public:
 	//! Sets skeleton transform type.
 	void							setTransform( int_fast8_t transform = TRANSFORM_DEFAULT );
 protected:
-	static const int32_t			WAIT_TIME = 250;
+	static const int32_t			WAIT_TIME = 100;
 
 	Kinect();
 
@@ -327,7 +327,13 @@ protected:
 
 	uint_fast8_t					mTransform;
 
+	const NUI_IMAGE_FRAME*			getNewFrame( void* streamHandle );
+	void*							mColorStreamHandle;
+	void*							mDepthStreamHandle;
+	
+	void*							mFrameEndEvent;
 	long							mFrameId;
+
 	volatile bool					mNewDepthSurface;
 	volatile bool					mNewSkeletons;
 	volatile bool					mNewColorSurface;
@@ -342,8 +348,6 @@ protected:
 	bool							mIsSkeletonDevice;
 	Point							mPoints[ NUI_SKELETON_POSITION_COUNT ];
 
-	void*							mDepthStreamHandle;
-	void*							mColorStreamHandle;
 	bool							openDepthStream();
 	bool							openColorStream();
 
