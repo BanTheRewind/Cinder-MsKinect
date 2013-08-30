@@ -12,7 +12,7 @@ using namespace std;
 class _TBOX_PREFIX_App : public AppBasic 
 {
   public:
-	void prepareSettings( ci::app::AppBasic::Settings *settings );
+	void prepareSettings( ci::app::AppBasic::Settings* settings );
 	void setup();
 	void update();
 	void draw();
@@ -28,7 +28,7 @@ class _TBOX_PREFIX_App : public AppBasic
 // Kinect image size
 const Vec2i	kKinectSize( 640, 480 );
 
-void _TBOX_PREFIX_App::prepareSettings( Settings *settings )
+void _TBOX_PREFIX_App::prepareSettings( Settings* settings )
 {
 	settings->setWindowSize( 1024, 768 );
 }
@@ -55,19 +55,17 @@ void _TBOX_PREFIX_App::setup()
 
 void _TBOX_PREFIX_App::update()
 {
-	// Device is capturing
 	if ( mKinect->isCapturing() ) {
 		mKinect->update();
 
-		// Clear point list
 		Vec3f offset( Vec2f( kKinectSize ) * Vec2f( -0.5f, 0.5f ) );
 		offset.z = mCamera.getEyePoint().z;
 		Vec3f position = Vec3f::zero();
 		mPoints.clear();
 
 		// Iterate image rows
-		for( int32_t y = 0; y < kKinectSize.y; y++ ) {
-			for( int32_t x = 0; x < kKinectSize.x; x++ ) {
+		for( int32_t y = 0; y < kKinectSize.y; ++y ) {
+			for( int32_t x = 0; x < kKinectSize.x; ++x ) {
 				// Read depth as 0.0 - 1.0 float
 				float depth = mKinect->getDepthAt( Vec2i( x, y ) );
 
@@ -76,12 +74,12 @@ void _TBOX_PREFIX_App::update()
 				mPoints.push_back( position * Vec3f( 1.1f, -1.1f, 1.0f ) + offset );
 
 				// Shift point
-				position.x++;
+				++position.x;
 			}
 
 			// Update position
 			position.x = 0.0f;
-			position.y++;
+			++position.y;
 		}
 	} 
 	else {
@@ -94,23 +92,21 @@ void _TBOX_PREFIX_App::update()
 
 void _TBOX_PREFIX_App::draw()
 {
-	// Clear window
 	gl::clear();
 	gl::setMatrices( mCamera );
 
 	// Draw point cloud
-	glBegin( GL_POINTS );
-	for( auto pointIt = mPoints.cbegin(); pointIt != mPoints.cend(); ++pointIt ) {
-		float depth = 1.0f - pointIt->z / mCamera.getEyePoint().z * -1.5f;
+	gl::begin( GL_POINTS );
+	for ( auto iter = mPoints.begin(); iter != mPoints.end(); ++iter ) {
+		float depth = 1.0f - iter->z / mCamera.getEyePoint().z * -1.5f;
 		gl::color( ColorAf( 1.0f, depth, 1.0f - depth, depth ) );
-		gl::vertex( *pointIt );
+		gl::vertex( *iter );
 	}
-	glEnd();
+	gl::end();
 }
 
 void _TBOX_PREFIX_App::keyDown( KeyEvent event )
 {
-	// Key on key...
 	switch( event.getCode() ) {
 		case KeyEvent::KEY_ESCAPE:
 			quit();
