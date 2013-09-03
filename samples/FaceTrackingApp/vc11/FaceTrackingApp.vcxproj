@@ -123,8 +123,8 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\src\FaceTracker.cpp" />
     <ClCompile Include="..\..\..\src\Kinect.cpp" />
-    <ClCompile Include="..\src\FaceTracker.cpp" />
     <ClCompile Include="..\src\FaceTrackingApp.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -134,8 +134,8 @@
     <ResourceCompile Include="Resources.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\src\FaceTracker.h" />
     <ClInclude Include="..\..\..\src\Kinect.h" />
-    <ClInclude Include="..\include\FaceTracker.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -23,8 +23,8 @@
     <ClCompile Include="..\..\..\src\Kinect.cpp">
       <Filter>blocks\Cinder-KinectSdk</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\FaceTracker.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\..\..\src\FaceTracker.cpp">
+      <Filter>blocks\Cinder-KinectSdk</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -41,8 +41,8 @@
     <ClInclude Include="..\..\..\src\Kinect.h">
       <Filter>blocks\Cinder-KinectSdk</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\FaceTracker.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\..\..\src\FaceTracker.h">
+      <Filter>blocks\Cinder-KinectSdk</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
