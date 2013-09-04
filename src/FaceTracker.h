@@ -45,6 +45,8 @@
 #include <memory>
 #include <thread>
 
+namespace KinectSdk 
+{
 typedef std::shared_ptr<class FaceTracker> FaceTrackerRef;
 
 //! Microsoft FaceTracking API wrapper for use with the Kinect.
@@ -224,4 +226,5 @@ public:
 		ExcFaceTrackerInit( long hr ) throw();
 	};
 };
+}
  

@@ -37,9 +37,10 @@
 #include "FaceTracker.h"
 #include "cinder/app/App.h"
 
+namespace KinectSdk
+{
 using namespace ci;
 using namespace ci::app;
-using namespace KinectSdk;
 using namespace std;
 
 FaceTracker::Face::Face()
@@ -438,5 +439,6 @@ FaceTracker::ExcFaceTrackerCreateResult::ExcFaceTrackerCreateResult( long hr ) t
 FaceTracker::ExcFaceTrackerInit::ExcFaceTrackerInit( long hr ) throw()
 {
 	sprintf( mMessage, "Unable to initialize face tracker: %i", hr );
+}
 }
  

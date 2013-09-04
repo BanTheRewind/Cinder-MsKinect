@@ -46,26 +46,26 @@ class FaceTrackingApp : public ci::app::AppBasic
 {
 
 public:
-	void draw();
-	void keyDown( ci::app::KeyEvent event );
-	void prepareSettings( ci::app::AppBasic::Settings* settings );
-	void shutdown();
-	void setup();
-	void update();
+	void								draw();
+	void								keyDown( ci::app::KeyEvent event );
+	void								prepareSettings( ci::app::AppBasic::Settings* settings );
+	void								setup();
+	void								shutdown();
+	void								update();
 private:
 	ci::Channel16u						mChannelDepth;
-	FaceTracker::Face					mFace;
+	KinectSdk::FaceTracker::Face		mFace;
 	KinectSdk::KinectRef				mKinect;
 	ci::Surface8u						mSurfaceColor;
 	std::vector<KinectSdk::Skeleton>	mSkeletons;
 
-	void					onFace( FaceTracker::Face face );
-	void					onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions& deviceOptions );
+	void								onFace( KinectSdk::FaceTracker::Face face );
+	void								onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions& deviceOptions );
 
-	double					mFaceTrackedTime;
-	FaceTrackerRef			mFaceTracker;
+	double								mFaceTrackedTime;
+	KinectSdk::FaceTrackerRef			mFaceTracker;
 
-	void					screenShot();
+	void								screenShot();
 };
 
 #include "cinder/gl/Texture.h"
