@@ -274,7 +274,21 @@ void KinectApp::startKinect()
 		mKinect->stop();
 	}
 
-	mKinect->start( mDeviceOptions );
+	try {
+		mKinect->start( mDeviceOptions );
+	} catch ( Kinect::ExcDeviceCreate ex ) {
+		console() << ex.what() << endl;
+	} catch ( Kinect::ExcDeviceInit ex ) {
+		console() << ex.what() << endl;
+	} catch ( Kinect::ExcDeviceInvalid ex ) {
+		console() << ex.what() << endl;
+	} catch ( Kinect::ExcOpenStreamColor ex ) {
+		console() << ex.what() << endl;
+	} catch ( Kinect::ExcOpenStreamDepth ex ) {
+		console() << ex.what() << endl;
+	} catch ( Kinect::ExcSkeletonTrackingEnable ex ) {
+		console() << ex.what() << endl;
+	}
 	
 	console() << "Device ID: " << mKinect->getDeviceOptions().getDeviceId() << endl;
 

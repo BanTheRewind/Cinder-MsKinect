@@ -618,7 +618,21 @@ bool Kinect::isFlipped() const
 	return mFlipped; 
 }
 
-bool Kinect::openDepthStream()
+long Kinect::openColorStream()
+{
+	if ( mSensor != 0 ) {
+		long hr = mSensor->NuiImageStreamOpen( NUI_IMAGE_TYPE_COLOR, mDeviceOptions.getColorResolution(), 0, 2, 0, &mColorStreamHandle );
+		if ( FAILED( hr ) ) {
+			trace( "Unable to open color image stream: " );
+			error( hr );
+			stop();
+			return hr;
+		}
+	}
+	return S_OK;
+}
+
+long Kinect::openDepthStream()
 {
 	if ( mSensor != 0) {
 		NUI_IMAGE_TYPE type = mDeviceOptions.getDepthResolution() != ImageResolution::NUI_IMAGE_RESOLUTION_640x480 && 
@@ -628,24 +642,10 @@ bool Kinect::openDepthStream()
 			trace( "Unable to open depth image stream: " );
 			error( hr );
 			stop();
-			return false;
+			return hr;
 		}
 	}
-	return true;
-}
-
-bool Kinect::openColorStream()
-{
-	if ( mSensor != 0 ) {
-		long hr = mSensor->NuiImageStreamOpen( NUI_IMAGE_TYPE_COLOR, mDeviceOptions.getColorResolution(), 0, 2, 0, &mColorStreamHandle );
-		if ( FAILED( hr ) ) {
-			trace( "Unable to open color image stream: " );
-			error( hr );
-			stop();
-			return false;
-		}
-	}
-	return true;
+	return S_OK;
 }
 
 void Kinect::pixelToDepthSurface( uint16_t *buffer )
@@ -1023,7 +1023,31 @@ void Kinect::start( const DeviceOptions& deviceOptions )
 		if ( FAILED( hr ) ) {
 			trace( "Unable to initialize device " + mDeviceOptions.getDeviceId() + ":" );
 			error( hr );
-			return;
+			throw ExcDeviceInit( hr, mDeviceOptions.getDeviceId() );
+		}
+		
+		if ( mDeviceOptions.getColorResolution() != ImageResolution::NUI_IMAGE_RESOLUTION_INVALID ) {
+			const Vec2i& videoSize = mDeviceOptions.getColorSize();
+			if ( mDeviceOptions.isColorEnabled() ) {
+				hr = openColorStream();
+				if ( FAILED( hr ) ) {
+					throw ExcOpenStreamColor( hr );
+				}
+			}
+			mColorSurface	= Surface8u( videoSize.x, videoSize.y, false, mDeviceOptions.getColorSurfaceChannelOrder() );
+			mRgbColor		= new Pixel[ videoSize.x * videoSize.y * 4 ];
+		}
+
+		if ( mDeviceOptions.getDepthResolution() != ImageResolution::NUI_IMAGE_RESOLUTION_INVALID ) {
+			const Vec2i& depthSize = mDeviceOptions.getDepthSize();
+			if ( mDeviceOptions.isDepthEnabled() ) {
+				hr = openDepthStream();
+				if ( FAILED( hr ) ) {
+					throw ExcOpenStreamDepth( hr );
+				}
+			}
+			mDepthSurface	= Surface16u( depthSize.x, depthSize.y, false, SurfaceChannelOrder::RGB );
+			mRgbDepth		= new Pixel16u[ depthSize.x * depthSize.y * 3 ];
 		}
 
 		if ( mDeviceOptions.isSkeletonTrackingEnabled() && HasSkeletalEngine( mSensor ) ) {
@@ -1038,24 +1062,6 @@ void Kinect::start( const DeviceOptions& deviceOptions )
 				return;
 			}
 			mIsSkeletonDevice = true;
-		}
-
-		if ( mDeviceOptions.getDepthResolution() != ImageResolution::NUI_IMAGE_RESOLUTION_INVALID ) {
-			const Vec2i& depthSize = mDeviceOptions.getDepthSize();
-			if ( mDeviceOptions.isDepthEnabled() && !openDepthStream() ) {
-				return;
-			}
-			mDepthSurface	= Surface16u( depthSize.x, depthSize.y, false, SurfaceChannelOrder::RGB );
-			mRgbDepth		= new Pixel16u[ depthSize.x * depthSize.y * 3 ];
-		}
-
-		if ( mDeviceOptions.getColorResolution() != ImageResolution::NUI_IMAGE_RESOLUTION_INVALID ) {
-			const Vec2i& videoSize = mDeviceOptions.getColorSize();
-			if ( mDeviceOptions.isColorEnabled() && !openColorStream() ) {
-				return;
-			}
-			mColorSurface	= Surface8u( videoSize.x, videoSize.y, false, mDeviceOptions.getColorSurfaceChannelOrder() );
-			mRgbColor		= new Pixel[ videoSize.x * videoSize.y * 4 ];
 		}
 
 		flags = NUI_IMAGE_STREAM_FRAME_LIMIT_MAXIMUM;
@@ -1123,6 +1129,43 @@ void Kinect::update()
 	mNewColorSurface	= false;
 	mNewDepthSurface	= false;
 	mNewSkeletons		= false;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+const char* Kinect::Exception::what() const throw() 
+{ 
+	return mMessage; 
+}
+
+Kinect::ExcDeviceCreate::ExcDeviceCreate( long hr, const string& id ) throw()
+{
+	sprintf( mMessage, "Unable to create device. ID or index: %s. Error: %i", id, hr );
+}
+
+Kinect::ExcDeviceInit::ExcDeviceInit( long hr, const string& id ) throw()
+{
+	sprintf( mMessage, "Unable to initialize device. ID or index: %s. Error: %i", id, hr );
+}
+
+Kinect::ExcDeviceInvalid::ExcDeviceInvalid( long hr, const string& id ) throw()
+{
+	sprintf( mMessage, "Invalid device ID or index: %s. Error: %i", id, hr );
+}
+
+Kinect::ExcOpenStreamColor::ExcOpenStreamColor( long hr )
+{
+	sprintf( mMessage, "Unable to open color stream. Error: %i", hr );
+}
+
+Kinect::ExcOpenStreamDepth::ExcOpenStreamDepth( long hr )
+{
+	sprintf( mMessage, "Unable to open depth stream. Error: %i", hr );
+}
+
+Kinect::ExcSkeletonTrackingEnable::ExcSkeletonTrackingEnable( long hr )
+{
+	sprintf( mMessage, "Unable to enable skeleton tracking. Error: %i", hr );
 }
 
 }

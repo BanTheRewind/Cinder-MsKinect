@@ -43,6 +43,7 @@
 #pragma comment( lib, "wbemuuid.lib" )
 
 #include "cinder/Cinder.h"
+#include "cinder/Exception.h"
 #include "cinder/Matrix.h"
 #include "cinder/Quaternion.h"
 #include "cinder/Surface.h"
@@ -348,9 +349,9 @@ protected:
 	bool							mIsSkeletonDevice;
 	Point							mPoints[ NUI_SKELETON_POSITION_COUNT ];
 
-	bool							openDepthStream();
-	bool							openColorStream();
-
+	long							openColorStream();
+	long							openDepthStream();
+	
 	bool							mRemoveBackground;
 
 	volatile bool					mRunning;
@@ -372,6 +373,60 @@ protected:
 	static void						trace( const std::string& message );
 
 	friend void __stdcall			deviceStatus( long hr, const WCHAR* instanceName, const WCHAR* deviceId, void* data );
+
+	//////////////////////////////////////////////////////////////////////////////////////////////
+
+public:
+	class Exception : public ci::Exception
+	{
+	public:
+		const char* what() const throw();
+	protected:
+		char			mMessage[ 2048 ];
+		friend class	Kinect;
+	};
+
+	//! Exception representing failure to create device.
+	class ExcDeviceCreate : public Exception 
+	{
+	public:
+		ExcDeviceCreate( long hr, const std::string& id ) throw();
+	};
+
+	//! Exception representing failure to initialize device.
+	class ExcDeviceInit : public Exception 
+	{
+	public:
+		ExcDeviceInit( long hr, const std::string& id ) throw();
+	};
+
+	//! Exception representing attempt to create device with invalid index or ID.
+	class ExcDeviceInvalid : public Exception 
+	{
+	public:
+		ExcDeviceInvalid( long hr, const std::string& id ) throw();
+	};
+
+	//! Exception representing failure to open color stream.
+	class ExcOpenStreamColor : public Exception
+	{
+	public:
+		ExcOpenStreamColor( long hr ) throw();
+	};
+
+	//! Exception representing failure to open depth stream.
+	class ExcOpenStreamDepth : public Exception
+	{
+	public:
+		ExcOpenStreamDepth( long hr ) throw();
+	};
+
+	//! Exception representing failure to enable skeleton tracking.
+	class ExcSkeletonTrackingEnable : public Exception
+	{
+	public:
+		ExcSkeletonTrackingEnable( long hr ) throw();
+	};
 };
 }
  

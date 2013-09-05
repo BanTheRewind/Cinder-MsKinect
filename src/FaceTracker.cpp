@@ -423,22 +423,22 @@ const char* FaceTracker::Exception::what() const throw()
 
 FaceTracker::ExcFaceTrackerCreate::ExcFaceTrackerCreate() throw()
 {
-	sprintf( mMessage, "Unable to create face tracker" );
+	sprintf( mMessage, "Unable to create face tracker." );
 }
 
 FaceTracker::ExcFaceTrackerCreateImage::ExcFaceTrackerCreateImage( long hr ) throw()
 {
-	sprintf( mMessage, "Unable to create face tracker image: %i", hr );
+	sprintf( mMessage, "Unable to create face tracker image. Error: %i", hr );
 }
 
 FaceTracker::ExcFaceTrackerCreateResult::ExcFaceTrackerCreateResult( long hr ) throw()
 {
-	sprintf( mMessage, "Unable to create face tracker result: %i", hr );
+	sprintf( mMessage, "Unable to create face tracker result. Error: %i", hr );
 }
 
 FaceTracker::ExcFaceTrackerInit::ExcFaceTrackerInit( long hr ) throw()
 {
-	sprintf( mMessage, "Unable to initialize face tracker: %i", hr );
+	sprintf( mMessage, "Unable to initialize face tracker. Error: %i", hr );
 }
 }
  
