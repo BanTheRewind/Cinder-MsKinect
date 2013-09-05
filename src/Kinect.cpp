@@ -1105,7 +1105,17 @@ void Kinect::trace( const string& message )
 
 void Kinect::update()
 {
-	if ( mEventHandler != nullptr ) {
+	bool newFrame = true;
+	if ( mDeviceOptions.isColorEnabled() ) {
+		newFrame = newFrame && mNewColorSurface;
+	}
+	if ( mDeviceOptions.isDepthEnabled() ) {
+		newFrame = newFrame && mNewDepthSurface;
+	}
+	if ( mDeviceOptions.isSkeletonTrackingEnabled() ) {
+		newFrame = newFrame && mNewSkeletons;
+	}
+	if ( newFrame && mEventHandler != nullptr ) {
 		Frame frame( mFrameId, mColorSurface, mDepthSurface, mSkeletons );
 		mEventHandler( frame, mDeviceOptions );
 		++mFrameId;
