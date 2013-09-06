@@ -59,8 +59,8 @@ public:
 	void					setup();
 	void					update();
 private:
-	KinectSdk::KinectRef	mKinect;
-	void					onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions& deviceOptions );
+	MsKinect::DeviceRef		mDevice;
+	void					onFrame( MsKinect::Frame frame, const MsKinect::DeviceOptions& deviceOptions );
 
 	std::vector<Particle>	mParticles;
 
@@ -76,7 +76,7 @@ private:
 
 using namespace ci;
 using namespace ci::app;
-using namespace KinectSdk;
+using namespace MsKinect;
 using namespace std;
 
 const float kPointSpacing		= 10.0f;
@@ -89,7 +89,7 @@ void ContoursApp::draw()
 	gl::clear( ColorAf::black() );
 
 	gl::begin( GL_POINTS );
-	for ( vector<Particle>::const_iterator iter = mParticles.cbegin(); iter != mParticles.cend(); ++iter ) {
+	for ( vector<Particle>::const_iterator iter = mParticles.begin(); iter != mParticles.end(); ++iter ) {
 		gl::color( iter->getColor() );
 		gl::vertex( iter->getPosition() );
 	}
@@ -142,12 +142,23 @@ void ContoursApp::screenShot()
 
 void ContoursApp::setup()
 {
-	mKinect = Kinect::create();
-	mKinect->connectEventHandler( &ContoursApp::onFrame, this );
-	mKinect->start( DeviceOptions().enableColor( false ).setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_80x60 ) );
-	mKinect->removeBackground();
-	mKinect->enableBinaryMode( true );
+	mDevice = Device::create();
+	mDevice->connectEventHandler( &ContoursApp::onFrame, this );
+	mDevice->removeBackground();
+	mDevice->enableBinaryMode( true );
 
+	try {
+		mDevice->start( DeviceOptions().enableColor( false ).enableSkeletonTracking( false ).setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_80x60 ) );
+	} catch ( Device::ExcDeviceCreate ex ) {
+		console() << ex.what() << endl;
+	} catch ( Device::ExcDeviceInit ex ) {
+		console() << ex.what() << endl;
+	} catch ( Device::ExcDeviceInvalid ex ) {
+		console() << ex.what() << endl;
+	} catch ( Device::ExcOpenStreamDepth ex ) {
+		console() << ex.what() << endl;
+	}
+	
 	resize();
 
 	mFullScreen		= false;
@@ -175,7 +186,7 @@ void ContoursApp::setup()
 
 void ContoursApp::shutdown()
 {
-	mKinect->stop();
+	mDevice->stop();
 }
 
 void ContoursApp::update()
@@ -185,8 +196,8 @@ void ContoursApp::update()
 		mFullScreenPrev = mFullScreen;
 	}
 
-	if ( mKinect->isCapturing() ) {
-		mKinect->update();
+	if ( mDevice->isCapturing() ) {
+		mDevice->update();
 		if ( mChannel ) {
 			
 			// Find contours
@@ -203,7 +214,7 @@ void ContoursApp::update()
 		}
 	} else {
 		if ( getElapsedFrames() % 90 == 0 ) {
-			mKinect->start();
+			mDevice->start();
 		}
 
 	}
@@ -214,7 +225,7 @@ void ContoursApp::update()
 		float x = particle.getPosition().x;
 		float y = particle.getPosition().y;
 
-		for ( vector<Contour>::const_iterator contourIt = mContours.cbegin(); contourIt != mContours.cend(); ++contourIt ) {
+		for ( vector<Contour>::const_iterator contourIt = mContours.begin(); contourIt != mContours.end(); ++contourIt ) {
 			const Contour& contour = *contourIt;
 
 			// Iterate through outline to determine if particle is inside 

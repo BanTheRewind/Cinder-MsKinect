@@ -63,12 +63,10 @@ public:
 	void								setup();
 	void								update();
 private:
-	int32_t								mCallbackDepthId;
-	int32_t								mCallbackSkeletonId;
-	KinectSdk::KinectRef				mKinect;
-	std::vector<KinectSdk::Skeleton>	mSkeletons;
+	MsKinect::DeviceRef					mDevice;
+	std::vector<MsKinect::Skeleton>		mSkeletons;
 	ci::gl::TextureRef					mTextureDepth;
-	void								onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions& deviceOptions );
+	void								onFrame( MsKinect::Frame frame, const MsKinect::DeviceOptions& deviceOptions );
 
 	ci::gl::GlslProgRef					mShader;
 	ci::gl::VboMeshRef					mVboMesh;
@@ -95,7 +93,7 @@ private:
 
 using namespace ci;
 using namespace ci::app;
-using namespace KinectSdk;
+using namespace MsKinect;
 using namespace std;
 
 void PointCloudGpuApp::draw()
@@ -179,11 +177,11 @@ void PointCloudGpuApp::screenShot()
 
 void PointCloudGpuApp::setup()
 {
-	mKinect = Kinect::create();
-	mKinect->connectEventHandler( &PointCloudGpuApp::onFrame, this );
-	mKinect->removeBackground();
-	mKinect->enableUserColor( false );
-	mKinect->start( DeviceOptions().enableColor( false ) );
+	mDevice = Device::create();
+	mDevice->connectEventHandler( &PointCloudGpuApp::onFrame, this );
+	mDevice->removeBackground();
+	mDevice->enableUserColor( false );
+	mDevice->start( DeviceOptions().enableColor( false ) );
 
 	vector<uint32_t> vboIndices;
 	gl::VboMesh::Layout vboLayout;
@@ -259,7 +257,7 @@ void PointCloudGpuApp::setup()
 
 void PointCloudGpuApp::shutdown()
 {
-	mKinect->stop();
+	mDevice->stop();
 }
 
 // Runs update logic
@@ -274,12 +272,12 @@ void PointCloudGpuApp::update()
 
 	if (mRemoveBackground != mRemoveBackgroundPrev)
 	{
-		mKinect->removeBackground(mRemoveBackground);
+		mDevice->removeBackground(mRemoveBackground);
 		mRemoveBackgroundPrev = mRemoveBackground;
 	}
 
-	if ( mKinect->isCapturing() ) {
-		mKinect->update();
+	if ( mDevice->isCapturing() ) {
+		mDevice->update();
 
 		for ( vector<Skeleton>::const_iterator iter = mSkeletons.begin(); iter != mSkeletons.end(); ++iter ) {
 			if ( iter->size() == (uint32_t)JointName::NUI_SKELETON_POSITION_COUNT ) {
@@ -294,7 +292,7 @@ void PointCloudGpuApp::update()
 		}
 	} else {
 		if ( getElapsedFrames() % 90 == 0 ) {
-			mKinect->start();
+			mDevice->start();
 		}
 	}
 	mCamera.lookAt( mEyePoint, mLookAt );

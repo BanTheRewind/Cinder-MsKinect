@@ -45,7 +45,7 @@
 #include <memory>
 #include <thread>
 
-namespace KinectSdk 
+namespace MsKinect 
 {
 typedef std::shared_ptr<class FaceTracker> FaceTrackerRef;
 
@@ -140,7 +140,7 @@ public:
 	bool							isTracking() const;
 
 	//! Start face tracking, allocating buffers based on \a deviceOptions.
-	virtual void					start( const KinectSdk::DeviceOptions& deviceOptions = KinectSdk::DeviceOptions() );
+	virtual void					start( const DeviceOptions& deviceOptions = DeviceOptions() );
 	//! Stop face tracking
 	virtual void					stop();
 	

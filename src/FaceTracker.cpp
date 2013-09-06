@@ -37,7 +37,7 @@
 #include "FaceTracker.h"
 #include "cinder/app/App.h"
 
-namespace KinectSdk
+namespace MsKinect
 {
 using namespace ci;
 using namespace ci::app;

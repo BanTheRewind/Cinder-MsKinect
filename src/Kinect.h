@@ -54,13 +54,13 @@
 #include <vector>
 
 //! Kinect SDK wrapper for Cinder
-namespace KinectSdk
+namespace MsKinect
 {
-class Kinect;
+class Device;
 typedef NUI_SKELETON_BONE_ROTATION		BoneRotation;
 typedef NUI_IMAGE_RESOLUTION			ImageResolution;
 typedef NUI_SKELETON_POSITION_INDEX		JointName;
-typedef std::shared_ptr<Kinect>			KinectRef;
+typedef std::shared_ptr<Device>			DeviceRef;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -91,7 +91,7 @@ private:
 	ci::Matrix44f	mRotMat;
 	ci::Quatf		mRotQuat;
 
-	friend class	Kinect;
+	friend class	Device;
 };
 typedef std::map<JointName, Bone>	Skeleton;
 
@@ -195,13 +195,13 @@ protected:
 	long							mId;
 	std::vector<Skeleton>			mSkeletons;
 
-	friend class					Kinect;
+	friend class					Device;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 // Kinect sensor interface
-class Kinect
+class Device
 {
 public:
 	/*! Skeleton smoothing enumeration. Smoother transform improves skeleton accuracy, 
@@ -216,20 +216,20 @@ public:
 	//! Maximum device tilt angle in positive or negative degrees.
 	static const int32_t			MAXIMUM_TILT_ANGLE		= 28;
 
-	~Kinect();
+	~Device();
 	
 	//! Sets frame event handler. Signature is void( Frame, const DeviceOptions& ).
 	template<typename T, typename Y> 
-	inline void					connectEventHandler( T eventHandler, Y *obj )
+	inline void						connectEventHandler( T eventHandler, Y *obj )
 	{
-		connectEventHandler( std::bind( eventHandler, obj, std::_1, std::_2 ) );
+		connectEventHandler( std::bind( eventHandler, obj, std::placeholders::_1, std::placeholders::_2 ) );
 	}
 
 	//! Sets frame event handler. Signature is void( Frame, const DeviceOptions& ).
-	void connectEventHandler( const std::function<void ( Frame, const DeviceOptions& )>& eventHandler );
+	void							connectEventHandler( const std::function<void ( Frame, const DeviceOptions& )>& eventHandler );
 
 	//! Creates pointer to instance of Kinect
-	static KinectRef				create();		
+	static DeviceRef				create();		
 	//! Returns number of Kinect devices.
 	static int32_t					getDeviceCount();
 	//! Returns use color for user ID \a id.
@@ -258,6 +258,8 @@ public:
 	const DeviceOptions&			getDeviceOptions() const;
 	//! Returns device frame rate.
 	float							getFrameRate() const;
+	//! Returns accelerometer reading.
+	ci::Quatf						getOrientation() const;
 	//! Returns current device angle in degrees between -28 and 28.
 	int32_t							getTilt();
 	//! Returns number of tracked users. Depth resolution must be no more than 320x240 with user tracking enabled.
@@ -289,7 +291,7 @@ public:
 protected:
 	static const int32_t			WAIT_TIME = 100;
 
-	Kinect();
+	Device();
 
 	template <typename T> 
 	struct PixelT
@@ -370,7 +372,6 @@ protected:
 
 	void							error( long hr );
 	bool							mVerbose;
-	static void						trace( const std::string& message );
 
 	friend void __stdcall			deviceStatus( long hr, const WCHAR* instanceName, const WCHAR* deviceId, void* data );
 
@@ -383,7 +384,7 @@ public:
 		const char* what() const throw();
 	protected:
 		char			mMessage[ 2048 ];
-		friend class	Kinect;
+		friend class	Device;
 	};
 
 	//! Exception representing failure to create device.

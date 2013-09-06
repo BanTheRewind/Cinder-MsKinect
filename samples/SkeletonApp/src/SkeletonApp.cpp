@@ -51,25 +51,24 @@ class SkeletonApp : public ci::app::AppBasic
 public:
 	void	draw();
 	void	keyDown( ci::app::KeyEvent event );
-	void	prepareSettings( ci::app::AppBasic::Settings*settings );
+	void	prepareSettings( ci::app::AppBasic::Settings* settings );
 	void	setup();
 	void	shutdown();
 	void	update();
 
 private:
-	uint32_t							mCallbackId;
-	KinectSdk::KinectRef				mKinect;
-	std::vector<KinectSdk::Skeleton>	mSkeletons;
-	void								onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions &deviceOptions );
+	MsKinect::DeviceRef				mDevice;
+	std::vector<MsKinect::Skeleton>	mSkeletons;
+	void							onFrame( MsKinect::Frame frame, const MsKinect::DeviceOptions &deviceOptions );
 
-	ci::CameraPersp						mCamera;
+	ci::CameraPersp					mCamera;
 
-	void								screenShot();
+	void							screenShot();
 };
 
 using namespace ci;
 using namespace ci::app;
-using namespace KinectSdk;
+using namespace MsKinect;
 using namespace std;
 
 void SkeletonApp::draw()
@@ -77,13 +76,13 @@ void SkeletonApp::draw()
 	gl::setViewport( getWindowBounds() );
 	gl::clear( Colorf::gray( 0.1f ) );
 
-	if ( mKinect->isCapturing() ) {
+	if ( mDevice->isCapturing() ) {
 		gl::setMatrices( mCamera );
 
 		uint32_t i = 0;
 		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.begin(); skeletonIt != mSkeletons.end(); ++skeletonIt, ++i ) {
 
-			Colorf color = mKinect->getUserColor( i );
+			Colorf color = mDevice->getUserColor( i );
 
 			for ( Skeleton::const_iterator boneIt = skeletonIt->begin(); boneIt != skeletonIt->end(); ++boneIt ) {
 				gl::color( color );
@@ -126,7 +125,6 @@ void SkeletonApp::keyDown( KeyEvent event )
 		screenShot();
 		break;
 	}
-
 }
 
 void SkeletonApp::onFrame( Frame frame, const DeviceOptions &deviceOptions )
@@ -147,11 +145,11 @@ void SkeletonApp::screenShot()
 
 void SkeletonApp::setup()
 {
-	mKinect = Kinect::create();
-	mKinect->connectEventHandler( &SkeletonApp::onFrame, this );
-	mKinect->start( DeviceOptions().enableDepth( false ).enableColor( false ) );
-	mKinect->removeBackground();
-	mKinect->setTransform( Kinect::TRANSFORM_SMOOTH );
+	mDevice = Device::create();
+	mDevice->connectEventHandler( &SkeletonApp::onFrame, this );
+	mDevice->start( DeviceOptions().enableDepth( false ).enableColor( false ) );
+	mDevice->removeBackground();
+	mDevice->setTransform( Device::TRANSFORM_SMOOTH );
 	
 	mCamera.lookAt( Vec3f( 0.0f, 0.0f, 2.0f ), Vec3f::zero() );
 	mCamera.setPerspective( 45.0f, getWindowAspectRatio(), 0.01f, 1000.0f );
@@ -159,17 +157,16 @@ void SkeletonApp::setup()
 
 void SkeletonApp::shutdown()
 {
-	mKinect->stop();
+	mDevice->stop();
 }
 
 void SkeletonApp::update()
 {
-
-	if ( mKinect->isCapturing() ) {
-		mKinect->update();
+	if ( mDevice->isCapturing() ) {
+		mDevice->update();
 	} else {
 		if ( getElapsedFrames() % 90 == 0 ) {
-			mKinect->start();
+			mDevice->start();
 		}
 	}
 }

@@ -59,7 +59,7 @@ public:
 	void 					setup();
 	void					update();
 private:
-	KinectSdk::KinectRef	mKinect;
+	MsKinect::DeviceRef		mDevice;
 
 	std::vector<ci::Vec3f>	mPoints;
 
@@ -71,7 +71,7 @@ private:
 
 using namespace ci;
 using namespace ci::app;
-using namespace KinectSdk;
+using namespace MsKinect;
 using namespace std;
 
 const Vec2i	kKinectSize( 640, 480 );
@@ -137,8 +137,8 @@ void PointCloudApp::setup()
 	gl::enableAlphaBlending();
 	gl::enableAdditiveBlending();
 
-	mKinect = Kinect::create();
-	mKinect->start( DeviceOptions().enableSkeletonTracking( false ).enableColor( false ).setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 ) );
+	mDevice = Device::create();
+	mDevice->start( DeviceOptions().enableSkeletonTracking( false ).enableColor( false ).setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 ) );
 
 	mArcball = Arcball( getWindowSize() );
 	mArcball.setRadius( (float)getWindowHeight() );
@@ -148,13 +148,14 @@ void PointCloudApp::setup()
 
 void PointCloudApp::shutdown()
 {
-	mKinect->stop();
+	mDevice->stop();
 	mPoints.clear();
 }
 
 void PointCloudApp::update()
 {
-	if ( mKinect->isCapturing() ) {
+	if ( mDevice->isCapturing() ) {
+		mDevice->update();
 		Vec3f offset( Vec2f( kKinectSize ) * Vec2f( -0.5f, 0.5f ) );
 		offset.z = mCamera.getEyePoint().z;
 		Vec3f position = Vec3f::zero();
@@ -162,7 +163,7 @@ void PointCloudApp::update()
 
 		for ( int32_t y = 0; y < kKinectSize.y; ++y ) {
 			for ( int32_t x = 0; x < kKinectSize.x; ++x ) {
-				float depth = mKinect->getDepthAt( Vec2i( x, y ) );
+				float depth = mDevice->getDepthAt( Vec2i( x, y ) );
 				position.z	= depth * mCamera.getEyePoint().z * -3.0f;
 				mPoints.push_back( position * Vec3f( 1.1f, -1.1f, 1.0f ) + offset );
 				++position.x;
@@ -174,7 +175,7 @@ void PointCloudApp::update()
 
 	} else {
 		if ( getElapsedFrames() % 90 == 0 ) {
-			mKinect->start();
+			mDevice->start();
 		}
 	}
 }

@@ -61,19 +61,19 @@ public:
 private:
 	struct Device
 	{
-		KinectSdk::KinectRef	mKinect;
+		MsKinect::DeviceRef		mDevice;
 		ci::gl::TextureRef		mTexture;
 	};
 	std::vector<Device>			mDevices;
 
-	void						onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions &deviceOptions );
+	void						onFrame( MsKinect::Frame frame, const MsKinect::DeviceOptions &deviceOptions );
 
 	void						screenShot();
 };
 
 using namespace ci;
 using namespace ci::app;
-using namespace KinectSdk;
+using namespace MsKinect;
 using namespace std;
 
 void MultiDeviceApp::draw()
@@ -108,11 +108,11 @@ void MultiDeviceApp::keyDown( KeyEvent event )
 	}
 }
 
-void MultiDeviceApp::onFrame( Frame frame, const KinectSdk::DeviceOptions &deviceOptions )
+void MultiDeviceApp::onFrame( Frame frame, const MsKinect::DeviceOptions &deviceOptions )
 {
 	int32_t index = deviceOptions.getDeviceIndex();
 	for ( size_t i = 0; i < mDevices.size(); ++i ) {
-		if ( index == mDevices.at( i ).mKinect->getDeviceOptions().getDeviceIndex() ) {
+		if ( index == mDevices.at( i ).mDevice->getDeviceOptions().getDeviceIndex() ) {
 			mDevices.at( i ).mTexture = gl::Texture::create( frame.getDepthSurface() );
 			break;
 		}
@@ -142,28 +142,27 @@ void MultiDeviceApp::setup()
 	deviceOptions.enableUserTracking( false );
 	deviceOptions.enableColor( false );
 
-	int32_t count = Kinect::getDeviceCount();
+	int32_t count = MsKinect::Device::getDeviceCount();
 	for ( int32_t i = 0; i < count; i++ ) {
 		deviceOptions.setDeviceIndex( i );
 		
 		Device device;
-		device.mKinect = Kinect::create();
-		device.mKinect->start( deviceOptions );
-		device.mKinect->connectEventHandler( &MultiDeviceApp::onFrame, this );
+		device.mDevice = MsKinect::Device::create();
+		device.mDevice->start( deviceOptions );
+		device.mDevice->connectEventHandler( &MultiDeviceApp::onFrame, this );
 		device.mTexture = gl::Texture::create( 320, 240 );
 		
 		mDevices.push_back( device );
 
-		console() << device.mKinect->getDeviceOptions().getDeviceIndex() << ": " << device.mKinect->getDeviceOptions().getDeviceId() << endl;
+		console() << device.mDevice->getDeviceOptions().getDeviceIndex() << ": " << device.mDevice->getDeviceOptions().getDeviceId() << endl;
 	}
-
 }
 
 void MultiDeviceApp::shutdown()
 {
 	for ( uint32_t i = 0; i < mDevices.size(); ++i ) {
 		Device& device = mDevices.at( i );
-		device.mKinect->stop();
+		device.mDevice->stop();
 	}
 	mDevices.clear();
 }
@@ -172,8 +171,8 @@ void MultiDeviceApp::update()
 {
 	for ( uint32_t i = 0; i < mDevices.size(); ++i ) {
 		Device& device = mDevices.at( i );
-		if ( device.mKinect->isCapturing() ) {
-			device.mKinect->update();
+		if ( device.mDevice->isCapturing() ) {
+			device.mDevice->update();
 		}
 	}
 

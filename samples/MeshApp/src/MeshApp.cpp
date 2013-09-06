@@ -65,18 +65,18 @@ public:
 	void								update();
 private:
 	float								mBrightTolerance;
-	KinectSdk::KinectRef				mKinect;
+	float								mColorOffsetX;
+	float								mColorOffsetY;
+	MsKinect::DeviceRef					mDevice;
 	float								mMeshUvMix;
 	bool								mRemoveBackground;
 	bool								mRemoveBackgroundPrev;
 	ci::Vec3f							mScale;
 	bool								mShowColor;
-	std::vector<KinectSdk::Skeleton>	mSkeletons;
+	std::vector<MsKinect::Skeleton>		mSkeletons;
 	ci::gl::TextureRef					mTextureColor;
 	ci::gl::TextureRef					mTextureDepth;
-	float								mColorOffsetX;
-	float								mColorOffsetY;
-	void								onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions& deviceOptions );
+	void								onFrame( MsKinect::Frame frame, const MsKinect::DeviceOptions& deviceOptions );
 	
 	void								initMesh();
 	ci::gl::VboMeshRef					mVboMesh;
@@ -104,7 +104,7 @@ private:
 
 using namespace ci;
 using namespace ci::app;
-using namespace KinectSdk;
+using namespace MsKinect;
 using namespace std;
 
 const int32_t	kMeshHeight	= 240;
@@ -269,11 +269,11 @@ void MeshApp::screenShot()
 
 void MeshApp::setup()
 {
-	mKinect = Kinect::create();
-	mKinect->connectEventHandler( &MeshApp::onFrame, this );
-	mKinect->enableUserColor( false );
-	mKinect->removeBackground();
-	mKinect->start();
+	mDevice = Device::create();
+	mDevice->connectEventHandler( &MeshApp::onFrame, this );
+	mDevice->enableUserColor( false );
+	mDevice->removeBackground();
+	mDevice->start();
 
 	mLightAmbient	= ColorAf( 0.0f, 0.0f, 0.0f, 1.0f );
 	mLightDiffuse	= ColorAf( 0.5f, 0.5f, 0.5f, 1.0f );
@@ -326,7 +326,7 @@ void MeshApp::setup()
 
 void MeshApp::shutdown()
 {
-	mKinect->stop();
+	mDevice->stop();
 }
 
 void MeshApp::update()
@@ -339,12 +339,12 @@ void MeshApp::update()
 	}
 
 	if ( mRemoveBackground != mRemoveBackgroundPrev ) {
-		mKinect->removeBackground( mRemoveBackground );
+		mDevice->removeBackground( mRemoveBackground );
 		mRemoveBackgroundPrev = mRemoveBackground;
 	}
 
-	if ( mKinect->isCapturing() ) {
-		mKinect->update();
+	if ( mDevice->isCapturing() ) {
+		mDevice->update();
 		for ( vector<Skeleton>::const_iterator iter = mSkeletons.begin(); iter != mSkeletons.end(); ++iter ) {
 			if ( iter->size() == (uint32_t)JointName::NUI_SKELETON_POSITION_COUNT ) {
 
@@ -358,7 +358,7 @@ void MeshApp::update()
 		}
 	} else {
 		if ( getElapsedFrames() % 90 == 0 ) {
-			mKinect->start();
+			mDevice->start();
 		}
 	}
 

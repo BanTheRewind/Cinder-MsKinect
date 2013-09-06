@@ -52,11 +52,11 @@ public:
 	void shutdown();
 	void update();
 private:
-	KinectSdk::KinectRef				mKinect;
-	std::vector<KinectSdk::Skeleton>	mSkeletons;
-	ci::gl::TextureRef					mTexture;
+	MsKinect::DeviceRef				mDevice;
+	std::vector<MsKinect::Skeleton>	mSkeletons;
+	ci::gl::TextureRef				mTexture;
 
-	void								onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions &deviceOptions );
+	void							onFrame( MsKinect::Frame frame, const MsKinect::DeviceOptions &deviceOptions );
 
 	void screenShot();
 };
@@ -66,7 +66,7 @@ private:
 
 using namespace ci;
 using namespace ci::app;
-using namespace KinectSdk;
+using namespace MsKinect;
 using namespace std;
 
 void SkeletonBitmapApp::draw()
@@ -75,7 +75,7 @@ void SkeletonBitmapApp::draw()
 	gl::clear();
 	gl::setMatricesWindow( getWindowSize() );
 
-	if ( mKinect->isCapturing() && mTexture ) {
+	if ( mDevice->isCapturing() && mTexture ) {
 		gl::color( ColorAf::white() );
 		gl::draw( mTexture, getWindowBounds() );
 		
@@ -86,13 +86,13 @@ void SkeletonBitmapApp::draw()
 		// Draw skeletons
 		uint32_t i = 0;
 		for ( vector<Skeleton>::const_iterator skeletonIt = mSkeletons.begin(); skeletonIt != mSkeletons.end(); ++skeletonIt, i++ ) {
-			gl::color( mKinect->getUserColor( i ) );
+			gl::color( mDevice->getUserColor( i ) );
 			for ( Skeleton::const_iterator boneIt = skeletonIt->begin(); boneIt != skeletonIt->end(); ++boneIt ) {
 				const Bone& bone		= boneIt->second;
 				Vec3f position			= bone.getPosition();
 				Vec3f destination		= skeletonIt->at( bone.getStartJoint() ).getPosition();
-				Vec2f positionScreen	= Vec2f( mKinect->getSkeletonColorPos( position ) );
-				Vec2f destinationSceen	= Vec2f( mKinect->getSkeletonColorPos( destination ) );
+				Vec2f positionScreen	= Vec2f( mDevice->getSkeletonColorPos( position ) );
+				Vec2f destinationSceen	= Vec2f( mDevice->getSkeletonColorPos( destination ) );
 				gl::drawLine( positionScreen, destinationSceen );
 				gl::drawSolidCircle( positionScreen, 10.0f, 16 );
 			}
@@ -143,23 +143,23 @@ void SkeletonBitmapApp::setup()
 	glLineWidth( 2.0f );
 	gl::color( ColorAf::white() );
 
-	mKinect = Kinect::create();
-	mKinect->connectEventHandler( &SkeletonBitmapApp::onFrame, this );
-	mKinect->start( DeviceOptions().enableDepth( false ) );
+	mDevice = Device::create();
+	mDevice->connectEventHandler( &SkeletonBitmapApp::onFrame, this );
+	mDevice->start( DeviceOptions().enableDepth( false ) );
 }
 
 void SkeletonBitmapApp::shutdown()
 {
-	mKinect->stop();
+	mDevice->stop();
 }
 
 void SkeletonBitmapApp::update()
 {
-	if ( mKinect->isCapturing() ) {
-		mKinect->update();
+	if ( mDevice->isCapturing() ) {
+		mDevice->update();
 	} else {
 		if ( getElapsedFrames() % 90 == 0 ) {
-			mKinect->start();
+			mDevice->start();
 		}
 	}
 }

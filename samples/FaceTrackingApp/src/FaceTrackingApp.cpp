@@ -46,26 +46,26 @@ class FaceTrackingApp : public ci::app::AppBasic
 {
 
 public:
-	void								draw();
-	void								keyDown( ci::app::KeyEvent event );
-	void								prepareSettings( ci::app::AppBasic::Settings* settings );
-	void								setup();
-	void								shutdown();
-	void								update();
+	void							draw();
+	void							keyDown( ci::app::KeyEvent event );
+	void							prepareSettings( ci::app::AppBasic::Settings* settings );
+	void							setup();
+	void							shutdown();
+	void							update();
 private:
-	ci::Channel16u						mChannelDepth;
-	KinectSdk::FaceTracker::Face		mFace;
-	KinectSdk::KinectRef				mKinect;
-	ci::Surface8u						mSurfaceColor;
-	std::vector<KinectSdk::Skeleton>	mSkeletons;
+	ci::Channel16u					mChannelDepth;
+	MsKinect::FaceTracker::Face		mFace;
+	MsKinect::DeviceRef				mDevice;
+	std::vector<MsKinect::Skeleton>	mSkeletons;
+	ci::Surface8u					mSurfaceColor;
+	
+	void							onFace( MsKinect::FaceTracker::Face face );
+	void							onFrame( MsKinect::Frame frame, const MsKinect::DeviceOptions& deviceOptions );
 
-	void								onFace( KinectSdk::FaceTracker::Face face );
-	void								onFrame( KinectSdk::Frame frame, const KinectSdk::DeviceOptions& deviceOptions );
+	double							mFaceTrackedTime;
+	MsKinect::FaceTrackerRef		mFaceTracker;
 
-	double								mFaceTrackedTime;
-	KinectSdk::FaceTrackerRef			mFaceTracker;
-
-	void								screenShot();
+	void							screenShot();
 };
 
 #include "cinder/gl/Texture.h"
@@ -74,7 +74,7 @@ private:
 
 using namespace ci;
 using namespace ci::app;
-using namespace KinectSdk;
+using namespace MsKinect;
 using namespace std;
 
 void FaceTrackingApp::draw()
@@ -147,15 +147,15 @@ void FaceTrackingApp::setup()
 	DeviceOptions deviceOptions;
 	deviceOptions.setColorSurfaceChannelOrder( SurfaceChannelOrder::BGRA );
 
-	mKinect = Kinect::create();
-	mKinect->connectEventHandler( &FaceTrackingApp::onFrame, this );
-	mKinect->start( deviceOptions );
+	mDevice = Device::create();
+	mDevice->connectEventHandler( &FaceTrackingApp::onFrame, this );
+	mDevice->start( deviceOptions );
 
 	mFaceTracker = FaceTracker::create();
 	mFaceTracker->enableCalcMesh( false );
 	mFaceTracker->connectEventHander( &FaceTrackingApp::onFace, this );
 	try {
-		mFaceTracker->start( mKinect->getDeviceOptions() );
+		mFaceTracker->start( mDevice->getDeviceOptions() );
 	} catch ( FaceTracker::ExcFaceTrackerCreate ex ) {
 		console() << ex.what() << endl;
 		quit();
@@ -170,19 +170,19 @@ void FaceTrackingApp::setup()
 
 void FaceTrackingApp::shutdown()
 {
-	mKinect->stop();
+	mDevice->stop();
 }
 
 void FaceTrackingApp::update()
 {
-	if ( mKinect->isCapturing() ) {
-		mKinect->update();
+	if ( mDevice->isCapturing() ) {
+		mDevice->update();
 		if ( mSurfaceColor && mChannelDepth ) {
 			mFaceTracker->update( mSurfaceColor, mChannelDepth );
 		}
 	} else {
 		if ( getElapsedFrames() % 90 == 0 ) {
-			mKinect->start();
+			mDevice->start();
 		}
 	}
 }
