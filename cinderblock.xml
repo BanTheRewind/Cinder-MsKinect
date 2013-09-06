@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <cinder>
 <block
-	name="MSKinect"
+	name="MsKinect"
 	id="mskinect.bantherewind.com"
 	author="Stephen Schieberl"
 	license="BSD"

@@ -9,7 +9,7 @@ http://www.bantherewind.com/kinectsdk-for-cinder
 
 -----------------------------------------
 
-Version 1.7.0b
+Version 1.7.0c
 
 TO DO
 
@@ -17,11 +17,9 @@ TO DO
 * Add extended depth data
 * Implement new depth API
 * Color camera settings (white balance, contrast, hue, saturation, etc)
-* Add accelerometer reading
 * Implement sensor chooser
 * Fusion sample
 * Interaction sample
-* Optional: FaceTracker sample (review improved API)
 * Optional: Beam sample
 
 -----------------------------------------
