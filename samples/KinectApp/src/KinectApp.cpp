@@ -344,8 +344,6 @@ void KinectApp::update()
 	}
 
 	if ( mDevice->isCapturing() ) {
-		mDevice->update();
-
 		mOrientation = mDevice->getOrientation();
 
 		if ( mTilt != mTiltPrev ) {
@@ -359,7 +357,6 @@ void KinectApp::update()
 		} else {
 			resetStats();
 		}
-
 	} else {
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mDevice->start();

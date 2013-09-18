@@ -276,25 +276,24 @@ void PointCloudGpuApp::update()
 		mRemoveBackgroundPrev = mRemoveBackground;
 	}
 
-	if ( mDevice->isCapturing() ) {
-		mDevice->update();
-
-		for ( vector<Skeleton>::const_iterator iter = mSkeletons.begin(); iter != mSkeletons.end(); ++iter ) {
-			if ( iter->size() == (uint32_t)JointName::NUI_SKELETON_POSITION_COUNT ) {
-
-				// Look at spine
-				Vec3f spine = iter->at( JointName::NUI_SKELETON_POSITION_SPINE ).getPosition() * -mEyePoint.z;
-				mLookAt.x = spine.x;
-				mLookAt.y = spine.y;
-				mEyePoint.x = -mLookAt.x * 0.25f;
-				mEyePoint.y = -mLookAt.y * 0.125f;
-			}
-		}
-	} else {
+	if ( !mDevice->isCapturing() ) {
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mDevice->start();
 		}
 	}
+	
+	for ( vector<Skeleton>::const_iterator iter = mSkeletons.begin(); iter != mSkeletons.end(); ++iter ) {
+		if ( iter->size() == (uint32_t)JointName::NUI_SKELETON_POSITION_COUNT ) {
+
+			// Look at spine
+			Vec3f spine = iter->at( JointName::NUI_SKELETON_POSITION_SPINE ).getPosition() * -mEyePoint.z;
+			mLookAt.x = spine.x;
+			mLookAt.y = spine.y;
+			mEyePoint.x = -mLookAt.x * 0.25f;
+			mEyePoint.y = -mLookAt.y * 0.125f;
+		}
+	}
+
 	mCamera.lookAt( mEyePoint, mLookAt );
 }
 

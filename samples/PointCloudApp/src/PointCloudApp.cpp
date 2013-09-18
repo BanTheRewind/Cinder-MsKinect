@@ -154,29 +154,27 @@ void PointCloudApp::shutdown()
 
 void PointCloudApp::update()
 {
-	if ( mDevice->isCapturing() ) {
-		mDevice->update();
-		Vec3f offset( Vec2f( kKinectSize ) * Vec2f( -0.5f, 0.5f ) );
-		offset.z = mCamera.getEyePoint().z;
-		Vec3f position = Vec3f::zero();
-		mPoints.clear();
-
-		for ( int32_t y = 0; y < kKinectSize.y; ++y ) {
-			for ( int32_t x = 0; x < kKinectSize.x; ++x ) {
-				float depth = mDevice->getDepthAt( Vec2i( x, y ) );
-				position.z	= depth * mCamera.getEyePoint().z * -3.0f;
-				mPoints.push_back( position * Vec3f( 1.1f, -1.1f, 1.0f ) + offset );
-				++position.x;
-			}
-
-			position.x = 0.0f;
-			++position.y;
-		}
-
-	} else {
+	if ( !mDevice->isCapturing() ) {
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mDevice->start();
 		}
+	}
+	
+	Vec3f offset( Vec2f( kKinectSize ) * Vec2f( -0.5f, 0.5f ) );
+	offset.z = mCamera.getEyePoint().z;
+	Vec3f position = Vec3f::zero();
+	mPoints.clear();
+
+	for ( int32_t y = 0; y < kKinectSize.y; ++y ) {
+		for ( int32_t x = 0; x < kKinectSize.x; ++x ) {
+			float depth = mDevice->getDepthAt( Vec2i( x, y ) );
+			position.z	= depth * mCamera.getEyePoint().z * -3.0f;
+			mPoints.push_back( position * Vec3f( 1.1f, -1.1f, 1.0f ) + offset );
+			++position.x;
+		}
+
+		position.x = 0.0f;
+		++position.y;
 	}
 }
 

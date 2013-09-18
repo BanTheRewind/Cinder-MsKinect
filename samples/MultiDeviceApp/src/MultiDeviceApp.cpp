@@ -57,7 +57,6 @@ public:
 	void						prepareSettings( ci::app::AppBasic::Settings* settings );
 	void						shutdown();
 	void						setup();
-	void						update();
 private:
 	struct Device
 	{
@@ -165,17 +164,6 @@ void MultiDeviceApp::shutdown()
 		device.mDevice->stop();
 	}
 	mDevices.clear();
-}
-
-void MultiDeviceApp::update()
-{
-	for ( uint32_t i = 0; i < mDevices.size(); ++i ) {
-		Device& device = mDevices.at( i );
-		if ( device.mDevice->isCapturing() ) {
-			device.mDevice->update();
-		}
-	}
-
 }
 
 CINDER_APP_BASIC( MultiDeviceApp, RendererGl )

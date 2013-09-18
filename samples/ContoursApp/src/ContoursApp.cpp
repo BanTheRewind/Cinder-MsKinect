@@ -195,28 +195,26 @@ void ContoursApp::update()
 		setFullScreen( mFullScreen );
 		mFullScreenPrev = mFullScreen;
 	}
-
-	if ( mDevice->isCapturing() ) {
-		mDevice->update();
-		if ( mChannel ) {
-			
-			// Find contours
-			mContours = mContourFinder->findContours( Channel8u( mChannel ) );
-			
-			// Scale contours to window
-			Vec2f scale = Vec2f( getWindowSize() ) / Vec2f( mChannel.getSize() );
-			for ( vector<Contour>::iterator contourIt = mContours.begin(); contourIt != mContours.end(); ++contourIt ) {
-				for ( vector<Vec2f>::iterator pointIt = contourIt->getPoints().begin(); pointIt != contourIt->getPoints().end(); ++pointIt ) {
-					pointIt->operator*=( scale );
-				}
-				contourIt->calcCentroid();
-			}
-		}
-	} else {
+	
+	if ( !mDevice->isCapturing() ) {
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mDevice->start();
 		}
-
+	}
+	
+	if ( mChannel ) {
+		
+		// Find contours
+		mContours = mContourFinder->findContours( Channel8u( mChannel ) );
+		
+		// Scale contours to window
+		Vec2f scale = Vec2f( getWindowSize() ) / Vec2f( mChannel.getSize() );
+		for ( vector<Contour>::iterator contourIt = mContours.begin(); contourIt != mContours.end(); ++contourIt ) {
+			for ( vector<Vec2f>::iterator pointIt = contourIt->getPoints().begin(); pointIt != contourIt->getPoints().end(); ++pointIt ) {
+				pointIt->operator*=( scale );
+			}
+			contourIt->calcCentroid();
+		}
 	}
 
 	for ( vector<Particle>::iterator partIt = mParticles.begin(); partIt != mParticles.end(); ++partIt ) {

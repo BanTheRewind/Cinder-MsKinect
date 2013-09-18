@@ -87,8 +87,6 @@ void _TBOX_PREFIX_App::shutdown()
 void _TBOX_PREFIX_App::update()
 {
 	if ( mDevice->isCapturing() ) {
-		mDevice->update();
-
 		Vec3f offset( Vec2f( kKinectSize ) * Vec2f( -0.5f, 0.5f ) );
 		offset.z = mCamera.getEyePoint().z;
 		Vec3f position = Vec3f::zero();

@@ -175,15 +175,14 @@ void FaceTrackingApp::shutdown()
 
 void FaceTrackingApp::update()
 {
-	if ( mDevice->isCapturing() ) {
-		mDevice->update();
-		if ( mSurfaceColor && mChannelDepth ) {
-			mFaceTracker->update( mSurfaceColor, mChannelDepth );
-		}
-	} else {
+	if ( !mDevice->isCapturing() ) {
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mDevice->start();
 		}
+	}
+	
+	if ( mSurfaceColor && mChannelDepth ) {
+		mFaceTracker->update( mSurfaceColor, mChannelDepth );
 	}
 }
 

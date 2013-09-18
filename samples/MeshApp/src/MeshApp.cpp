@@ -343,22 +343,21 @@ void MeshApp::update()
 		mRemoveBackgroundPrev = mRemoveBackground;
 	}
 
-	if ( mDevice->isCapturing() ) {
-		mDevice->update();
-		for ( vector<Skeleton>::const_iterator iter = mSkeletons.begin(); iter != mSkeletons.end(); ++iter ) {
-			if ( iter->size() == (uint32_t)JointName::NUI_SKELETON_POSITION_COUNT ) {
-
-				// Camera follow...
-				Vec3f spine	= iter->at( JointName::NUI_SKELETON_POSITION_SPINE ).getPosition() * mEyePoint.z;
-				mLookAt.x	= spine.x * 0.05f;
-				mLookAt.y	= spine.y * 0.05f;
-				mEyePoint.x = -mLookAt.x * 0.5f;
-				mEyePoint.y = -mLookAt.y * 0.25f;
-			}
-		}
-	} else {
+	if ( !mDevice->isCapturing() ) {
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mDevice->start();
+		}
+	}
+	
+	for ( vector<Skeleton>::const_iterator iter = mSkeletons.begin(); iter != mSkeletons.end(); ++iter ) {
+		if ( iter->size() == (uint32_t)JointName::NUI_SKELETON_POSITION_COUNT ) {
+
+			// Camera follow...
+			Vec3f spine	= iter->at( JointName::NUI_SKELETON_POSITION_SPINE ).getPosition() * mEyePoint.z;
+			mLookAt.x	= spine.x * 0.05f;
+			mLookAt.y	= spine.y * 0.05f;
+			mEyePoint.x = -mLookAt.x * 0.5f;
+			mEyePoint.y = -mLookAt.y * 0.25f;
 		}
 	}
 

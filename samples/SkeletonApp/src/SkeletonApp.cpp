@@ -162,9 +162,7 @@ void SkeletonApp::shutdown()
 
 void SkeletonApp::update()
 {
-	if ( mDevice->isCapturing() ) {
-		mDevice->update();
-	} else {
+	if ( !mDevice->isCapturing() ) {
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mDevice->start();
 		}
