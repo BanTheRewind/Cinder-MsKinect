@@ -309,36 +309,6 @@ DeviceOptions& DeviceOptions::setDeviceIndex( int32_t index )
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-vector<Colorf> Device::sUserColors = getUserColors();
-
-ci::Colorf Device::getUserColor( uint32_t id ) 
-{ 
-	return sUserColors.at( ci::math<uint32_t>::clamp( id, 0, 5 ) ); 
-}
-
-vector<Colorf> Device::getUserColors()
-{
-	if ( sUserColors.size() == NUI_SKELETON_COUNT ) {
-		return sUserColors;
-	}
-
-	vector<Colorf> colors;
-	colors.push_back( Colorf( 0.0f, 1.0f, 1.0f ) );
-	colors.push_back( Colorf( 0.0f, 0.0f, 1.0f ) );
-	colors.push_back( Colorf( 0.0f, 1.0f, 0.0f ) );
-	colors.push_back( Colorf( 0.0f, 0.5f, 1.0f ) );
-	colors.push_back( Colorf( 0.0f, 1.0f, 0.5f ) );
-	colors.push_back( Colorf( 0.0f, 0.5f, 0.5f ) );
-	return colors;
-}
-
-DeviceRef Device::create()
-{
-	return DeviceRef( new Device( ) );
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-
 Frame::Frame()
 	: mId( 0 )
 {
@@ -371,6 +341,34 @@ const vector<Skeleton>&	Frame::getSkeletons() const
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
+vector<Colorf> Device::sUserColors = getUserColors();
+
+ci::Colorf Device::getUserColor( uint32_t id ) 
+{ 
+	return sUserColors.at( ci::math<uint32_t>::clamp( id, 0, 5 ) ); 
+}
+
+vector<Colorf> Device::getUserColors()
+{
+	if ( sUserColors.size() == NUI_SKELETON_COUNT ) {
+		return sUserColors;
+	}
+
+	vector<Colorf> colors;
+	colors.push_back( Colorf( 0.0f, 1.0f, 1.0f ) );
+	colors.push_back( Colorf( 0.0f, 0.0f, 1.0f ) );
+	colors.push_back( Colorf( 0.0f, 1.0f, 0.0f ) );
+	colors.push_back( Colorf( 0.0f, 0.5f, 1.0f ) );
+	colors.push_back( Colorf( 0.0f, 1.0f, 0.5f ) );
+	colors.push_back( Colorf( 0.0f, 0.5f, 0.5f ) );
+	return colors;
+}
+
+DeviceRef Device::create()
+{
+	return DeviceRef( new Device( ) );
+}
+
 Device::Device()
 {
 	NuiSetDeviceStatusCallback( &MsKinect::deviceStatus, this );
@@ -378,6 +376,8 @@ Device::Device()
 	for ( int32_t i = 0; i < NUI_SKELETON_COUNT; ++i ) {
 		mSkeletons.push_back( Skeleton() );
 	}
+
+	App::get()->getSignalUpdate().connect( bind( &Device::update, this ) );
 }
 
 Device::~Device()

@@ -239,9 +239,7 @@ public:
 	void							start( const DeviceOptions& deviceOptions = DeviceOptions() );
 	//! Stop capture.
 	void							stop();
-	//! Triggers frame event handler if new data is available.
-	virtual void					update();
-
+	
 	//! Convert depth image to binary. \a invertImage to flip black and white. Default is false.
 	void							enableBinaryMode( bool enable = true, bool invertImage = false );
 	//! Enables user colors. Depth tracking at 320x240 or less must be enabled. Default is true.
@@ -313,7 +311,9 @@ protected:
 	static std::vector<ci::Colorf>	getUserColors();
 
 	void							init( bool reset = false );
-		
+
+	virtual void					update();
+
 	bool							mCapture;
 	
 	std::function<void ( Frame frame, const DeviceOptions& )> mEventHandler;

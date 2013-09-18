@@ -103,6 +103,14 @@ FaceTracker::FaceTracker()
 	mRunning		= false;
 	mSuccess		= false;
 	mUserId			= 0;
+
+	App::get()->getSignalUpdate().connect( [ & ]()
+	{
+		if ( mNewFrame && mEventHandler != nullptr ) {
+			mEventHandler( mFace );
+			mNewFrame = false;
+		}
+	} );
 }
 
 FaceTracker::~FaceTracker()
@@ -402,8 +410,6 @@ void FaceTracker::run()
 			} else {
 				mResult->Reset();
 			}
-			mEventHandler( mFace );
-			mNewFrame = false;
 		}
 		Sleep( 8 );
 	}
