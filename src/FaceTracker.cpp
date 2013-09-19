@@ -104,13 +104,13 @@ FaceTracker::FaceTracker()
 	mSuccess		= false;
 	mUserId			= 0;
 
-	App::get()->getSignalUpdate().connect( [ & ]()
-	{
-		if ( mNewFrame && mEventHandler != nullptr ) {
-			mEventHandler( mFace );
-			mNewFrame = false;
-		}
-	} );
+	//App::get()->getSignalUpdate().connect( [ & ]()
+	//{
+	//	if ( mNewFrame && mEventHandler != nullptr ) {
+	//		mEventHandler( mFace );
+	//		mNewFrame = false;
+	//	}
+	//} );
 }
 
 FaceTracker::~FaceTracker()
@@ -259,32 +259,36 @@ void FaceTracker::stop()
 
 void FaceTracker::update( const Surface8u& color, const Channel16u& depth, const Vec3f headPoints[ 2 ], size_t userId )
 {
-	if ( !mNewFrame && color && depth ) {
-		bool attach	= !mSurfaceColor || !mChannelDepth;
+	if ( mNewFrame && mEventHandler != nullptr ) {
+		mEventHandler( mFace );
+		mNewFrame = false;
 
-		mHeadPoints.clear();
-		if ( headPoints != 0 ) {
-			mHeadPoints.push_back( headPoints[ 0 ] );
-			mHeadPoints.push_back( headPoints[ 1 ] );
-		}
-		mChannelDepth	= depth;
-		mSurfaceColor	= color;
-		mUserId			= userId;
+		if ( color && depth ) {
+			bool attach	= !mSurfaceColor || !mChannelDepth;
 
-		if ( attach ) {
-			mImageColor->Attach( mSurfaceColor.getWidth(), mSurfaceColor.getHeight(), 
-				(void*)mSurfaceColor.getData(), FTIMAGEFORMAT_UINT8_B8G8R8A8, mSurfaceColor.getWidth() * 4 );
-			mImageDepth->Attach( mChannelDepth.getWidth(), mChannelDepth.getHeight(), 
-				(void*)mChannelDepth.getData(), FTIMAGEFORMAT_UINT16_D13P3,	mChannelDepth.getWidth() * 2 );
+			mHeadPoints.clear();
+			if ( headPoints != 0 ) {
+				mHeadPoints.push_back( headPoints[ 0 ] );
+				mHeadPoints.push_back( headPoints[ 1 ] );
+			}
+			mChannelDepth	= depth;
+			mSurfaceColor	= color;
+			mUserId			= userId;
+
+			if ( attach ) {
+				mImageColor->Attach( mSurfaceColor.getWidth(), mSurfaceColor.getHeight(), 
+					(void*)mSurfaceColor.getData(), FTIMAGEFORMAT_UINT8_B8G8R8A8, mSurfaceColor.getWidth() * 4 );
+				mImageDepth->Attach( mChannelDepth.getWidth(), mChannelDepth.getHeight(), 
+					(void*)mChannelDepth.getData(), FTIMAGEFORMAT_UINT16_D13P3,	mChannelDepth.getWidth() * 2 );
+			}
 		}
-		mNewFrame = true;
 	}
 }
 
 void FaceTracker::run()
 {
 	while ( mRunning ) {
-		if ( mNewFrame && mEventHandler != nullptr && mImageColor != 0 && mImageDepth != 0 ) {
+		if ( !mNewFrame && mEventHandler != nullptr && mImageColor != 0 && mImageDepth != 0 ) {
 			long hr = S_OK;
 
 			mFace.mAnimationUnits.clear();
@@ -410,6 +414,8 @@ void FaceTracker::run()
 			} else {
 				mResult->Reset();
 			}
+
+			mNewFrame = true;
 		}
 		Sleep( 8 );
 	}
