@@ -125,8 +125,6 @@ void FaceTrackingApp::onFace( FaceTracker::Face face )
 	if ( hr == S_OK ) {
 		mFace				= face;
 		mFaceTrackedTime	= getElapsedSeconds();
-
-		console() << "Start: " << mFaceTracker->mStartCount << " / Continue: " << mFaceTracker->mContinueCount << endl;
 	}
 }
 

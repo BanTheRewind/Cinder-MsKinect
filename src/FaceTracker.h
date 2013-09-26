@@ -53,9 +53,6 @@ typedef std::shared_ptr<class FaceTracker> FaceTrackerRef;
 class FaceTracker
 {
 public:
-	int32_t mContinueCount;
-	int32_t mStartCount;
-
 	/*! Animation units representing a subset of Candide3 model's 
 		action units.
 		http://msdn.microsoft.com/en-us/library/jj130970.aspx 

@@ -88,9 +88,6 @@ FaceTrackerRef FaceTracker::create()
 
 FaceTracker::FaceTracker()
 {
-	mContinueCount	= 0;
-	mStartCount		= 0;
-
 	mCalcMesh		= true;
 	mCalcMesh2d		= true;
 	mEventHandler	= nullptr;
@@ -291,24 +288,35 @@ void FaceTracker::run()
 			data.pVideoFrame	= mImageColor;
 			data.ViewOffset		= offset;
 			data.ZoomFactor		= 1.0f;
-					
-			bool hint = mHeadPoints.size() == 2;
-			FT_VECTOR3D headPoints[ 2 ];
-			if ( hint ) {
+
+			FT_VECTOR3D* hint = 0;
+			if ( mHeadPoints.size() == 2 ) {
+				hint = new FT_VECTOR3D[ 2 ];
 				for ( size_t i = 0; i < 2; ++i ) {
-					headPoints[ i ] = FT_VECTOR3D( mHeadPoints[ i ].x, mHeadPoints[ i ].y, mHeadPoints[ i ].z );
+					hint[ i ] = FT_VECTOR3D( mHeadPoints[ i ].x, mHeadPoints[ i ].y, mHeadPoints[ i ].z );
 				}
 			}
 
 			if ( mSuccess ) {
-				hr = mFaceTracker->ContinueTracking( &data, hint ? headPoints : 0, mResult );
-				++mContinueCount;
+				hr = mFaceTracker->ContinueTracking( &data, hint, mResult );
+				console() << "Continue ";
 			} else {
-				hr = mFaceTracker->StartTracking( &data, 0, hint ? headPoints : 0, mResult );
-				++mStartCount;
+				hr = mFaceTracker->StartTracking( &data, 0, hint, mResult );
+				console() << "Start ";
+			}
+
+			if ( hint != 0 ) {
+				delete [] hint;
 			}
 
 			mSuccess = SUCCEEDED( hr ) && SUCCEEDED( mResult->GetStatus() );
+
+			if ( mSuccess ) {
+				console() << "succeeded";
+			} else {
+				console() << "failed";
+			}
+			console() << endl;
 		
 			if ( mSuccess ) {
 				hr = mFaceTracker->GetFaceModel( &mModel );

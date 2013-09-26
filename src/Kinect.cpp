@@ -500,24 +500,6 @@ Quatf Device::getOrientation() const
 	return toQuatf( v );
 }
 
-const NUI_IMAGE_FRAME* Device::getNewFrame( void* streamHandle )
-{
-	const NUI_IMAGE_FRAME* frame	= 0;
-	long hr							= S_OK;
-	const NUI_IMAGE_FRAME* newFrame = 0;
-
-	while ( hr == S_OK && frame == 0 ) {
-		hr = NuiImageStreamGetNextFrame( streamHandle, 0, &newFrame );
-		if ( hr == S_OK ) {
-			if ( frame != 0 ) {
-				NuiImageStreamReleaseFrame( streamHandle, frame );
-			}
-			frame = newFrame;
-		}
-	}
-	return frame;
-}
-
 Vec2i Device::getSkeletonDepthPos( const ci::Vec3f& position )
 {
 	float x;
@@ -710,9 +692,9 @@ void Device::run()
 				//////////////////////////////////////////////////////////////////////////////////////////////
 
 				if ( !mNewColorSurface ) {
-					const NUI_IMAGE_FRAME* frame	= 0;
-					frame							= getNewFrame( mColorStreamHandle );
-					if ( frame != 0 && frame->pFrameTexture != 0 ) {
+					const NUI_IMAGE_FRAME* frame = 0;
+					if ( SUCCEEDED( NuiImageStreamGetNextFrame( mColorStreamHandle, 0, &frame ) ) && 
+						frame != 0 && frame->pFrameTexture != 0 ) {
 						INuiFrameTexture* texture = frame->pFrameTexture;
 						_NUI_LOCKED_RECT lockedRect;
 						long hr = texture->LockRect( 0, &lockedRect, 0, 0 );
@@ -736,9 +718,9 @@ void Device::run()
 				//////////////////////////////////////////////////////////////////////////////////////////////
 
 				if ( !mNewDepthSurface ) {
-					const NUI_IMAGE_FRAME* frame	= 0;
-					frame							= getNewFrame( mDepthStreamHandle );
-					if ( frame != 0 && frame->pFrameTexture != 0 ) {
+					const NUI_IMAGE_FRAME* frame = 0;
+					if ( SUCCEEDED( NuiImageStreamGetNextFrame( mDepthStreamHandle, 0, &frame ) ) && 
+						frame != 0 && frame->pFrameTexture != 0 ) {
 						INuiFrameTexture* texture = frame->pFrameTexture;
 						_NUI_LOCKED_RECT lockedRect;
 						long hr = texture->LockRect( 0, &lockedRect, 0, 0 );

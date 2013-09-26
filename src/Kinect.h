@@ -325,7 +325,6 @@ protected:
 
 	uint_fast8_t					mTransform;
 
-	const NUI_IMAGE_FRAME*			getNewFrame( void* streamHandle );
 	void*							mColorStreamHandle;
 	void*							mDepthStreamHandle;
 	
