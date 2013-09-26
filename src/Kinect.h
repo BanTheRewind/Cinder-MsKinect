@@ -107,8 +107,6 @@ public:
 	ImageResolution			getColorResolution() const; 
 	//! Returns size of color image.
 	const ci::Vec2i&		getColorSize() const; 
-	//! Returns surface channel order for color image.
-	ci::SurfaceChannelOrder	getColorSurfaceChannelOrder() const;
 	//! Returns resolution of depth image.
 	ImageResolution			getDepthResolution() const; 
 	//! Returns size of depth image.
@@ -143,8 +141,6 @@ public:
 	DeviceOptions&			enableUserTracking( bool enable = true );
 	//! Sets resolution of color image.
 	DeviceOptions&			setColorResolution( const ImageResolution& resolution = ImageResolution::NUI_IMAGE_RESOLUTION_640x480 );
-	//! Sets surface channel order of color image. Only RGBA abd BGRA are supported. Default is RGBA.
-	DeviceOptions&			setColorSurfaceChannelOrder( ci::SurfaceChannelOrder surfaceChannelOrder = ci::SurfaceChannelOrder::RGBA );
 	//! Sets resolution of depth image.
 	DeviceOptions&			setDepthResolution( const ImageResolution& resolution = ImageResolution::NUI_IMAGE_RESOLUTION_320x240 ); 
 	//! Starts device with this unique ID.
@@ -160,7 +156,6 @@ protected:
 	
 	ImageResolution			mColorResolution;
 	ci::Vec2i				mColorSize;
-	ci::SurfaceChannelOrder	mColorSurfaceChannelOrder;
 	ImageResolution			mDepthResolution;
 	ci::Vec2i				mDepthSize;
 

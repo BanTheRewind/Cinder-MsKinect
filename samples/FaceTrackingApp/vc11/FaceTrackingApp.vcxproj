@@ -49,8 +49,8 @@
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);$(KINECTSDK10_DIR)\inc;$(FTSDK_DIR)inc</IncludePath>
-    <LibraryPath>$(KINECTSDK10_DIR)\lib\x86;$(FTSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
     <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -60,7 +60,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\..\..\include;..\..\..\..\..\boost;..\..\..\src;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\..\include;..\..\..\..\..\boost;..\..\..\src;..\include;$(KINECTSDK10_DIR)\inc;$(FTSDK_DIR)inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -72,7 +72,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>cinder_d.lib;Kinect10.lib;FaceTrackLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\..\..\..\lib;..\..\..\..\..\lib\msw;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\..\lib;..\..\..\..\..\lib\msw;$(KINECTSDK10_DIR)\lib\x86;$(FTSDK_DIR)Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -82,7 +82,7 @@
       <IgnoreSpecificDefaultLibraries>LIBCMT</IgnoreSpecificDefaultLibraries>
     </Link>
     <PreBuildEvent>
-      <Command>xcopy "$(FTSDK_DIR)\Redist\x86\*.dll" "$(ProjectDir)bin\" /Y /C</Command>
+      <Command>xcopy "$(FTSDK_DIR)Redist\x86\*.dll" "$(ProjectDir)bin\" /Y /C</Command>
     </PreBuildEvent>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\..\..\..\include</AdditionalIncludeDirectories>
@@ -116,7 +116,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PreBuildEvent>
-      <Command>xcopy "$(FTSDK_DIR)\Redist\x86\*.dll" "$(ProjectDir)bin\" /Y /C</Command>
+      <Command>xcopy "$(FTSDK_DIR)Redist\x86\*.dll" "$(ProjectDir)bin\" /Y /C</Command>
     </PreBuildEvent>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\..\..\..\include</AdditionalIncludeDirectories>

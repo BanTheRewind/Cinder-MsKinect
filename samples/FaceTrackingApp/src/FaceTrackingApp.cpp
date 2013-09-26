@@ -133,7 +133,7 @@ void FaceTrackingApp::onFace( FaceTracker::Face face )
 void FaceTrackingApp::prepareSettings( Settings* settings )
 {
 	settings->setWindowSize( 640, 480 );
-	settings->setFrameRate( 60.0f );
+	settings->setFrameRate( 20.0f );
 }
 
 void FaceTrackingApp::screenShot()
@@ -143,13 +143,9 @@ void FaceTrackingApp::screenShot()
 
 void FaceTrackingApp::setup()
 {
-	// Face tracker expects BGRA color image.
-	DeviceOptions deviceOptions;
-	deviceOptions.setColorSurfaceChannelOrder( SurfaceChannelOrder::BGRA );
-
 	mDevice = Device::create();
 	mDevice->connectEventHandler( &FaceTrackingApp::onFrame, this );
-	mDevice->start( deviceOptions );
+	mDevice->start();
 
 	mFaceTracker = FaceTracker::create();
 	mFaceTracker->enableCalcMesh( false );

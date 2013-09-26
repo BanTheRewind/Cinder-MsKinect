@@ -142,7 +142,6 @@ DeviceOptions::DeviceOptions()
 	mEnabledSkeletonTracking	= true;
 	mEnabledUserTracking		= true;
 	setColorResolution( ImageResolution::NUI_IMAGE_RESOLUTION_640x480 );
-	setColorSurfaceChannelOrder( SurfaceChannelOrder::RGBA );
 	setDepthResolution( ImageResolution::NUI_IMAGE_RESOLUTION_320x240 );
 }
 
@@ -185,11 +184,6 @@ ImageResolution DeviceOptions::getColorResolution() const
 const Vec2i& DeviceOptions::getColorSize() const 
 {
 	return mColorSize;
-}
-
-SurfaceChannelOrder DeviceOptions::getColorSurfaceChannelOrder() const
-{
-	return mColorSurfaceChannelOrder;
 }
 
 ImageResolution DeviceOptions::getDepthResolution() const
@@ -257,15 +251,6 @@ DeviceOptions& DeviceOptions::setColorResolution( const ImageResolution& resolut
 		mColorSize = Vec2i::zero();
 		mEnabledColor = false;
 		break;
-	}
-	return *this;
-}
-
-DeviceOptions& DeviceOptions::setColorSurfaceChannelOrder( SurfaceChannelOrder surfaceChannelOrder )
-{
-	mColorSurfaceChannelOrder = surfaceChannelOrder;
-	if ( !( mColorSurfaceChannelOrder == SurfaceChannelOrder::BGRA ) ) {
-		mColorSurfaceChannelOrder = SurfaceChannelOrder::RGBA;
 	}
 	return *this;
 }
@@ -690,9 +675,7 @@ void Device::pixelToColorSurface( uint8_t *buffer )
 	int32_t height	= mColorSurface.getHeight();
 	int32_t width	= mColorSurface.getWidth();
 	int32_t size	= width * height * 4;
-
-	bool rgb		= mDeviceOptions.getColorSurfaceChannelOrder() == SurfaceChannelOrder::RGBA;
-
+	
 	if ( mFlipped ) {
 		uint8_t *flipped = new uint8_t[ size ];
 		for ( int32_t y = 0; y < height; ++y ) {
@@ -702,21 +685,11 @@ void Device::pixelToColorSurface( uint8_t *buffer )
 				for ( int32_t i = 0; i < 4; ++i ) {
 					flipped[ dest + i ] = buffer[ src + i ];
 				}
-				if ( rgb ) {
-					swap( flipped[ dest ], flipped[ dest + 2 ] );
-				}
-				flipped[ dest + 3 ] = 255;
 			}
 		}
 		memcpy( mColorSurface.getData(), flipped, size );
 		delete [] flipped;
 	} else {
-		for ( int32_t i = 0; i < size; i += 4 ) {
-			if ( rgb ) {
-				swap( buffer[ i ], buffer[ i + 2 ] );
-			}
-			buffer[ i + 3 ] = 255;
-		}
 		memcpy( mColorSurface.getData(), buffer, size );
 	}
 }
@@ -1044,7 +1017,7 @@ void Device::start( const DeviceOptions& deviceOptions )
 					throw ExcOpenStreamColor( hr );
 				}
 			}
-			mColorSurface	= Surface8u( videoSize.x, videoSize.y, false, mDeviceOptions.getColorSurfaceChannelOrder() );
+			mColorSurface	= Surface8u( videoSize.x, videoSize.y, false, SurfaceChannelOrder::BGRA );
 			mRgbColor		= new Pixel[ videoSize.x * videoSize.y * 4 ];
 		}
 

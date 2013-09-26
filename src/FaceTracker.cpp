@@ -103,14 +103,6 @@ FaceTracker::FaceTracker()
 	mRunning		= false;
 	mSuccess		= false;
 	mUserId			= 0;
-
-	//App::get()->getSignalUpdate().connect( [ & ]()
-	//{
-	//	if ( mNewFrame && mEventHandler != nullptr ) {
-	//		mEventHandler( mFace );
-	//		mNewFrame = false;
-	//	}
-	//} );
 }
 
 FaceTracker::~FaceTracker()
@@ -235,15 +227,8 @@ void FaceTracker::start( const DeviceOptions& deviceOptions )
 	}
 
 	mImageColor = FTCreateImage();
-	if ( !mImageColor || FAILED( hr = mImageColor->Allocate( mConfigColor.Width, mConfigColor.Height, FTIMAGEFORMAT_UINT8_B8G8R8A8 ) ) ) {
-		throw ExcFaceTrackerCreateImage( hr );
-	}
-
 	mImageDepth = FTCreateImage();
-	if ( !mImageDepth || FAILED( hr = mImageDepth->Allocate( mConfigDepth.Width, mConfigDepth.Height, FTIMAGEFORMAT_UINT16_D13P3 ) ) ) {
-		throw ExcFaceTrackerCreateImage( hr );
-	}
-
+	
 	mRunning	= true;
 	mThread		= ThreadRef( new thread( &FaceTracker::run, this ) );
 }
@@ -277,7 +262,7 @@ void FaceTracker::update( const Surface8u& color, const Channel16u& depth, const
 
 			if ( attach ) {
 				mImageColor->Attach( mSurfaceColor.getWidth(), mSurfaceColor.getHeight(), 
-					(void*)mSurfaceColor.getData(), FTIMAGEFORMAT_UINT8_B8G8R8A8, mSurfaceColor.getWidth() * 4 );
+					(void*)mSurfaceColor.getData(), FTIMAGEFORMAT_UINT8_B8G8R8X8, mSurfaceColor.getWidth() * 4 );
 				mImageDepth->Attach( mChannelDepth.getWidth(), mChannelDepth.getHeight(), 
 					(void*)mChannelDepth.getData(), FTIMAGEFORMAT_UINT16_D13P3,	mChannelDepth.getWidth() * 2 );
 			}
@@ -322,9 +307,9 @@ void FaceTracker::run()
 				hr = mFaceTracker->StartTracking( &data, 0, hint ? headPoints : 0, mResult );
 				++mStartCount;
 			}
-			
-			mSuccess = SUCCEEDED( hr ) && SUCCEEDED( mResult->GetStatus() );
 
+			mSuccess = SUCCEEDED( hr ) && SUCCEEDED( mResult->GetStatus() );
+		
 			if ( mSuccess ) {
 				hr = mFaceTracker->GetFaceModel( &mModel );
 				if ( SUCCEEDED( hr ) ) {
