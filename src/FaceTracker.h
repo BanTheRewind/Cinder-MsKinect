@@ -53,6 +53,8 @@ typedef std::shared_ptr<class FaceTracker> FaceTrackerRef;
 class FaceTracker
 {
 public:
+	float mTime;
+
 	/*! Animation units representing a subset of Candide3 model's 
 		action units.
 		http://msdn.microsoft.com/en-us/library/jj130970.aspx 

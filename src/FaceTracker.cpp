@@ -271,6 +271,7 @@ void FaceTracker::run()
 {
 	while ( mRunning ) {
 		if ( !mNewFrame && mEventHandler != nullptr && mImageColor != 0 && mImageDepth != 0 ) {
+
 			long hr = S_OK;
 
 			mFace.mAnimationUnits.clear();
@@ -280,14 +281,10 @@ void FaceTracker::run()
 			mFace.mPoseMatrix.setToIdentity();
 			mFace.mUserId = mUserId;
 
-			FT_SENSOR_DATA data;
 			tagPOINT offset;
 			offset.x			= 0;
 			offset.y			= 0;
-			data.pDepthFrame	= mImageDepth;
-			data.pVideoFrame	= mImageColor;
-			data.ViewOffset		= offset;
-			data.ZoomFactor		= 1.0f;
+			FT_SENSOR_DATA data( mImageColor, mImageDepth, 1.0f, &offset );
 
 			FT_VECTOR3D* hint = 0;
 			if ( mHeadPoints.size() == 2 ) {

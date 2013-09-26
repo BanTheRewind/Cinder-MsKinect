@@ -55,15 +55,13 @@ public:
 private:
 	ci::Channel16u					mChannelDepth;
 	MsKinect::FaceTracker::Face		mFace;
-	MsKinect::DeviceRef				mDevice;
-	std::vector<MsKinect::Skeleton>	mSkeletons;
-	ci::Surface8u					mSurfaceColor;
-	
-	void							onFace( MsKinect::FaceTracker::Face face );
-	void							onFrame( MsKinect::Frame frame, const MsKinect::DeviceOptions& deviceOptions );
-
 	double							mFaceTrackedTime;
 	MsKinect::FaceTrackerRef		mFaceTracker;
+	MsKinect::DeviceRef				mDevice;
+	std::vector<MsKinect::Skeleton>	mSkeletons;
+	ci::Surface8u					mSurfaceColor;	
+	void							onFace( MsKinect::FaceTracker::Face face );
+	void							onFrame( MsKinect::Frame frame, const MsKinect::DeviceOptions& deviceOptions );
 
 	void							screenShot();
 };
@@ -112,19 +110,21 @@ void FaceTrackingApp::keyDown( KeyEvent event )
 	}
 }
 
-void FaceTrackingApp::onFrame( Frame frame, const DeviceOptions& deviceOptions )
-{
-	mChannelDepth	= frame.getDepthSurface().getChannelRed();
-	mSkeletons		= frame.getSkeletons();
-	mSurfaceColor	= frame.getColorSurface();
-}
-
 void FaceTrackingApp::onFace( FaceTracker::Face face )
 {
 	long hr = mFaceTracker->getResult()->GetStatus();
 	if ( hr == S_OK ) {
 		mFace				= face;
 		mFaceTrackedTime	= getElapsedSeconds();
+	}
+}
+
+void FaceTrackingApp::onFrame( Frame frame, const DeviceOptions& deviceOptions )
+{
+	mChannelDepth	= frame.getDepthSurface().getChannelRed();
+	mSurfaceColor	= frame.getColorSurface();
+	if ( mFaceTracker && mFaceTracker->isTracking() ) {
+		mFaceTracker->update( mSurfaceColor, mChannelDepth );
 	}
 }
 
@@ -143,8 +143,30 @@ void FaceTrackingApp::setup()
 {
 	mDevice = Device::create();
 	mDevice->connectEventHandler( &FaceTrackingApp::onFrame, this );
-	mDevice->start();
-
+	try {
+		mDevice->start();
+	} catch ( Device::ExcDeviceCreate ex ) {
+		console() << ex.what() << endl;
+		quit();
+		return;
+	} catch ( Device::ExcDeviceInit ex ) {
+		console() << ex.what() << endl;
+		quit();
+		return;
+	} catch ( Device::ExcDeviceInvalid ex ) {
+		console() << ex.what() << endl;
+		quit();
+		return;
+	} catch ( Device::ExcOpenStreamColor ex ) {
+		console() << ex.what() << endl;
+		quit();
+		return;
+	} catch ( Device::ExcOpenStreamDepth ex ) {
+		console() << ex.what() << endl;
+		quit();
+		return;
+	}
+	
 	mFaceTracker = FaceTracker::create();
 	mFaceTracker->enableCalcMesh( false );
 	mFaceTracker->connectEventHander( &FaceTrackingApp::onFace, this );
@@ -153,17 +175,21 @@ void FaceTrackingApp::setup()
 	} catch ( FaceTracker::ExcFaceTrackerCreate ex ) {
 		console() << ex.what() << endl;
 		quit();
+		return;
 	} catch ( FaceTracker::ExcFaceTrackerCreateResult ex ) {
 		console() << ex.what() << endl;
 		quit();
+		return;
 	} catch ( FaceTracker::ExcFaceTrackerInit ex ) {
 		console() << ex.what() << endl;
 		quit();
-	}
+		return;
+	}	
 }
 
 void FaceTrackingApp::shutdown()
 {
+	mFaceTracker->stop();
 	mDevice->stop();
 }
 
@@ -173,10 +199,6 @@ void FaceTrackingApp::update()
 		if ( getElapsedFrames() % 90 == 0 ) {
 			mDevice->start();
 		}
-	}
-	
-	if ( mSurfaceColor && mChannelDepth ) {
-		mFaceTracker->update( mSurfaceColor, mChannelDepth );
 	}
 }
 
