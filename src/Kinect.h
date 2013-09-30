@@ -48,6 +48,7 @@
 #include "cinder/Quaternion.h"
 #include "cinder/Surface.h"
 #include "cinder/Thread.h"
+#include <list>
 #include <map>
 #include "ole2.h"
 #include "NuiApi.h"
@@ -117,6 +118,8 @@ public:
 	int32_t					getDeviceIndex() const;
 	//! Returns true if depth tracking is enabled.
 	bool					isDepthEnabled() const;
+	//! Returns true if frame synchronization is enabled.
+	bool					isFrameSyncEnabled() const;
 	//! Returns true if background remove is enabled.
 	bool					isNearModeEnabled() const; 
 	//! Returns true if seated mode is enabled.
@@ -132,6 +135,8 @@ public:
 	DeviceOptions&			enableColor( bool enable = true );
 	//! Enables depth tracking.
 	DeviceOptions&			enableDepth( bool enable = true );
+	//! Enables frame synchronization. This may result in a slower color stream.
+	DeviceOptions&			enableFrameSync( bool enable = true );
 	//! Enables near mode (Kinect for Windows only).
 	DeviceOptions&			enableNearMode( bool enable = true ); 
 	/*! Enables skeleton tracking. Set \a seatedMode to true to support seated skeletons.
@@ -150,6 +155,7 @@ public:
 protected:
 	bool					mEnabledColor;
 	bool					mEnabledDepth;
+	bool					mEnabledFrameSync;
 	bool					mEnabledSeatedMode;
 	bool					mEnabledSkeletonTracking;
 	bool					mEnabledUserTracking;
@@ -298,8 +304,20 @@ protected:
 
 	struct Point
 	{
-		long x;
-		long y;
+		long						x;
+		long						y;
+	};
+
+	class ColorFrame
+	{
+	public:
+		ColorFrame( const ci::Surface8u& surface, __int64 timeStamp );
+
+		const ci::Surface8u&		getSurface() const;
+		__int64						getTimeStamp() const;
+	private:
+		ci::Surface8u				mSurface;
+		__int64						mTimeStamp;
 	};
 
 	static std::vector<ci::Colorf>	sUserColors;
@@ -328,15 +346,19 @@ protected:
 	void*							mColorStreamHandle;
 	void*							mDepthStreamHandle;
 	
-	void*							mFrameEndEvent;
+	void*							mColorEvent;
+	void*							mDepthEvent;
+	void*							mSkeletonEvent;
 	long							mFrameId;
 
 	volatile bool					mNewDepthSurface;
 	volatile bool					mNewSkeletons;
 	volatile bool					mNewColorSurface;
 	
+	std::list<ColorFrame>			mColorFrames;
 	ci::Surface8u					mColorSurface;
 	ci::Surface16u					mDepthSurface;
+	__int64							mDepthTimeStamp;
 	std::vector<Skeleton>			mSkeletons;
 
 	INuiSensor*						mSensor;

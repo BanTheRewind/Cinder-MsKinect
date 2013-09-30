@@ -121,9 +121,9 @@ void FaceTrackingApp::onFace( FaceTracker::Face face )
 
 void FaceTrackingApp::onFrame( Frame frame, const DeviceOptions& deviceOptions )
 {
-	mChannelDepth	= frame.getDepthSurface().getChannelRed();
-	mSurfaceColor	= frame.getColorSurface();
 	if ( mFaceTracker && mFaceTracker->isTracking() ) {
+		mChannelDepth	= frame.getDepthSurface().getChannelRed();
+		mSurfaceColor	= frame.getColorSurface();
 		mFaceTracker->update( mSurfaceColor, mChannelDepth );
 	}
 }
@@ -131,7 +131,7 @@ void FaceTrackingApp::onFrame( Frame frame, const DeviceOptions& deviceOptions )
 void FaceTrackingApp::prepareSettings( Settings* settings )
 {
 	settings->setWindowSize( 640, 480 );
-	settings->setFrameRate( 20.0f );
+	settings->setFrameRate( 60.0f );
 }
 
 void FaceTrackingApp::screenShot()
@@ -144,7 +144,7 @@ void FaceTrackingApp::setup()
 	mDevice = Device::create();
 	mDevice->connectEventHandler( &FaceTrackingApp::onFrame, this );
 	try {
-		mDevice->start();
+		mDevice->start( DeviceOptions().enableFrameSync() );
 	} catch ( Device::ExcDeviceCreate ex ) {
 		console() << ex.what() << endl;
 		quit();
@@ -173,6 +173,10 @@ void FaceTrackingApp::setup()
 	try {
 		mFaceTracker->start( mDevice->getDeviceOptions() );
 	} catch ( FaceTracker::ExcFaceTrackerCreate ex ) {
+		console() << ex.what() << endl;
+		quit();
+		return;
+	} catch ( FaceTracker::ExcFaceTrackerCreateImage ex ) {
 		console() << ex.what() << endl;
 		quit();
 		return;

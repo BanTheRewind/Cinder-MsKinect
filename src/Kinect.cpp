@@ -137,6 +137,7 @@ DeviceOptions::DeviceOptions()
 	mDeviceIndex				= 0;
 	mEnabledColor				= true;
 	mEnabledDepth				= true;
+	mEnabledFrameSync			= false;
 	mEnabledNearMode			= false;
 	mEnabledSeatedMode			= false;
 	mEnabledSkeletonTracking	= true;
@@ -148,6 +149,12 @@ DeviceOptions::DeviceOptions()
 DeviceOptions& DeviceOptions::enableDepth( bool enable )
 {
 	mEnabledDepth = enable;
+	return *this;
+}
+
+DeviceOptions& DeviceOptions::enableFrameSync( bool enable )
+{
+	mEnabledFrameSync = enable;
 	return *this;
 }
 
@@ -209,6 +216,11 @@ int32_t DeviceOptions::getDeviceIndex() const
 bool DeviceOptions::isDepthEnabled() const
 {
 	return mEnabledDepth;
+}
+
+bool DeviceOptions::isFrameSyncEnabled() const
+{
+	return mEnabledFrameSync;
 }
 	
 bool DeviceOptions::isNearModeEnabled() const
@@ -322,6 +334,23 @@ long Frame::getId() const
 const vector<Skeleton>&	Frame::getSkeletons() const
 {
 	return mSkeletons;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+Device::ColorFrame::ColorFrame( const ci::Surface8u& surface, __int64 timeStamp )
+: mSurface( surface ), mTimeStamp( timeStamp )
+{
+}
+
+const Surface8u& Device::ColorFrame::getSurface() const
+{
+	return mSurface;
+}
+
+__int64 Device::ColorFrame::getTimeStamp() const
+{
+	return mTimeStamp;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -563,10 +592,11 @@ void Device::init( bool reset )
 	}
 
 	mCapture				= false;
+	mColorEvent				= 0;
 	mColorStreamHandle		= 0;
 	mDepthStreamHandle		= 0;
+	mDepthEvent				= 0;
 	mEventHandler			= nullptr;
-	mFrameEndEvent			= 0;
 	mFrameId				= 0;
 	mFrameRate				= 0.0f;
 	mNewColorSurface		= false;
@@ -577,6 +607,7 @@ void Device::init( bool reset )
 	mRgbColor				= 0;
 	mRgbDepth				= 0;
 	mSensor					= 0;
+	mSkeletonEvent			= 0;
 	mTiltRequestTime		= 0.0;
 	mUserCount				= 0;
 	
@@ -596,7 +627,7 @@ bool Device::isFlipped() const
 long Device::openColorStream()
 {
 	if ( mSensor != 0 ) {
-		long hr = mSensor->NuiImageStreamOpen( NUI_IMAGE_TYPE_COLOR, mDeviceOptions.getColorResolution(), 0, 2, 0, &mColorStreamHandle );
+		long hr = mSensor->NuiImageStreamOpen( NUI_IMAGE_TYPE_COLOR, mDeviceOptions.getColorResolution(), 0, 2, mColorEvent, &mColorStreamHandle );
 		if ( FAILED( hr ) ) {
 			console() << "Unable to open color image stream: " << endl;
 			error( hr );
@@ -612,7 +643,7 @@ long Device::openDepthStream()
 	if ( mSensor != 0) {
 		NUI_IMAGE_TYPE type = mDeviceOptions.getDepthResolution() != ImageResolution::NUI_IMAGE_RESOLUTION_640x480 && 
 			HasSkeletalEngine( mSensor ) ? NUI_IMAGE_TYPE_DEPTH_AND_PLAYER_INDEX : NUI_IMAGE_TYPE_DEPTH;
-		long hr = mSensor->NuiImageStreamOpen( type, mDeviceOptions.getDepthResolution(), 0, 2, 0, &mDepthStreamHandle );
+		long hr = mSensor->NuiImageStreamOpen( type, mDeviceOptions.getDepthResolution(), 0, 2, mDepthEvent, &mDepthStreamHandle );
 		if ( FAILED( hr ) ) {
 			console() << "Unable to open depth image stream: " << endl;
 			error( hr );
@@ -683,89 +714,116 @@ void Device::removeBackground( bool remove )
 
 void Device::run()
 {
+	HANDLE events[ 4 ];
+    events[ 0 ] = mColorEvent;
+    events[ 1 ] = mDepthEvent;
+    events[ 2 ] = mSkeletonEvent;
+
 	while ( mCapture ) {
 		if ( mSensor != 0 ) {
 			double time = getElapsedSeconds();
 
-			if ( WAIT_OBJECT_0 == WaitForSingleObject( mFrameEndEvent, WAIT_TIME ) ) {
-				
-				//////////////////////////////////////////////////////////////////////////////////////////////
+			WaitForMultipleObjects( sizeof( events ) / sizeof( events[ 0 ]), events, 0, WAIT_TIME );
 
-				if ( !mNewColorSurface ) {
-					const NUI_IMAGE_FRAME* frame = 0;
-					if ( SUCCEEDED( NuiImageStreamGetNextFrame( mColorStreamHandle, 0, &frame ) ) && 
-						frame != 0 && frame->pFrameTexture != 0 ) {
-						INuiFrameTexture* texture = frame->pFrameTexture;
-						_NUI_LOCKED_RECT lockedRect;
-						long hr = texture->LockRect( 0, &lockedRect, 0, 0 );
-						if ( FAILED( hr ) ) {
-							error( hr );
-						}
-						if ( lockedRect.Pitch != 0 ) {
-							pixelToColorSurface( (uint8_t*)lockedRect.pBits );
-						} else {
-							console() << "Invalid buffer length received." << endl;
-						}
+			const NUI_IMAGE_FRAME* frameColor	= 0;
+			const NUI_IMAGE_FRAME* frameDepth	= 0;
+			NUI_SKELETON_FRAME frameSkeleton	= { 0 };
 
-						hr = NuiImageStreamReleaseFrame( mColorStreamHandle, frame );
-						if ( FAILED( hr ) ) {
-							error( hr );
-						}
-						mNewColorSurface = true;
-					}
+			bool readColor		= !mNewColorSurface;
+			bool readDepth		= !mNewDepthSurface;
+			bool readSkeleton	= !mNewSkeletons;
+			if ( mDeviceOptions.isFrameSyncEnabled() && mDeviceOptions.isColorEnabled() && mDeviceOptions.isDepthEnabled() ) {
+				if ( readColor != readDepth ) {
+					readColor	= false;
+					readDepth	= false;
 				}
+				readSkeleton	= readDepth;
+			}
+			readColor		= readColor && mDeviceOptions.isColorEnabled();
+			readDepth		= readDepth && mDeviceOptions.isDepthEnabled();
+			readSkeleton	= readSkeleton && mDeviceOptions.isSkeletonTrackingEnabled();
 
-				//////////////////////////////////////////////////////////////////////////////////////////////
+			//////////////////////////////////////////////////////////////////////////////////////////////
 
-				if ( !mNewDepthSurface ) {
-					const NUI_IMAGE_FRAME* frame = 0;
-					if ( SUCCEEDED( NuiImageStreamGetNextFrame( mDepthStreamHandle, 0, &frame ) ) && 
-						frame != 0 && frame->pFrameTexture != 0 ) {
-						INuiFrameTexture* texture = frame->pFrameTexture;
-						_NUI_LOCKED_RECT lockedRect;
-						long hr = texture->LockRect( 0, &lockedRect, 0, 0 );
-						if ( FAILED( hr ) ) {
-							error( hr );
-						}
-						if ( lockedRect.Pitch == 0 ) {
-							console() << "Invalid buffer length received" << endl;
-						} else {
-							pixelToDepthSurface( (uint16_t*)lockedRect.pBits );
-						}
+			if ( readDepth && WAIT_OBJECT_0 == WaitForSingleObject( mDepthEvent, 0 ) ) {
+				if ( SUCCEEDED( NuiImageStreamGetNextFrame( mDepthStreamHandle, 0, &frameDepth ) ) && 
+					frameDepth != 0 && frameDepth->pFrameTexture != 0 ) {
+					mDepthTimeStamp				= frameDepth->liTimeStamp.QuadPart;
+					INuiFrameTexture* texture	= frameDepth->pFrameTexture;
+					_NUI_LOCKED_RECT lockedRect;
+					long hr = texture->LockRect( 0, &lockedRect, 0, 0 );
+					if ( FAILED( hr ) ) {
+						error( hr );
+					}
+					if ( lockedRect.Pitch == 0 ) {
+						console() << "Invalid buffer length received" << endl;
+					} else {
+						pixelToDepthSurface( (uint16_t*)lockedRect.pBits );
+					}
 
-						hr = NuiImageStreamReleaseFrame( mDepthStreamHandle, frame );
-						if ( FAILED( hr ) ) {
-							error( hr ); 
-						}
+					hr = NuiImageStreamReleaseFrame( mDepthStreamHandle, frameDepth );
+					if ( FAILED( hr ) ) {
+						error( hr ); 
+					}
 					
-						mUserCount = 0;
-						for ( uint32_t i = 0; i < NUI_SKELETON_COUNT; ++i ) {
-							if ( mActiveUsers[ i ] ) {
-								++mUserCount;
+					mUserCount = 0;
+					for ( uint32_t i = 0; i < NUI_SKELETON_COUNT; ++i ) {
+						if ( mActiveUsers[ i ] ) {
+							++mUserCount;
+						}
+					}
+					mNewDepthSurface = true;
+				}
+			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////////
+				
+			if ( readColor && WAIT_OBJECT_0 == WaitForSingleObject( mColorEvent, 0 ) ) {
+				if ( SUCCEEDED( NuiImageStreamGetNextFrame( mColorStreamHandle, 0, &frameColor ) ) && 
+					frameColor != 0 && frameColor->pFrameTexture != 0 ) {
+					INuiFrameTexture* texture = frameColor->pFrameTexture;
+					_NUI_LOCKED_RECT lockedRect;
+					long hr = texture->LockRect( 0, &lockedRect, 0, 0 );
+					if ( FAILED( hr ) ) {
+						error( hr );
+					}
+					if ( lockedRect.Pitch != 0 ) {
+						pixelToColorSurface( (uint8_t*)lockedRect.pBits );
+						if ( mDeviceOptions.isFrameSyncEnabled() ) {
+							mColorFrames.push_back( ColorFrame( mColorSurface, frameColor->liTimeStamp.QuadPart ) );
+							if ( mColorFrames.size() > 10 ) {
+								mColorFrames.erase( mColorFrames.begin() );
 							}
 						}
-						mNewDepthSurface = true;
+
+					} else {
+						console() << "Invalid buffer length received." << endl;
 					}
+
+					hr = NuiImageStreamReleaseFrame( mColorStreamHandle, frameColor );
+					if ( FAILED( hr ) ) {
+						error( hr );
+					}
+					mNewColorSurface = true;
 				}
 			}
 
 			//////////////////////////////////////////////////////////////////////////////////////////////
 
-			if ( !mNewSkeletons ) {
-				NUI_SKELETON_FRAME frame = { 0 };
-				long hr = NuiSkeletonGetNextFrame( 0, &frame );
+			if ( readSkeleton && WAIT_OBJECT_0 == WaitForSingleObject( mSkeletonEvent, 0 ) ) {
+				long hr = NuiSkeletonGetNextFrame( 0, &frameSkeleton );
 				if ( SUCCEEDED( hr ) ) {
 					bool foundSkeleton = false;
 					for ( int32_t i = 0; i < NUI_SKELETON_COUNT; ++i ) {
 
 						mSkeletons.at( i ).clear();
 
-						NUI_SKELETON_TRACKING_STATE trackingState = frame.SkeletonData[ i ].eTrackingState;
+						NUI_SKELETON_TRACKING_STATE trackingState = frameSkeleton.SkeletonData[ i ].eTrackingState;
 						if ( trackingState == NUI_SKELETON_TRACKED || trackingState == NUI_SKELETON_POSITION_ONLY ) {
 
 							if ( !foundSkeleton ) {
 								_NUI_TRANSFORM_SMOOTH_PARAMETERS transform = kTransformParams[ mTransform ];
-								hr = mSensor->NuiTransformSmooth( &frame, &transform );
+								hr = mSensor->NuiTransformSmooth( &frameSkeleton, &transform );
 								if ( FAILED( hr ) ) {
 									error( hr );
 								}
@@ -773,20 +831,20 @@ void Device::run()
 							}
 
 							if ( mFlipped ) {
-								( frame.SkeletonData + i )->Position.x *= -1.0f;
+								( frameSkeleton.SkeletonData + i )->Position.x *= -1.0f;
 								for ( int32_t j = 0; j < (int32_t)NUI_SKELETON_POSITION_COUNT; ++j ) {
-									( frame.SkeletonData + i )->SkeletonPositions[ j ].x *= -1.0f;
+									( frameSkeleton.SkeletonData + i )->SkeletonPositions[ j ].x *= -1.0f;
 								}
 							}
 
 							_NUI_SKELETON_BONE_ORIENTATION bones[ NUI_SKELETON_POSITION_COUNT ];
-							hr = NuiSkeletonCalculateBoneOrientations( frame.SkeletonData + i, bones );
+							hr = NuiSkeletonCalculateBoneOrientations( frameSkeleton.SkeletonData + i, bones );
 							if ( FAILED( hr ) ) {
 								error( hr );
 							}
 
 							for ( int32_t j = 0; j < (int32_t)NUI_SKELETON_POSITION_COUNT; ++j ) {
-								Bone bone( *( ( frame.SkeletonData + i )->SkeletonPositions + j ), *( bones + j ) );
+								Bone bone( *( ( frameSkeleton.SkeletonData + i )->SkeletonPositions + j ), *( bones + j ) );
 								( mSkeletons.begin() + i )->insert( std::pair<JointName, Bone>( (JointName)j, bone ) );
 							}
 
@@ -795,12 +853,10 @@ void Device::run()
 					}
 					mNewSkeletons = true;
 				}
+
+				mFrameRate	= (float)( 1.0 / ( time - mReadTime ) );
+				mReadTime	= time;
 			}
-
-			mFrameRate	= (float)( 1.0 / ( time - mReadTime ) );
-			mReadTime	= time;
-
-			ResetEvent( mFrameEndEvent );
 		}
 	}
 	return;
@@ -831,8 +887,8 @@ void Device::setTransform( int_fast8_t transform )
 
 Device::Pixel16u Device::shortToPixel( uint16_t value )
 {
-	uint16_t depth = 0xFFFF - 0x10000 * ( ( value&  0xFFF8 ) >> 3 ) / 0x0FFF;
-	uint16_t user = value&  7;
+	uint16_t depth	= 0xFFFF - 0x10000 * ( ( value&  0xFFF8 ) >> 3 ) / 0x0FFF;
+	uint16_t user	= value&  7;
 
 	Pixel16u pixel;
 	pixel.b = 0;
@@ -900,9 +956,7 @@ Device::Pixel16u Device::shortToPixel( uint16_t value )
 				pixel.b = pixel.g;
 			}
 		}
-
 	}
-
 	pixel.r = 0xFFFF - pixel.r;
 	pixel.g = 0xFFFF - pixel.g;
 	pixel.b = 0xFFFF - pixel.b;
@@ -921,8 +975,14 @@ void Device::start( const DeviceOptions& deviceOptions )
 			index = math<int32_t>::clamp( index, 0, math<int32_t>::max( getDeviceCount() - 1, 0 ) );
 		}
 
-		if ( mFrameEndEvent == 0 ) {
-			mFrameEndEvent = CreateEvent( 0, 1, 0, 0 );
+		if ( mColorEvent == 0 ) {
+			mColorEvent = CreateEvent( 0, 1, 0, 0 );
+		}
+		if ( mDepthEvent == 0 ) {
+			mDepthEvent = CreateEvent( 0, 1, 0, 0 );
+		}
+		if ( mSkeletonEvent == 0 ) {
+			mSkeletonEvent = CreateEvent( 0, 1, 0, 0 );
 		}
 
 		long hr = S_OK;
@@ -999,7 +1059,7 @@ void Device::start( const DeviceOptions& deviceOptions )
 					throw ExcOpenStreamColor( hr );
 				}
 			}
-			mColorSurface	= Surface8u( videoSize.x, videoSize.y, false, SurfaceChannelOrder::BGRA );
+			mColorSurface	= Surface8u( videoSize.x, videoSize.y, false, SurfaceChannelOrder::BGRX );
 			mRgbColor		= new Pixel[ videoSize.x * videoSize.y * 4 ];
 		}
 
@@ -1020,7 +1080,7 @@ void Device::start( const DeviceOptions& deviceOptions )
 			if ( mDeviceOptions.isSeatedModeEnabled() ) {
 				flags |= NUI_SKELETON_TRACKING_FLAG_ENABLE_SEATED_SUPPORT;
 			}
-			hr = mSensor->NuiSkeletonTrackingEnable( 0, flags );
+			hr = mSensor->NuiSkeletonTrackingEnable( mSkeletonEvent, flags );
 			if ( FAILED( hr ) ) {
 				console() << "Unable to initialize skeleton tracking for device " + mDeviceOptions.getDeviceId() + ": " << endl;
 				error( hr );
@@ -1044,9 +1104,7 @@ void Device::start( const DeviceOptions& deviceOptions )
 			mSkeletons.push_back( Skeleton() );
 		}
 
-		NuiSetFrameEndEvent( mFrameEndEvent, 0 );
-
-		// Start thread
+		// Start threads
 		mCapture = true;
 		mThread = shared_ptr<thread>( new thread( bind( &Device::run, this ) ) );
 	}
@@ -1059,6 +1117,20 @@ void Device::stop()
 		mThread->join();
 		mThread.reset();
 	}
+
+	if ( mColorEvent != 0 ) {
+		CloseHandle( mColorEvent );
+		mColorEvent = 0;
+	}
+	if ( mDepthEvent != 0 ) {
+		CloseHandle( mDepthEvent );
+		mDepthEvent = 0;
+	}
+	if ( mSkeletonEvent != 0 ) {
+		CloseHandle( mSkeletonEvent );
+		mSkeletonEvent = 0;
+	}
+
 	if ( mRgbDepth != 0 ) {
 		delete [] mRgbDepth;
 	}
@@ -1081,8 +1153,25 @@ void Device::update()
 		newFrame = newFrame && mNewSkeletons;
 	}
 	if ( newFrame && mEventHandler != nullptr ) {
-		Frame frame( mFrameId, mColorSurface, mDepthSurface, mSkeletons );
-		mEventHandler( frame, mDeviceOptions );
+		if ( mDeviceOptions.isFrameSyncEnabled() && mDeviceOptions.isColorEnabled() && mDeviceOptions.isDepthEnabled() ) {
+			list<ColorFrame>::const_iterator colorFrame = mColorFrames.begin();
+			__int64 d0									= math<__int64>::abs( mDepthTimeStamp - colorFrame->getTimeStamp() );
+			for ( list<ColorFrame>::const_iterator iter = mColorFrames.begin(); iter != mColorFrames.end(); ++iter ) {
+				if ( colorFrame != iter ) {
+					__int64 d1 = math<__int64>::abs( mDepthTimeStamp - iter->getTimeStamp() );
+					if ( d0 < d1 ) {
+						d0 = d1;
+						colorFrame = iter;
+					}
+				}
+			}
+
+			Frame frame( mFrameId, colorFrame->getSurface(), mDepthSurface, mSkeletons );
+			mEventHandler( frame, mDeviceOptions );
+		} else {
+			Frame frame( mFrameId, mColorSurface, mDepthSurface, mSkeletons );
+			mEventHandler( frame, mDeviceOptions );
+		}
 		++mFrameId;
 	}
 	mNewColorSurface	= false;

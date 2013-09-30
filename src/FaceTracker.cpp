@@ -92,10 +92,8 @@ FaceTracker::FaceTracker()
 	mCalcMesh2d		= true;
 	mEventHandler	= nullptr;
 	mFaceTracker	= 0;
-	mImageColor		= 0;
-	mImageDepth		= 0;
 	mModel			= 0;
-	mNewFrame		= false;
+	mNewFace		= false;
 	mResult			= 0;
 	mRunning		= false;
 	mSuccess		= false;
@@ -111,14 +109,14 @@ FaceTracker::~FaceTracker()
 		mFaceTracker = 0;
 	}
 
-	if ( mImageColor ) {
-		mImageColor->Release();
-		mImageColor = 0;
+	if ( mSensorData.pVideoFrame != 0 ) {
+		mSensorData.pVideoFrame->Release();
+		mSensorData.pVideoFrame = 0;
 	}
 
-	if ( mImageDepth ) {
-		mImageDepth->Release();
-		mImageDepth = 0;
+	if ( mSensorData.pDepthFrame != 0 ) {
+		mSensorData.pDepthFrame->Release();
+		mSensorData.pDepthFrame = 0;
 	}
 
 	if ( mModel != 0 ) {
@@ -223,8 +221,13 @@ void FaceTracker::start( const DeviceOptions& deviceOptions )
 		throw ExcFaceTrackerCreateResult( hr );
 	}
 
-	mImageColor = FTCreateImage();
-	mImageDepth = FTCreateImage();
+	tagPOINT offset;
+	offset.x			= 0;
+	offset.y			= 0;
+	mSensorData.pDepthFrame	= FTCreateImage();
+	mSensorData.pVideoFrame	= FTCreateImage();
+	mSensorData.ViewOffset	= offset;
+	mSensorData.ZoomFactor	= 1.0f;
 	
 	mRunning	= true;
 	mThread		= ThreadRef( new thread( &FaceTracker::run, this ) );
@@ -241,36 +244,36 @@ void FaceTracker::stop()
 
 void FaceTracker::update( const Surface8u& color, const Channel16u& depth, const Vec3f headPoints[ 2 ], size_t userId )
 {
-	if ( mNewFrame && mEventHandler != nullptr ) {
+	if ( mNewFace && mEventHandler != nullptr ) {
 		mEventHandler( mFace );
-		mNewFrame = false;
-
 		if ( color && depth ) {
-			bool attach	= !mSurfaceColor || !mChannelDepth;
-
 			mHeadPoints.clear();
 			if ( headPoints != 0 ) {
 				mHeadPoints.push_back( headPoints[ 0 ] );
 				mHeadPoints.push_back( headPoints[ 1 ] );
 			}
+
+			bool attach = !mChannelDepth || !mSurfaceColor;
+
 			mChannelDepth	= depth;
 			mSurfaceColor	= color;
 			mUserId			= userId;
 
 			if ( attach ) {
-				mImageColor->Attach( mSurfaceColor.getWidth(), mSurfaceColor.getHeight(), 
+				mSensorData.pVideoFrame->Attach( mSurfaceColor.getWidth(), mSurfaceColor.getHeight(), 
 					(void*)mSurfaceColor.getData(), FTIMAGEFORMAT_UINT8_B8G8R8X8, mSurfaceColor.getWidth() * 4 );
-				mImageDepth->Attach( mChannelDepth.getWidth(), mChannelDepth.getHeight(), 
+				mSensorData.pDepthFrame->Attach( mChannelDepth.getWidth(), mChannelDepth.getHeight(), 
 					(void*)mChannelDepth.getData(), FTIMAGEFORMAT_UINT16_D13P3,	mChannelDepth.getWidth() * 2 );
 			}
 		}
+		mNewFace = false;
 	}
 }
 
 void FaceTracker::run()
 {
 	while ( mRunning ) {
-		if ( !mNewFrame && mEventHandler != nullptr && mImageColor != 0 && mImageDepth != 0 ) {
+		if ( !mNewFace ) {
 
 			long hr = S_OK;
 
@@ -281,11 +284,6 @@ void FaceTracker::run()
 			mFace.mPoseMatrix.setToIdentity();
 			mFace.mUserId = mUserId;
 
-			tagPOINT offset;
-			offset.x			= 0;
-			offset.y			= 0;
-			FT_SENSOR_DATA data( mImageColor, mImageDepth, 1.0f, &offset );
-
 			FT_VECTOR3D* hint = 0;
 			if ( mHeadPoints.size() == 2 ) {
 				hint = new FT_VECTOR3D[ 2 ];
@@ -295,10 +293,10 @@ void FaceTracker::run()
 			}
 
 			if ( mSuccess ) {
-				hr = mFaceTracker->ContinueTracking( &data, hint, mResult );
+				hr = mFaceTracker->ContinueTracking( &mSensorData, hint, mResult );
 				console() << "Continue ";
 			} else {
-				hr = mFaceTracker->StartTracking( &data, 0, hint, mResult );
+				hr = mFaceTracker->StartTracking( &mSensorData, 0, hint, mResult );
 				console() << "Start ";
 			}
 
@@ -374,7 +372,7 @@ void FaceTracker::run()
 						if ( mCalcMesh2d ) {
 							tagPOINT viewOffset	= { 0, 0 };
 							FT_VECTOR2D* pts	= reinterpret_cast<FT_VECTOR2D*>( _malloca( sizeof( FT_VECTOR2D ) * numVertices ) );
-							hr = mModel->GetProjectedShape( &mConfigColor, data.ZoomFactor, viewOffset, shapeUnits, numShapeUnits, animationUnits, 
+							hr = mModel->GetProjectedShape( &mConfigColor, mSensorData.ZoomFactor, viewOffset, shapeUnits, numShapeUnits, animationUnits, 
 								numAnimationUnits, scale, rotation, translation, pts, numVertices );
 							if ( SUCCEEDED( hr ) ) {
 								for ( size_t i = 0; i < numVertices; ++i ) {
@@ -405,9 +403,8 @@ void FaceTracker::run()
 				mResult->Reset();
 			}
 
-			mNewFrame = true;
+			mNewFace = true;
 		}
-		Sleep( 8 );
 	}
 }
 
