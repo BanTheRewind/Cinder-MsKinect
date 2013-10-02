@@ -627,7 +627,8 @@ bool Device::isFlipped() const
 long Device::openColorStream()
 {
 	if ( mSensor != 0 ) {
-		long hr = mSensor->NuiImageStreamOpen( NUI_IMAGE_TYPE_COLOR, mDeviceOptions.getColorResolution(), 0, 2, mColorEvent, &mColorStreamHandle );
+		long hr = mSensor->NuiImageStreamOpen( NUI_IMAGE_TYPE_COLOR, mDeviceOptions.getColorResolution(), 
+			0, 2, mColorEvent, &mColorStreamHandle );
 		if ( FAILED( hr ) ) {
 			console() << "Unable to open color image stream: " << endl;
 			error( hr );
@@ -643,7 +644,9 @@ long Device::openDepthStream()
 	if ( mSensor != 0) {
 		NUI_IMAGE_TYPE type = mDeviceOptions.getDepthResolution() != ImageResolution::NUI_IMAGE_RESOLUTION_640x480 && 
 			HasSkeletalEngine( mSensor ) ? NUI_IMAGE_TYPE_DEPTH_AND_PLAYER_INDEX : NUI_IMAGE_TYPE_DEPTH;
-		long hr = mSensor->NuiImageStreamOpen( type, mDeviceOptions.getDepthResolution(), 0, 2, mDepthEvent, &mDepthStreamHandle );
+		long hr = mSensor->NuiImageStreamOpen( type, mDeviceOptions.getDepthResolution(), 
+			mDeviceOptions.isNearModeEnabled() ? NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE : 0, 2, 
+			mDepthEvent, &mDepthStreamHandle );
 		if ( FAILED( hr ) ) {
 			console() << "Unable to open depth image stream: " << endl;
 			error( hr );
@@ -732,13 +735,13 @@ void Device::run()
 			bool readColor		= !mNewColorSurface;
 			bool readDepth		= !mNewDepthSurface;
 			bool readSkeleton	= !mNewSkeletons;
-			if ( mDeviceOptions.isFrameSyncEnabled() && mDeviceOptions.isColorEnabled() && mDeviceOptions.isDepthEnabled() ) {
+			/*if ( mDeviceOptions.isFrameSyncEnabled() && mDeviceOptions.isColorEnabled() && mDeviceOptions.isDepthEnabled() ) {
 				if ( readColor != readDepth ) {
 					readColor	= false;
 					readDepth	= false;
 				}
 				readSkeleton	= readDepth;
-			}
+			}*/
 			readColor		= readColor && mDeviceOptions.isColorEnabled();
 			readDepth		= readDepth && mDeviceOptions.isDepthEnabled();
 			readSkeleton	= readSkeleton && mDeviceOptions.isSkeletonTrackingEnabled();
@@ -789,13 +792,12 @@ void Device::run()
 					}
 					if ( lockedRect.Pitch != 0 ) {
 						pixelToColorSurface( (uint8_t*)lockedRect.pBits );
-						if ( mDeviceOptions.isFrameSyncEnabled() ) {
+						/*if ( mDeviceOptions.isFrameSyncEnabled() ) {
 							mColorFrames.push_back( ColorFrame( mColorSurface, frameColor->liTimeStamp.QuadPart ) );
 							if ( mColorFrames.size() > 10 ) {
 								mColorFrames.erase( mColorFrames.begin() );
 							}
-						}
-
+						}*/
 					} else {
 						console() << "Invalid buffer length received." << endl;
 					}
@@ -1036,9 +1038,6 @@ void Device::start( const DeviceOptions& deviceOptions )
 			flags = NUI_INITIALIZE_FLAG_USES_DEPTH_AND_PLAYER_INDEX;
 			if ( mDeviceOptions.isSkeletonTrackingEnabled() ) {
 				flags |= NUI_INITIALIZE_FLAG_USES_SKELETON;
-				if ( mDeviceOptions.isNearModeEnabled() ) {
-					flags |= NUI_SKELETON_TRACKING_FLAG_ENABLE_IN_NEAR_RANGE;
-				}
 			}
 		}
 		if ( mDeviceOptions.isColorEnabled() ) {
@@ -1087,16 +1086,6 @@ void Device::start( const DeviceOptions& deviceOptions )
 				return;
 			}
 			mIsSkeletonDevice = true;
-		}
-
-		flags = NUI_IMAGE_STREAM_FRAME_LIMIT_MAXIMUM;
-		if ( mDeviceOptions.isNearModeEnabled() ) {
-			flags |= NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE | NUI_IMAGE_STREAM_FLAG_DISTINCT_OVERFLOW_DEPTH_VALUES;
-		}
-		hr = mSensor->NuiImageStreamSetImageFrameFlags( mDepthStreamHandle, flags );
-		if ( FAILED( hr ) ) {
-			console() << "Unable to set image frame flags: " << endl;
-			error( hr );
 		}
 
 		mSkeletons.clear();
@@ -1153,7 +1142,7 @@ void Device::update()
 		newFrame = newFrame && mNewSkeletons;
 	}
 	if ( newFrame && mEventHandler != nullptr ) {
-		if ( mDeviceOptions.isFrameSyncEnabled() && mDeviceOptions.isColorEnabled() && mDeviceOptions.isDepthEnabled() ) {
+		/*if ( mDeviceOptions.isFrameSyncEnabled() && mDeviceOptions.isColorEnabled() && mDeviceOptions.isDepthEnabled() ) {
 			list<ColorFrame>::const_iterator colorFrame = mColorFrames.begin();
 			__int64 d0									= math<__int64>::abs( mDepthTimeStamp - colorFrame->getTimeStamp() );
 			for ( list<ColorFrame>::const_iterator iter = mColorFrames.begin(); iter != mColorFrames.end(); ++iter ) {
@@ -1168,10 +1157,10 @@ void Device::update()
 
 			Frame frame( mFrameId, colorFrame->getSurface(), mDepthSurface, mSkeletons );
 			mEventHandler( frame, mDeviceOptions );
-		} else {
+		} else {*/
 			Frame frame( mFrameId, mColorSurface, mDepthSurface, mSkeletons );
 			mEventHandler( frame, mDeviceOptions );
-		}
+		//}
 		++mFrameId;
 	}
 	mNewColorSurface	= false;
