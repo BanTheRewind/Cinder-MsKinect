@@ -190,7 +190,7 @@ public:
 	inline uint32_t					addDepthCallback( T callback, Y *callbackObject )
 	{
 		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
-		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalDepth.connect( std::bind( callback, callbackObject, std::_1, std::_2 ) ) ) ) ) );
+		mCallbacks.insert(std::make_pair(id, CallbackRef(new Callback(mSignalDepth.connect(std::bind(callback, callbackObject, std::placeholders::_1, std::placeholders::_2))))));
 		return id;
 	}
 	//! Adds skeleton tracking callback.
@@ -198,7 +198,7 @@ public:
 	inline uint32_t					addSkeletonTrackingCallback( T callback, Y *callbackObject )
 	{
 		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
-		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalSkeleton.connect( std::bind( callback, callbackObject, std::_1, std::_2 ) ) ) ) ) );
+		mCallbacks.insert(std::make_pair(id, CallbackRef(new Callback(mSignalSkeleton.connect(std::bind(callback, callbackObject, std::placeholders::_1, std::placeholders::_2))))));
 		return id;
 	}
 	//! Adds video tracking callback.
@@ -206,7 +206,7 @@ public:
 	inline uint32_t					addColorCallback( T callback, Y *callbackObject )
 	{
 		uint32_t id = mCallbacks.empty() ? 0 : mCallbacks.rbegin()->first + 1;
-		mCallbacks.insert( std::make_pair( id, CallbackRef( new Callback( mSignalColor.connect( std::bind( callback, callbackObject, std::_1, std::_2 ) ) ) ) ) );
+		mCallbacks.insert(std::make_pair(id, CallbackRef(new Callback(mSignalColor.connect(std::bind(callback, callbackObject, std::placeholders::_1, std::placeholders::_2))))));
 		return id;
 	}
 	//! Removes callback.
